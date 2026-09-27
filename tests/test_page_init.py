@@ -1,7 +1,9 @@
 """Guards for WP-2A: deep-linked pages must style themselves and gate themselves.
 
 Streamlit serves every file in ``pages/`` at a filename-derived URL, and it does
-so without ``streamlit_app.py``'s configuration necessarily taking effect. Two
+so without ``streamlit_app.py``'s configuration necessarily taking effect. Page
+modules now live in ``views/`` (only ``pages/99_healthz.py`` remains), which
+removes that path; these guards stay so each page is self-sufficient. Two
 things therefore cannot live in the entry script alone, and these tests hold that
 line because both failures are invisible in normal use — they only show up on a
 cold direct load of a sub-page, which is exactly what a shared link is.
@@ -19,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-PAGES_DIR = Path(__file__).resolve().parents[1] / "pages"
+PAGES_DIR = Path(__file__).resolve().parents[1] / "views"
 
 # 99_healthz.py is a machine-readable liveness endpoint, not a page: no chrome
 # to apply, and its reachability outside the nav is the point. See its comment.

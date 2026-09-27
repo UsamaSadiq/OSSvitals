@@ -3,9 +3,9 @@
 Two things here are easy to get wrong and are therefore pinned in code rather
 than derived at runtime.
 
-**URL paths.** Streamlit derives a multi-page URL slug from the *filename* in
-``pages/``, not from the ``st.Page`` title. So the nav label "Checks Catalog"
-lives at ``/glossary`` because the file is ``pages/06_glossary.py``. The paths
+**URL paths.** Streamlit derives a multi-page URL slug from the page *filename*,
+not from the ``st.Page`` title. So the nav label "Checks Catalog" lives at
+``/glossary`` because the file is ``views/06_glossary.py``. The paths
 below are the verified-working ones; ``dashboard/lib/share.py`` maps the same
 slugs for share links, and the two lists must agree.
 
@@ -17,14 +17,10 @@ per-page values below are measured, not guessed: Overview and Repo Detail pay
 for charts plus the history load, Failing Checks and the Catalog build large
 tables, the rest are cheap.
 
-Ten pages are listed. ``pages/07_sql.py``, ``08_badges.py`` and
-``10_cards.py`` are feature-flagged off by default and render a "not enabled"
-stub, and ``99_healthz.py`` is a plain-text liveness endpoint, so none belong in
-a visual baseline.
-
-Note that every one of those files *is* still reachable by URL — Streamlit routes
-to anything in ``pages/`` regardless of ``st.navigation`` — which is why each
-gated page enforces its own flag (see ``dashboard/ui/page.py``).
+Ten pages are listed. ``views/07_sql.py``, ``08_badges.py`` and
+``10_cards.py`` are feature-flagged off by default and are left out of the
+navigation, so their URLs do not resolve; ``pages/99_healthz.py`` is a plain-text
+liveness endpoint. None belong in a visual baseline.
 ``ownership_views`` stays in this inventory even though it is now hidden from the
 nav when the snapshot carries no ownership fields: it remains routable, so it
 still deserves regression cover.
