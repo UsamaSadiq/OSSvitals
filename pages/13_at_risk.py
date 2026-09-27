@@ -3,7 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from dashboard.data import load_config, load_scored_history, load_scored_snapshot
+from dashboard.data import load_config, load_scored_baseline, load_scored_snapshot
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import get_feature_flags
 from dashboard.lib.share import share_link
@@ -18,13 +18,6 @@ from dashboard.lib.stewardship import (
 from dashboard.ui import empty_state, page_init, repo_table, share_link_block
 
 
-def _history_baseline(days: int = 30) -> tuple[pd.DataFrame | None, object]:
-    history = load_scored_history(days=days)
-    if len(history) < 2:
-        return None, None
-    return history[0].df, history[0].timestamp
-
-
 def _render_at_risk(df: pd.DataFrame) -> None:
     rule = load_config("attention_rules").get("rules", {}).get("stewardship_risk", {})
     if not rule.get("enabled", True):
@@ -34,7 +27,7 @@ def _render_at_risk(df: pd.DataFrame) -> None:
             "Enable `stewardship_risk` in `attention_rules.yaml`.",
         )
         return
-    baseline, since = _history_baseline()
+    baseline, since = load_scored_baseline()
     risky = at_risk_repos(df, baseline, now=now_utc(), rule=rule)
 
     st.caption(

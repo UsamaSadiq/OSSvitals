@@ -91,6 +91,14 @@ def load_maintenance(relative_path: str) -> dict[str, Any] | None:
     return maintenance.load(relative_path)
 
 
+def load_scored_baseline(days: int = 30) -> tuple[pd.DataFrame | None, Any]:
+    """Oldest scored snapshot in the window and its date, for score-change comparisons."""
+    history = load_scored_history(days=days)
+    if len(history) < 2:
+        return None, None
+    return history[0].df, history[0].timestamp
+
+
 def load_my_repos(handle: str) -> pd.DataFrame:
     """Filter snapshot by ownership columns for a GitHub handle."""
     return _load_my_repos(handle)
@@ -104,6 +112,7 @@ __all__ = [
     "load_history",
     "load_maintenance",
     "load_my_repos",
+    "load_scored_baseline",
     "load_scored_history",
     "load_scored_snapshot",
     "load_snapshot",
