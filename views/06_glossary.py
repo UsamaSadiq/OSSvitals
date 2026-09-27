@@ -5,10 +5,11 @@ import re
 import pandas as pd
 import streamlit as st
 
-from dashboard.data import load_config, load_snapshot
+from dashboard.data import load_config, load_history, load_snapshot
+from dashboard.lib.check_review import SATURATED, SATURATION_SHARE, SPARSE, SPARSE_FILL, review_window, up_for_review
 from dashboard.lib.remediation import missing_remediation_checks
 from dashboard.lib.schema import humanize_check
-from dashboard.ui import empty_state, page_init
+from dashboard.ui import empty_state, page_init, repo_table
 
 PASS_TOKENS = {"true", "1", "yes"}
 FAIL_TOKENS = {"false", "0", "no", "fail", "failing"}
@@ -93,6 +94,52 @@ def _render_check(check: str, *, descriptions: dict, score_map: dict, df: pd.Dat
             gaps.append("no remediation entry")
         if gaps:
             st.caption(":warning: Config gaps: " + ", ".join(gaps))
+
+
+SATURATED_COLUMNS = {
+    "check": st.column_config.TextColumn("Check"),
+    "dominant": st.column_config.TextColumn("Value almost every repo has"),
+    "share_pct": st.column_config.NumberColumn("Share", format="%.1f%%"),
+    "outliers": st.column_config.NumberColumn("Repos with another value"),
+}
+
+SPARSE_COLUMNS = {
+    "check": st.column_config.TextColumn("Check"),
+    "fill_pct": st.column_config.NumberColumn("Repos reporting it", format="%.1f%%"),
+}
+
+
+def _window_text() -> tuple[str, list]:
+    history = load_history()
+    window = review_window(history)
+    if window.snapshots < 2:
+        return "the latest snapshot only (no history retained yet)", history
+    span = f"{window.first:%Y-%m-%d} to {window.last:%Y-%m-%d}"
+    return f"all {window.snapshots} retained snapshots, {span}", history
+
+
+def _render_up_for_review(check_columns: list[str]) -> None:
+    window_text, history = _window_text()
+    flagged = up_for_review(history, check_columns)
+    st.header("Up for review")
+    st.markdown(
+        f"Checks that no longer tell repositories apart, in {window_text}. **Saturated**: one "
+        f"value holds at least {SATURATION_SHARE:.0%} of the repos that report it. **Sparse**: "
+        f"fewer than {SPARSE_FILL:.0%} of repos report it at all. These are raised with the "
+        "Maintenance Working Group, which decides whether to retire a check, keep it to catch "
+        "regressions, or fix its detection."
+    )
+    if flagged.empty:
+        empty_state("good", "No check is saturated or sparse across the retained history.")
+        return
+    saturated = flagged[flagged["kind"] == SATURATED]
+    sparse = flagged[flagged["kind"] == SPARSE]
+    if not saturated.empty:
+        st.subheader(f"Saturated ({len(saturated)})")
+        repo_table(saturated, columns=list(SATURATED_COLUMNS), extra_config=SATURATED_COLUMNS)
+    if not sparse.empty:
+        st.subheader(f"Sparse ({len(sparse)})")
+        repo_table(sparse, columns=list(SPARSE_COLUMNS), extra_config=SPARSE_COLUMNS)
 
 
 def _render_candidates() -> None:
@@ -191,6 +238,7 @@ def render() -> None:
                 missing_desc=missing_desc, missing_remediation=missing_remediation,
             )
 
+    _render_up_for_review(check_columns)
     _render_candidates()
 
 
