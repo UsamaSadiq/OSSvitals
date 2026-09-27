@@ -15,6 +15,7 @@ on:
     paths:
       - dashboard/lib/scoring.py
       - dashboard/lib/scores_export.py
+      - dashboard/lib/proposed_scoring.py
       - dashboard/config/*/scoring.yaml
       - dashboard/config/*/scoring_proposed.yaml
       - scripts/build_scores.py
