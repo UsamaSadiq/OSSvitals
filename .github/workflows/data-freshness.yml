@@ -1,0 +1,56 @@
+name: Data freshness
+
+# Everything upstream of the dashboard now runs unattended: the openedx data job,
+# the auto-merge routine, build-scores and collect-maintenance. This checks daily
+# that each published source is at most 2 days old, opens (or updates) one issue
+# labelled data-freshness when something is stale or unreadable, and closes it
+# once everything is fresh again.
+
+on:
+  schedule:
+    - cron: "37 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      LABEL: data-freshness
+      REPORT: ${{ github.workspace }}/freshness.md
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Check sources
+        id: check
+        run: python scripts/check_freshness.py --report "$REPORT" && echo "stale=false" >> "$GITHUB_OUTPUT" || echo "stale=true" >> "$GITHUB_OUTPUT"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Open or update the alert
+        if: steps.check.outputs.stale == 'true'
+        run: |
+          gh label create "$LABEL" --color D93F0B --description "Published dashboard data is stale" --force
+          open_issue=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number')
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --body-file "$REPORT"
+          else
+            gh issue create --title "Dashboard data is stale" --label "$LABEL" --body-file "$REPORT"
+          fi
+
+      - name: Close the alert when fresh
+        if: steps.check.outputs.stale == 'false'
+        run: |
+          open_issue=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$open_issue" ]; then
+            gh issue close "$open_issue" --comment "All sources are fresh again.$(printf '\n\n')$(cat "$REPORT")"
+          fi
