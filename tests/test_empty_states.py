@@ -19,7 +19,7 @@ import pytest
 from dashboard.ui.banners import _RENDERERS, empty_state
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGES_DIR = ROOT / "pages"
+PAGES_DIR = ROOT / "views"
 
 # Pages that legitimately still call st.error / st.warning directly, for things
 # that are not empty states: an exception surfaced to the reader, a caveat about

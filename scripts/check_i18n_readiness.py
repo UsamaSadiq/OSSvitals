@@ -5,7 +5,7 @@ import argparse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SCAN_DIRS = [ROOT / "dashboard", ROOT / "pages"]
+SCAN_DIRS = [ROOT / "dashboard", ROOT / "views", ROOT / "pages"]
 EXCLUDE_SUFFIXES = {".pyc"}
 
 

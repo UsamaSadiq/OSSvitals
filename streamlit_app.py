@@ -10,26 +10,28 @@ st.set_page_config(
     layout="wide",
 )
 
-# Styling and query-param hydration deliberately live in each page's page_init()
-# rather than here. Streamlit serves any file in pages/ by its filename-derived
-# URL without this script's configuration taking effect, so anything applied
-# here is missing on a direct deep link. See dashboard/ui/page.py.
+# Pages live in views/, not pages/. Streamlit auto-discovers pages/ and serves a
+# direct link to any file there without running this script, which rendered the
+# raw filename list as the sidebar (backlog A0). Outside pages/, every URL is
+# routed through st.navigation() below. Only the plain-text /healthz endpoint
+# stays in pages/, since it must answer without the navigation.
 #
-# For the same reason the flag checks below only shape the nav; each optional
-# page enforces its own flag via require_feature().
+# Styling and query-param hydration still live in each page's page_init(), and
+# optional pages still enforce their own flag via require_feature(); a page left
+# out of the navigation (flag off) no longer resolves at all.
 flags = get_feature_flags()
 
 health_pages = [
-    st.Page("pages/01_overview.py", title="Overview", icon=":material/dashboard:", default=True),
-    st.Page("pages/02_repo_detail.py", title="Repo Detail", icon=":material/search:"),
-    st.Page("pages/03_failing_checks.py", title="Failing Checks", icon=":material/error:"),
-    st.Page("pages/05_what_changed.py", title="What Changed", icon=":material/trending_up:"),
+    st.Page("views/01_overview.py", title="Overview", icon=":material/dashboard:", default=True),
+    st.Page("views/02_repo_detail.py", title="Repo Detail", icon=":material/search:"),
+    st.Page("views/03_failing_checks.py", title="Failing Checks", icon=":material/error:"),
+    st.Page("views/05_what_changed.py", title="What Changed", icon=":material/trending_up:"),
 ]
 
 # Everything that asks someone to act: triage, thin ownership, who owns what,
 # and upgrade work (bot and human PRs).
 maintenance_pages = [
-    st.Page("pages/04_needing_attention.py", title="Needing Attention", icon=":material/priority_high:"),
+    st.Page("views/04_needing_attention.py", title="Needing Attention", icon=":material/priority_high:"),
 ]
 # Backlog C4 asked for this section to be hidden when the snapshot carries no
 # ownership fields, on the grounds that an empty top-level section reads as a
@@ -39,28 +41,25 @@ maintenance_pages = [
 # it, which is a worse outcome for a link recipient than an honest empty page —
 # and the cosmetic concern is addressable in the page's own empty state, which
 # is what WP-6 did instead.
-#
-# Genuinely hiding it would mean moving the file out of pages/ so Streamlit's
-# routing never sees it. That is a bigger change and needs a decision about
-# whether the URL should keep working; see docs/UX_REVIEW_BACKLOG.md C4.
+
 if flags.get("enable_maintainer_views", True):
     maintenance_pages += [
-        st.Page("pages/13_at_risk.py", title="At Risk", icon=":material/warning:"),
-        st.Page("pages/09_ownership_views.py", title="Owners", icon=":material/groups:"),
+        st.Page("views/13_at_risk.py", title="At Risk", icon=":material/warning:"),
+        st.Page("views/09_ownership_views.py", title="Owners", icon=":material/groups:"),
     ]
-maintenance_pages.append(st.Page("pages/12_maintenance.py", title="Upgrades", icon=":material/upgrade:"))
+maintenance_pages.append(st.Page("views/12_maintenance.py", title="Upgrades", icon=":material/upgrade:"))
 
 tools_pages = []
 if flags.get("enable_sql_page", False):
-    tools_pages.append(st.Page("pages/07_sql.py", title="SQL", icon=":material/database:"))
+    tools_pages.append(st.Page("views/07_sql.py", title="SQL", icon=":material/database:"))
 if flags.get("enable_badge_links", False):
-    tools_pages.append(st.Page("pages/08_badges.py", title="Badges", icon=":material/military_tech:"))
+    tools_pages.append(st.Page("views/08_badges.py", title="Badges", icon=":material/military_tech:"))
 if flags.get("enable_year_in_review_cards", False) or flags.get("enable_embeddable_score_cards", False):
-    tools_pages.append(st.Page("pages/10_cards.py", title="Cards", icon=":material/style:"))
+    tools_pages.append(st.Page("views/10_cards.py", title="Cards", icon=":material/style:"))
 
 reference_pages = [
-    st.Page("pages/06_glossary.py", title="Checks Catalog", icon=":material/menu_book:"),
-    st.Page("pages/11_scoring.py", title="How Scoring Works", icon=":material/calculate:"),
+    st.Page("views/06_glossary.py", title="Checks Catalog", icon=":material/menu_book:"),
+    st.Page("views/11_scoring.py", title="How Scoring Works", icon=":material/calculate:"),
 ]
 
 sections: dict[str, list] = {"Health": health_pages, "Maintenance": maintenance_pages}

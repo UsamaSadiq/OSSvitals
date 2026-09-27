@@ -26,7 +26,7 @@ from dashboard.ui.tables import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGES_DIR = ROOT / "pages"
+PAGES_DIR = ROOT / "views"
 
 
 def _page_files() -> list[Path]:

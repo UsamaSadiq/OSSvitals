@@ -2,6 +2,9 @@
 
 Both helpers here exist because of one Streamlit behaviour: **a direct load of a
 non-root URL is served without the entry script's configuration taking effect.**
+(Resolved at the root since page modules moved from ``pages/`` to ``views/``:
+Streamlit no longer auto-discovers them, so every URL runs ``streamlit_app.py``.
+The helpers stay, so each page remains self-sufficient.)
 Streamlit discovers anything in ``pages/`` automatically and routes to it by a
 filename-derived slug, so ``/repo_detail`` resolves whether or not
 ``streamlit_app.py`` got to call ``st.navigation()``.

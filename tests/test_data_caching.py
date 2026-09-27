@@ -24,7 +24,7 @@ from dashboard.lib.precomputed import scored_history
 from dashboard.lib.trends import Snapshot
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGES_DIR = ROOT / "pages"
+PAGES_DIR = ROOT / "views"
 UI_DIR = ROOT / "dashboard" / "ui"
 
 # ownership_views legitimately scores a *derived* frame (load_my_repos filters the
@@ -153,7 +153,7 @@ def test_repo_detail_does_not_cache_history_per_repository() -> None:
                 "history is already cached by load_scored_history"
             )
             return
-    pytest.fail("_history_for_repo not found in pages/02_repo_detail.py")
+    pytest.fail("_history_for_repo not found in views/02_repo_detail.py")
 
 
 def test_cold_path_shows_a_spinner() -> None:
