@@ -6,6 +6,7 @@ from rapidfuzz import fuzz
 
 from dashboard.lib.config import get_config, get_feature_flags
 from dashboard.data import load_scored_history, load_scored_snapshot
+from dashboard.lib.activity import repo_signals, snapshot_has_signals
 from dashboard.lib.linking import github_issue_url, github_pr_compare_url
 from dashboard.lib.remediation import get_remediation
 from dashboard.lib.schema import humanize_check
@@ -179,6 +180,26 @@ def _render_check_expander(check: str, repo_row: pd.Series, selected_repo: str, 
                 action_right.link_button("Open PR with fix", pr_url)
 
 
+def _render_activity(repo_row: pd.Series, snapshot_columns: list[str]) -> None:
+    st.header("Activity")
+    if not snapshot_has_signals(snapshot_columns):
+        empty_state(
+            "info",
+            "Issue, PR backlog, CI and newcomer signals are not in this snapshot yet.",
+            "They appear once the upstream repo-health run starts reporting them.",
+        )
+        return
+    grouped = repo_signals(repo_row)
+    if not grouped:
+        empty_state("info", "This repository reports no issue, PR or CI signals in this snapshot.")
+        return
+    for column, (group, signals) in zip(st.columns(len(grouped)), grouped.items()):
+        with column:
+            st.subheader(group)
+            st.markdown("\n".join(f"- {label}: **{value}**" for label, value in signals))
+    st.caption("Counts and medians only; newcomers are PR authors GitHub marks as first-time contributors.")
+
+
 def render() -> None:
     page_init()
     st.title("Repository Detail")
@@ -280,6 +301,8 @@ def render() -> None:
         f"Scoring config {repo_row.get('score_config_version', 'unknown')} · "
         "bars show each metric's contribution; unmeasured metrics are marked."
     )
+
+    _render_activity(repo_row, list(df.columns))
 
     # ----------------------------------------------------- category cards
     st.header("Category overview")
