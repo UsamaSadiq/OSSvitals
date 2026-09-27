@@ -338,6 +338,20 @@ def _base_css(p: Palette) -> str:
         f'    border-color: {p.primary}; color: {p.primary};\n'
         f'  }}'
     )
+    # The dark base theme draws an unchecked toggle as a faint white track with
+    # a white knob, which all but disappears on the light page.
+    light_toggles = (
+        ""
+        if p.is_dark
+        else (
+            f'  [data-testid="stMain"] [data-testid="stCheckbox"] label:has(input[aria-checked="false"]) > div:first-child {{\n'
+            f'    background: {_rgba(p.muted, 0.45)};\n'
+            f'  }}\n'
+            f'  [data-testid="stMain"] [data-testid="stCheckbox"] label > div:first-child > div {{\n'
+            f'    background: {p.surface_alt}; box-shadow: 0 1px 2px rgba(15,23,42,.25);\n'
+            f'  }}'
+        )
+    )
 
     grade_rules = "\n".join(
         f"  .grade-{letter.lower()} {{ background: {p.grade_colors[letter]}; "
@@ -695,6 +709,7 @@ def _base_css(p: Palette) -> str:
   /* "No data" is deliberately distinguishable from "unknown" by shape as well
      as colour, so it does not read as a muted pass. */
 {native_chrome}
+{light_toggles}
   .status-nodata {{
     background: transparent;
     color: var(--color-muted);
