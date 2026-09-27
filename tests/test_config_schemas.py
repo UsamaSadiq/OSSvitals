@@ -11,6 +11,7 @@ def test_openedx_config_files_validate_against_schemas():
         "remediation",
         "pr_templates",
         "scoring",
+        "scoring_proposed",
         "tiers",
         "attention_rules",
         "strings",

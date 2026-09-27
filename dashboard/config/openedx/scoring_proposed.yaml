@@ -1,0 +1,118 @@
+version: "3.0-proposed"
+# Proposed scoring for Maintenance WG review. Not live: scoring.yaml drives every grade.
+# Built beside the live scores as scores_proposed.json so the grade change is visible first.
+# Swaps four metrics for outcome measures; weights and all other metrics are unchanged.
+letter_grades:
+  A: [80, 100]
+  B: [60, 79]
+  C: [40, 59]
+  D: [20, 39]
+  F: [0, 19]
+metrics:
+  commit_recency:
+    weight: 0.15
+    category: "activity"
+    column: "github.last_push"
+    parse_rule: "threshold_days"
+    parse_format: "%Y-%m-%d %H:%M:%S"
+    thresholds: [{days: 7, score: 100}, {days: 30, score: 80}, {days: 90, score: 50}, {days: 365, score: 20}]
+    default_when_missing: 50
+    status: "computable"
+    chaoss_metric: "Code Changes"
+  pr_response_time:
+    weight: 0.15
+    category: "activity"
+    column: "github.median_pr_response_seconds"
+    parse_rule: "threshold_max_seconds"  # lower is better; scored by ascending max ceilings
+    # Provisional thresholds (pending maintainer sign-off): ≤1d/3d/7d/30d.
+    thresholds: [{max: 86400, score: 100}, {max: 259200, score: 80}, {max: 604800, score: 50}, {max: 2592000, score: 20}]
+    provisional: true
+    limitation: "Blank when the repo opened no PRs in 90 days, so it scores the missing-data default."
+    status: "computable"
+    default_when_missing: 50
+    chaoss_metric: "Issue Response Time"
+  pr_closure_ratio:
+    weight: 0.15
+    category: "activity"
+    column: "github.pr_closure_ratio_90d"
+    parse_rule: "threshold_numeric"
+    # Provisional thresholds (pending maintainer sign-off): fraction of PRs closed/merged.
+    thresholds: [{min: 0.8, score: 100}, {min: 0.5, score: 70}, {min: 0.2, score: 40}, {min: 0, score: 20}]
+    provisional: true
+    limitation: "Blank when the repo opened no PRs in 90 days, so it scores the missing-data default."
+    status: "computable"
+    default_when_missing: 50
+    chaoss_metric: "Change Request Closure Ratio"
+  release_frequency:
+    weight: 0.10
+    category: "activity"
+    column: "github.release_count_12mo"
+    parse_rule: "threshold_numeric"
+    # Provisional thresholds (pending maintainer sign-off): releases in last 12 months.
+    thresholds: [{min: 12, score: 100}, {min: 4, score: 80}, {min: 1, score: 50}, {min: 0, score: 20}]
+    provisional: true
+    status: "computable"
+    default_when_missing: 50
+    chaoss_metric: "Release Frequency"
+  contributor_absence_factor:
+    weight: 0.10
+    category: "activity"
+    column: "git.absence_factor_365d"
+    parse_rule: "threshold_numeric"
+    # Fewest people who made half of the last year's commits (CHAOSS Contributor Absence Factor).
+    thresholds: [{min: 4, score: 100}, {min: 3, score: 80}, {min: 2, score: 60}, {min: 1, score: 30}]
+    provisional: true
+    replaces: "Distinct commit authors in 90 days (github.contributor_count_90d)"
+    status: "computable"
+    default_when_missing: 50
+    chaoss_metric: "Contributor Absence Factor"
+    aliases: ["Bus Factor", "Elephant Factor"]
+  readme_quality:
+    weight: 0.10
+    category: "structural"
+    column: "readme.bad_links"
+    parse_rule: "readme_sub_checks"
+    # Sub-check rules (see dashboard/lib/scoring.py _README_RULES for full spec):
+    #   readme.getting-help      boolean           — True if help link present
+    #   readme.security          boolean           — True if security contact present
+    #   readme.irc-missing       inverted_boolean  — True if obsolete IRC ref absent
+    #   readme.mailing-list-missing inverted_boolean — True if obsolete list ref absent
+    #   readme.bad_links         list_empty_passes — [] means no broken links
+    #   readme.good_links        list_nonempty_passes — non-empty means working links exist
+    status: "computable"
+    default_when_missing: 50
+  ci_status:
+    weight: 0.10
+    category: "structural"
+    column: "github.default_branch_ci_state"
+    parse_rule: "pass_values"
+    pass_values: ["SUCCESS"]
+    fail_values: ["FAILURE", "ERROR"]
+    replaces: "GitHub Actions configured (github_actions)"
+    limitation: "Pending or absent CI status scores the missing-data default."
+    status: "computable"
+    default_when_missing: 50
+    scorecard_check: "CI-Tests"
+  catalog_info_valid:
+    weight: 0.10
+    category: "structural"
+    column: "ownership.owner"
+    parse_rule: "required_columns"
+    also_required: ["ownership.lifecycle"]
+    replaces_metric: "openedx_yaml_compliance"
+    replaces: "openedx.yaml present (exists.openedx.yaml)"
+    limitation: "A repo without catalog-info.yaml reports no owner, so it scores the missing-data default until the upstream check reports the file itself."
+    status: "computable"
+    default_when_missing: 50
+  dependency_freshness:
+    weight: 0.05
+    category: "structural"
+    column: "git.lockfile_age_days"
+    parse_rule: "threshold_max_days"
+    # Days since uv.lock, else requirements/*.txt, else package-lock.json was last committed.
+    thresholds: [{days: 30, score: 100}, {days: 90, score: 70}, {days: 180, score: 40}, {days: 365, score: 20}]
+    provisional: true
+    replaces: "Renovate or Dependabot configured (renovate.configured, dependabot.*)"
+    status: "computable"
+    default_when_missing: 50
+    scorecard_check: "Dependency-Update-Tool"

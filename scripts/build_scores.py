@@ -8,6 +8,7 @@ from pathlib import Path
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import get_config
 from dashboard.lib.data import DEFAULT_CSV_URL, load_snapshot
+from dashboard.lib.proposed_scoring import applicable_config
 from dashboard.lib.scores_export import build_history_payload, build_snapshot_payload, dumps
 from dashboard.lib.scoring import calculate_scores
 from dashboard.lib.tiers import annotate_tiers
@@ -15,6 +16,7 @@ from dashboard.lib.trends import Snapshot, load_history
 
 SNAPSHOT_FILENAME = "scores.json"
 HISTORY_FILENAME = "scores_history.json"
+PROPOSED_FILENAME = "scores_proposed.json"
 
 
 def _parse_args() -> argparse.Namespace:
@@ -35,7 +37,8 @@ def main() -> int:
     cfg = get_config("data_source")
     min_rows = int(cfg.get("expected_min_rows", 1))
 
-    scored = calculate_scores(annotate_tiers(load_snapshot()))
+    snapshot = annotate_tiers(load_snapshot())
+    scored = calculate_scores(snapshot)
     if len(scored) < min_rows:
         print(f"Snapshot has {len(scored)} rows, expected at least {min_rows}; not writing.")
         return 1
@@ -54,6 +57,11 @@ def main() -> int:
     args.out_dir.mkdir(parents=True, exist_ok=True)
     snapshot_payload = build_snapshot_payload(scored, generated_at=generated_at, source_url=snapshot_url)
     (args.out_dir / SNAPSHOT_FILENAME).write_text(dumps(snapshot_payload), encoding="utf-8")
+
+    proposed_config = applicable_config(get_config("scoring_proposed"), get_config("scoring"), list(snapshot.columns))
+    proposed = calculate_scores(snapshot, config=proposed_config)
+    proposed_payload = build_snapshot_payload(proposed, generated_at=generated_at, source_url=snapshot_url)
+    (args.out_dir / PROPOSED_FILENAME).write_text(dumps(proposed_payload), encoding="utf-8")
 
     history_payload = build_history_payload(
         scored_history, generated_at=generated_at, source_url=history_url

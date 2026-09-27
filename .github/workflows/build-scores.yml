@@ -16,6 +16,7 @@ on:
       - dashboard/lib/scoring.py
       - dashboard/lib/scores_export.py
       - dashboard/config/*/scoring.yaml
+      - dashboard/config/*/scoring_proposed.yaml
       - scripts/build_scores.py
 
 concurrency:

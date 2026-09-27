@@ -72,13 +72,17 @@ def _snapshot_date(raw: pd.DataFrame) -> str | None:
     return str(raw[TIMESTAMP_COL].iloc[0])
 
 
-def scored_snapshot(raw: pd.DataFrame, payload: dict[str, Any] | None) -> pd.DataFrame:
-    if is_compatible(payload, current_config_version()):
+def scored_snapshot(
+    raw: pd.DataFrame, payload: dict[str, Any] | None, config: dict[str, Any] | None = None
+) -> pd.DataFrame:
+    """Scores from ``payload`` when it matches, else computed here with ``config`` (default: live)."""
+    version = str(config.get("version", "unknown")) if config is not None else current_config_version()
+    if is_compatible(payload, version):
         if payload["metadata"].get("snapshot_timestamp") == _snapshot_date(raw):
             merged = merge_scores(raw, payload.get("records", []))
             if merged is not None:
                 return merged
-    return calculate_scores(raw)
+    return calculate_scores(raw, config=config)
 
 
 def scored_history(raw_history: list[Snapshot], payload: dict[str, Any] | None) -> list[Snapshot]:

@@ -86,9 +86,13 @@ def score_row(
     columns: list[str],
     *,
     as_of: date | datetime | None = None,
+    config: dict[str, Any] | None = None,
 ) -> Score:
-    """Compute score object for a single repository row."""
-    config = get_config("scoring")
+    """Compute score object for a single repository row.
+
+    ``config`` defaults to the live ``scoring.yaml``; the proposed method passes its own.
+    """
+    config = config if config is not None else get_config("scoring")
     metrics_cfg = config.get("metrics", {})
     letter_grades = config.get("letter_grades", DEFAULT_LETTER_GRADES)
     reference_dt = _as_of_datetime(as_of)
@@ -182,6 +186,7 @@ def calculate_scores(
     df: pd.DataFrame,
     *,
     as_of: date | datetime | None = None,
+    config: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     """Calculate composite score and letter for each row in dataframe.
 
@@ -198,7 +203,7 @@ def calculate_scores(
         as_of = parse_snapshot_date(df[TIMESTAMP_COL].iloc[0])
 
     columns = list(df.columns)
-    scores = [score_row(row, columns, as_of=as_of) for _, row in df.iterrows()]
+    scores = [score_row(row, columns, as_of=as_of, config=config) for _, row in df.iterrows()]
 
     df = df.copy()
     df["score_composite"] = [score.composite for score in scores]
@@ -247,6 +252,10 @@ def _metric_score(
 
     if pd.isna(value):
         return default, True
+
+    rule_handler = _RULE_HANDLERS.get(str(cfg.get("parse_rule", "")))
+    if rule_handler is not None:
+        return rule_handler(cfg, value, row, default)
 
     if metric_name == "commit_recency":
         pushed = parse_last_push_utc(value)
@@ -316,6 +325,40 @@ def _score_by_max_threshold(value: float, thresholds: list[dict[str, Any]], defa
         if value <= float(item.get("max", 0)):
             return float(item.get("score", default))
     return float(default)
+
+
+def _score_pass_values(cfg: dict[str, Any], value: Any, _row: pd.Series, default: float) -> tuple[float, bool]:
+    token = str(value).strip().upper()
+    if token in {str(item).upper() for item in cfg.get("pass_values", [])}:
+        return 100.0, False
+    if token in {str(item).upper() for item in cfg.get("fail_values", [])}:
+        return 0.0, False
+    return default, True
+
+
+def _is_filled(value: Any) -> bool:
+    return not pd.isna(value) and str(value).strip().lower() not in _FALSY_STR
+
+
+def _score_required_columns(cfg: dict[str, Any], value: Any, row: pd.Series, _default: float) -> tuple[float, bool]:
+    required = [value] + [row.get(column) for column in cfg.get("also_required", [])]
+    return round(sum(map(_is_filled, required)) / len(required) * 100, 2), False
+
+
+def _score_max_days(cfg: dict[str, Any], value: Any, _row: pd.Series, default: float) -> tuple[float, bool]:
+    try:
+        days = float(value)
+    except (TypeError, ValueError):
+        return default, True
+    ceilings = [{"max": item["days"], "score": item["score"]} for item in cfg.get("thresholds", [])]
+    return _score_by_max_threshold(days, ceilings, default=0), False
+
+
+_RULE_HANDLERS = {
+    "pass_values": _score_pass_values,
+    "required_columns": _score_required_columns,
+    "threshold_max_days": _score_max_days,
+}
 
 
 # Per-column parse rules derived from check_readme.py source semantics.

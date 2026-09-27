@@ -33,6 +33,10 @@ def _threshold_steps(parse_rule: str, thresholds: list[dict[str, Any]]) -> list[
         ordered = sorted(thresholds, key=lambda item: int(item["days"]))
         steps = [f"≤ {item['days']} days → {item['score']}" for item in ordered]
         return steps + ["older → 0"]
+    if parse_rule == "threshold_max_days":
+        ordered = sorted(thresholds, key=lambda item: float(item["days"]))
+        steps = [f"≤ {item['days']} days → {item['score']}" for item in ordered]
+        return steps + ["older → 0"]
     if parse_rule == "threshold_max_seconds":
         ordered = sorted(thresholds, key=lambda item: float(item["max"]))
         steps = [f"≤ {_days(float(item['max']))} → {item['score']}" for item in ordered]
@@ -45,6 +49,11 @@ def rule_text(cfg: dict[str, Any]) -> str:
     parse_rule = str(cfg.get("parse_rule", ""))
     if parse_rule in FIXED_RULES:
         return FIXED_RULES[parse_rule]
+    if parse_rule == "pass_values":
+        return f"100 if {' or '.join(cfg.get('pass_values', []))}, 0 if {' or '.join(cfg.get('fail_values', []))}"
+    if parse_rule == "required_columns":
+        fields = [cfg.get("column", "")] + list(cfg.get("also_required", []))
+        return f"share of required fields that are set ({', '.join(f'`{field}`' for field in fields)}), × 100"
     thresholds = cfg.get("thresholds") or []
     if not thresholds:
         return parse_rule or "not specified"
@@ -98,3 +107,4 @@ def metric_rows(config: dict[str, Any], scored: pd.DataFrame) -> list[dict[str, 
             }
         )
     return rows
+

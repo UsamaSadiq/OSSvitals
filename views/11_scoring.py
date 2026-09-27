@@ -3,7 +3,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from dashboard.data import load_config, load_scored_snapshot
+from dashboard.data import load_config, load_proposed_scored_snapshot, load_scored_snapshot
+from dashboard.lib.proposed_scoring import grade_changes, grade_migration, swap_rows
 from dashboard.lib.scoring_method import letter_bands, metric_rows
 from dashboard.lib.share import share_link
 from dashboard.ui import empty_state, page_init, repo_table, share_link_block
@@ -73,6 +74,63 @@ def _render_limitations(rows: list[dict]) -> None:
         )
 
 
+SWAP_COLUMNS = {
+    "metric": st.column_config.TextColumn("Metric"),
+    "replaces": st.column_config.TextColumn("Replaces"),
+    "rule": st.column_config.TextColumn("Proposed rule"),
+    "measured_pct": st.column_config.NumberColumn("Measured", format="%.0f%%"),
+}
+
+CHANGE_COLUMNS = {
+    "repo_name": st.column_config.TextColumn("Repository"),
+    "current": st.column_config.TextColumn("Current", width="small"),
+    "proposed": st.column_config.TextColumn("Proposed", width="small"),
+    "change": st.column_config.NumberColumn("Score change", format="%+.1f"),
+}
+
+
+def _render_pending_inputs(swaps: list[dict]) -> None:
+    pending = [row for row in swaps if not row["in_snapshot"]]
+    if not pending:
+        return
+    names = ", ".join(f"**{row['metric']}** (`{row['source']}`)" for row in pending)
+    empty_state(
+        "info",
+        f"Not in this snapshot yet: {names}.",
+        "The upstream checks that report these are pending, so the comparison below keeps "
+        "the current metric in their place until they arrive.",
+    )
+
+
+def _render_proposed(live_scored: pd.DataFrame) -> None:
+    proposed_config = load_config("scoring_proposed")
+    if not proposed_config.get("metrics"):
+        return
+    proposed_scored = load_proposed_scored_snapshot()
+    swaps = swap_rows(proposed_config, proposed_scored)
+
+    st.header("Proposed changes")
+    st.markdown(
+        f"Scoring version {proposed_config.get('version', 'unknown')} replaces metrics that "
+        "reward a file or a tool being set up with ones that measure the outcome. It is "
+        "**not live**: every grade on this dashboard still uses the method above until the "
+        "Open edX Maintenance Working Group agrees the change."
+    )
+    repo_table(pd.DataFrame(swaps), columns=list(SWAP_COLUMNS), extra_config=SWAP_COLUMNS)
+    _render_pending_inputs(swaps)
+
+    st.subheader("How grades would move")
+    migration = grade_migration(live_scored, proposed_scored).reset_index()
+    repo_table(migration, columns=list(migration.columns))
+    st.caption("Rows are today's grades, columns the proposed ones; the diagonal is unchanged.")
+    changes = grade_changes(live_scored, proposed_scored)
+    if changes.empty:
+        empty_state("info", "No repository changes letter grade under the proposed method.")
+        return
+    st.markdown(f"{len(changes)} repositories would change letter grade:")
+    repo_table(changes, columns=list(CHANGE_COLUMNS), extra_config=CHANGE_COLUMNS)
+
+
 def _render_never_paid_rule() -> None:
     st.header("Independence")
     st.markdown(
@@ -95,7 +153,8 @@ def render() -> None:
         )
         return
 
-    rows = metric_rows(config, load_scored_snapshot())
+    scored = load_scored_snapshot()
+    rows = metric_rows(config, scored)
     _render_overview(str(config.get("version", "unknown")))
 
     st.header("Grade bands")
@@ -116,6 +175,7 @@ def render() -> None:
 
     _render_missing_data_policy(rows)
     _render_limitations(rows)
+    _render_proposed(scored)
     _render_never_paid_rule()
 
     share_link_block(share_link({"tab": "scoring"}), label="Copy link to this view")
