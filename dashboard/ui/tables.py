@@ -141,7 +141,9 @@ def repo_table(
     height: int | None = None,
     extra_config: dict | None = None,
     empty_message: str = "No repositories to show.",
-) -> None:
+    select_key: str | None = None,
+    on_select=None,
+):
     """Render a table with the shared column vocabulary.
 
     Args:
@@ -161,10 +163,16 @@ def repo_table(
             several thousand pixels.
         extra_config: Per-call ``column_config`` entries, merged last.
         empty_message: Caption shown instead of an empty grid.
+        select_key: Widget key that makes rows selectable (single row). Selection
+            is positional, so pass a frame with a reset index.
+        on_select: Callback run when the selection changes; defaults to a rerun.
+
+    Returns:
+        The selection event when ``select_key`` is given, otherwise None.
     """
     if df is None or df.empty:
         st.caption(empty_message)
-        return
+        return None
 
     frame = df
     if columns:
@@ -179,8 +187,13 @@ def repo_table(
     # validates the argument and rejects None with StreamlitInvalidHeightError,
     # so the "no explicit height" case must not supply the keyword at all.
     size_kwargs = {"height": height} if height is not None else {}
+    selection_kwargs = (
+        {"key": select_key, "on_select": on_select or "rerun", "selection_mode": "single-row"}
+        if select_key
+        else {}
+    )
 
-    st.dataframe(
+    return st.dataframe(
         frame,
         width="stretch",
         # Not a parameter: see the module docstring. The dataframe index is an
@@ -190,6 +203,7 @@ def repo_table(
             frame, use_progress=use_progress, link_label=link_label, extra=extra_config
         ),
         **size_kwargs,
+        **selection_kwargs,
     )
 
 
