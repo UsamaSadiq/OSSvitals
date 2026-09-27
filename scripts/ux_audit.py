@@ -104,8 +104,15 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--tolerance",
         type=float,
-        default=0.001,
-        help="Diff mode only: fraction of differing pixels tolerated per image. Default: 0.001.",
+        default=0.0025,
+        help=(
+            "Diff mode only: fraction of differing pixels tolerated per image. "
+            "Default: 0.0025. Raised from 0.001 because the 7,844px mobile Glossary "
+            "capture accumulates scattered anti-aliasing noise of about 0.15% between "
+            "identical renders (0.156% and 0.153% observed), failing intermittently. "
+            "Local defects are caught by the per-tile check; broad changes such as a "
+            "theme or font switch change well over 1% of pixels."
+        ),
     )
     parser.add_argument(
         "--out",
