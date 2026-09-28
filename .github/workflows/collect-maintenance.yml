@@ -1,7 +1,7 @@
 name: Collect maintenance signals
 
 # Collects maintenance signals from public GitHub data (upgrade-job health, upgrade
-# wave progress, redundant bot campaign PRs) and publishes them to
+# wave progress, redundant bot campaign PRs, the catalog-info.yaml snapshot) and publishes them to
 # openedx/maintenance/ on the orphan `data` branch, next to the scores. Read-only:
 # nothing here writes to openedx repos. The dashboard only reads these files.
 

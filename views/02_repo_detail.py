@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from urllib.parse import urlencode
+
 import pandas as pd
 import streamlit as st
 from rapidfuzz import fuzz
 
 from dashboard.lib.config import get_config, get_feature_flags
-from dashboard.data import load_scored_history, load_scored_snapshot
+from dashboard.data import load_maintenance, load_scored_history, load_scored_snapshot
+from dashboard.lib import catalog
 from dashboard.lib.activity import repo_signals, snapshot_has_signals
 from dashboard.lib.linking import github_issue_url, github_pr_compare_url
 from dashboard.lib.remediation import get_remediation
@@ -200,6 +203,82 @@ def _render_activity(repo_row: pd.Series, snapshot_columns: list[str]) -> None:
     st.caption("Counts and medians only; newcomers are PR authors GitHub marks as first-time contributors.")
 
 
+OEP_55_URL = "https://open-edx-proposals.readthedocs.io/en/latest/processes/oep-0055-proc-project-maintainers.html"
+SEVERITY_CHIP = {"problem": "fail", "note": "warn"}
+
+
+def _owner_markdown(entry: dict) -> str:
+    owner = entry.get("owner") or "not set"
+    name = entry.get("owner_name")
+    if not name or entry.get("owner_kind") == "unprefixed":
+        return f"`{owner}`"
+    return f"[`{owner}`](ownership_views?{urlencode({'owner': name.lower()})})"
+
+
+def _catalog_facts(entry: dict) -> list[str]:
+    interest = ", ".join(entry.get("arch_interest_groups") or []) or "none listed"
+    return [
+        f"- Owner: {_owner_markdown(entry)}",
+        f"- Type: **{entry.get('type') or 'not set'}**",
+        f"- Lifecycle: **{entry.get('lifecycle') or 'not set'}**",
+        f"- In a named release: **{entry.get('release') or 'no'}**",
+        f"- Architecture interest: {interest}",
+    ]
+
+
+def _catalog_relations(entry: dict) -> list[str]:
+    status_text = {"not_in_catalog": " (not in catalog)", "placeholder": " (template placeholder)"}
+    return [
+        f"- {catalog.RELATIONS.get(relation['relation'], relation['relation'])}: "
+        f"`{relation['target']}`{status_text.get(relation['status'], '')}"
+        for relation in entry.get("relations") or []
+    ]
+
+
+def _render_catalog(selected: str) -> None:
+    st.header("Catalog")
+    payload = load_maintenance(catalog.CATALOG_FILE)
+    entry = catalog.record_for(payload, selected)
+    if payload is None or entry is None:
+        empty_state(
+            "info",
+            "No catalog snapshot for this repository yet.",
+            "It is published daily by the collect-maintenance workflow.",
+        )
+        return
+    if not entry.get("has_file"):
+        empty_state(
+            "warn",
+            "This repository has no catalog-info.yaml.",
+            "Backstage does not list it and its owner is unknown. OEP-55 describes the file.",
+            action_label="OEP-55",
+            action_url=OEP_55_URL,
+        )
+        return
+    if not entry.get("has_entity"):
+        empty_state("warn", "catalog-info.yaml is empty or not valid YAML.")
+        return
+    facts, about = st.columns(2)
+    facts.markdown("\n".join(_catalog_facts(entry)))
+    with about:
+        if entry.get("description"):
+            st.markdown(entry["description"])
+        links = [f"- [{link['title']}]({link['url']})" for link in entry.get("links") or []]
+        st.markdown("\n".join(links + _catalog_relations(entry)))
+        if entry.get("backstage_url"):
+            st.markdown(f"[Open in Backstage]({entry['backstage_url']})")
+    labels = catalog.finding_labels(entry, catalog.legend(payload))
+    if labels:
+        st.markdown(
+            " ".join(status_chip(SEVERITY_CHIP.get(severity, "warn"), label) for severity, label in labels),
+            unsafe_allow_html=True,
+        )
+    st.caption(
+        f"From catalog-info.yaml on the default branch, collected {str(payload['metadata'].get('generated_at', ''))[:10]}. "
+        "User owners are checked against GitHub; group owners are not, since that needs openedx org membership."
+    )
+
+
 def render() -> None:
     page_init()
     st.title("Repository Detail")
@@ -303,6 +382,7 @@ def render() -> None:
     )
 
     _render_activity(repo_row, list(df.columns))
+    _render_catalog(selected)
 
     # ----------------------------------------------------- category cards
     st.header("Category overview")
