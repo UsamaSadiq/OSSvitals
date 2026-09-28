@@ -7,7 +7,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from collectors import github, publish, redundant_prs, upgrade_jobs, waves
+from collectors import catalog, github, publish, redundant_prs, upgrade_jobs, waves
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import get_config
 
@@ -15,8 +15,10 @@ ORG = "openedx"
 UPGRADE_JOBS_FILE = "upgrade_jobs.json"
 WAVES_DIR = "waves"
 REDUNDANT_PRS_FILE = "redundant_prs.json"
+CATALOG_FILE = "catalog.json"
+CATALOG_PATH = "catalog-info.yaml"
 TREE_WORKERS = 8
-COLLECTORS = ("upgrade_jobs", "waves", "redundant_prs")
+COLLECTORS = ("upgrade_jobs", "waves", "redundant_prs", "catalog")
 
 
 def _parse_args() -> argparse.Namespace:
@@ -117,6 +119,40 @@ def collect_redundant_prs(out_dir: Path, repo_filter: list[str]) -> int:
     return 0
 
 
+def _catalog_texts(repos: list[dict]) -> dict[str, str | None]:
+    def fetch(repo: dict) -> tuple[str, str | None]:
+        return repo["full_name"], github.file_content(repo["full_name"], CATALOG_PATH, repo["default_branch"])
+
+    with ThreadPoolExecutor(max_workers=TREE_WORKERS) as pool:
+        return dict(pool.map(fetch, repos))
+
+
+def _existing_users(logins: set[str]) -> set[str]:
+    with ThreadPoolExecutor(max_workers=TREE_WORKERS) as pool:
+        return {login for login, exists in zip(logins, pool.map(github.user_exists, logins)) if exists}
+
+
+def collect_catalog(out_dir: Path, repo_filter: list[str]) -> int:
+    generated_at = now_utc()
+    repos = [repo for repo in github.org_repos(ORG) if not repo_filter or repo["name"] in repo_filter]
+    if not repos:
+        print("No repositories found; not writing the catalog.")
+        return 1
+    texts = _catalog_texts(repos)
+    owners = catalog.user_owner_logins([catalog.record(name, text) for name, text in texts.items()])
+    records = catalog.snapshot(texts, _existing_users(owners))
+    content = publish.payload(
+        records,
+        generated_at=generated_at,
+        source="catalog-info.yaml on each repo's default branch; GitHub user lookups for user owners",
+        findings=catalog.FINDINGS,
+        summary=catalog.summary(records),
+    )
+    publish.write(out_dir / CATALOG_FILE, content)
+    print(f"Catalog: {catalog.summary(records)}")
+    return 0
+
+
 def main() -> int:
     args = _parse_args()
     selected = args.collector or list(COLLECTORS)
@@ -124,6 +160,7 @@ def main() -> int:
         "upgrade_jobs": collect_upgrade_jobs,
         "waves": collect_waves,
         "redundant_prs": collect_redundant_prs,
+        "catalog": collect_catalog,
     }
     results = [runners[name](args.out_dir, args.repo) for name in selected]
     return max(results)

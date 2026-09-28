@@ -23,6 +23,27 @@ def gh_json(*args: str) -> Any:
     raise RuntimeError(f"gh {' '.join(args)} failed: {last_error.stderr if last_error else ''}")
 
 
+def _gh_optional(*args: str) -> str | None:
+    """stdout of a ``gh`` call, or None when GitHub answers 404; other failures raise."""
+    for attempt in range(RETRIES):
+        result = subprocess.run(["gh", *args], capture_output=True, text=True)
+        if result.returncode == 0:
+            return result.stdout
+        if "HTTP 404" in result.stderr:
+            return None
+        time.sleep(5 * (attempt + 1))
+    raise RuntimeError(f"gh {' '.join(args)} failed: {result.stderr}")
+
+
+def file_content(full_name: str, path: str, ref: str) -> str | None:
+    """Raw text of a file on ``ref``, or None when the repo has no such file."""
+    return _gh_optional("api", f"repos/{full_name}/contents/{path}?ref={ref}", "-H", "Accept: application/vnd.github.raw")
+
+
+def user_exists(login: str) -> bool:
+    return _gh_optional("api", f"users/{login}", "--jq", ".login") is not None
+
+
 def org_repos(org: str) -> list[dict[str, Any]]:
     pages = gh_json("api", f"orgs/{org}/repos", "--paginate", "--slurp")
     return [repo for page in pages for repo in page if not repo.get("archived")]

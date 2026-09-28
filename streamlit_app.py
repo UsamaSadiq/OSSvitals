@@ -58,6 +58,7 @@ if flags.get("enable_year_in_review_cards", False) or flags.get("enable_embeddab
     tools_pages.append(st.Page("views/10_cards.py", title="Cards", icon=":material/style:"))
 
 reference_pages = [
+    st.Page("views/14_components.py", title="Components", icon=":material/inventory_2:"),
     st.Page("views/06_glossary.py", title="Checks Catalog", icon=":material/menu_book:"),
     st.Page("views/11_scoring.py", title="How Scoring Works", icon=":material/calculate:"),
 ]

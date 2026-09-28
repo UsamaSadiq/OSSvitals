@@ -1,0 +1,8 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: openedx-core
+spec:
+  type: other
+  lifecycle: unknown
+  owner: axim-engineering
