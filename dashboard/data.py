@@ -36,6 +36,7 @@ from dashboard.lib.data import (
 )
 from dashboard.lib import maintenance
 from dashboard.lib.precomputed import fetch_payload, scored_history, scored_snapshot
+from dashboard.lib.proposed_scoring import applicable_config
 from dashboard.lib.tiers import annotate_tiers
 from dashboard.lib.trends import Snapshot
 
@@ -65,6 +66,18 @@ def load_scored_snapshot() -> pd.DataFrame:
     """
     scores_url = load_config("data_source").get("scores_url")
     return scored_snapshot(load_snapshot(), fetch_payload(scores_url))
+
+
+@st.cache_data(ttl=CACHE_TTL_SECONDS, show_spinner="Scoring with the proposed method…")
+def load_proposed_scored_snapshot() -> pd.DataFrame:
+    """Current snapshot scored with ``scoring_proposed.yaml``; empty when that config is absent."""
+    proposed = load_config("scoring_proposed")
+    if not proposed.get("metrics"):
+        return pd.DataFrame()
+    snapshot = load_snapshot()
+    config = applicable_config(proposed, load_config("scoring"), list(snapshot.columns))
+    proposed_url = load_config("data_source").get("proposed_scores_url")
+    return scored_snapshot(snapshot, fetch_payload(proposed_url), config=config)
 
 
 @st.cache_data(ttl=CACHE_TTL_SECONDS)
@@ -112,6 +125,7 @@ __all__ = [
     "load_history",
     "load_maintenance",
     "load_my_repos",
+    "load_proposed_scored_snapshot",
     "load_scored_baseline",
     "load_scored_history",
     "load_scored_snapshot",
