@@ -128,3 +128,11 @@ def test_all_inputs_absent_keeps_every_live_swapped_metric():
     config = applicable_config(PROPOSED, live, [])
 
     assert set(config["metrics"]) == set(live["metrics"])
+
+
+def test_grade_changes_order_ties_by_repo_name():
+    live = pd.DataFrame({"repo_name": ["z", "a", "m"], "score_letter": ["B", "B", "B"],
+                         "score_composite": [75.0, 75.0, 75.0]})
+    proposed = live.assign(score_letter=["A", "A", "C"], score_composite=[80.0, 80.0, 70.0])
+
+    assert grade_changes(live, proposed)["repo_name"].tolist() == ["a", "m", "z"]

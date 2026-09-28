@@ -86,4 +86,6 @@ def grade_changes(live: pd.DataFrame, proposed: pd.DataFrame) -> pd.DataFrame:
     letters = _letters(live, proposed)
     changed = letters[letters["current"] != letters["proposed"]].copy()
     changed["change"] = (changed["proposed_score"] - changed["current_score"]).round(1)
-    return changed.sort_values("change", key=abs, ascending=False).reset_index(drop=True)
+    changed["movement"] = changed["change"].abs()
+    ordered = changed.sort_values(["movement", REPO_COL], ascending=[False, True])
+    return ordered.drop(columns="movement").reset_index(drop=True)
