@@ -1,6 +1,6 @@
 import pandas as pd
 
-from dashboard.lib.activity import org_totals, repo_signals, snapshot_has_signals
+from dashboard.lib.activity import org_totals, repo_signals, snapshot_has_signals, unmeasured_columns
 
 
 def _row(**values) -> pd.Series:
@@ -46,3 +46,23 @@ def test_org_totals_sum_counts_and_count_failing_ci():
 
 def test_org_totals_empty_without_columns():
     assert org_totals(pd.DataFrame({"repo_name": ["a"]})) == []
+
+
+def test_newcomers_zero_everywhere_are_unmeasured():
+    all_zero = pd.DataFrame({"github.first_timer_prs_90d": [0, 0, 0]})
+    some = pd.DataFrame({"github.first_timer_prs_90d": [0, 2, 0]})
+
+    assert unmeasured_columns(all_zero) == {
+        "github.first_timer_prs_90d", "github.first_timer_median_first_response_seconds",
+    }
+    assert unmeasured_columns(some) == frozenset()
+    assert unmeasured_columns(pd.DataFrame({"repo_name": ["a"]})) == frozenset()
+
+
+def test_skipped_columns_are_left_out_of_repo_and_org_views():
+    row = _row(**{"github.first_timer_prs_90d": 0, "github.good_first_issues_open": 3})
+    df = pd.DataFrame({"github.first_timer_prs_90d": [0, 0], "github.prs_open": [1, 2]})
+    skip = unmeasured_columns(df)
+
+    assert repo_signals(row, skip=skip) == {"Newcomers": [("Good first issues open", "3")]}
+    assert org_totals(df, skip=skip) == ["3 open PRs"]
