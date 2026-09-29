@@ -9,7 +9,7 @@ from rapidfuzz import fuzz
 from dashboard.lib.config import get_config, get_feature_flags
 from dashboard.data import load_maintenance, load_scored_history, load_scored_snapshot
 from dashboard.lib import catalog
-from dashboard.lib.activity import repo_signals, snapshot_has_signals
+from dashboard.lib.activity import repo_signals, snapshot_has_signals, unmeasured_columns
 from dashboard.lib.linking import github_issue_url, github_pr_compare_url
 from dashboard.lib.remediation import get_remediation
 from dashboard.lib.schema import humanize_check
@@ -183,16 +183,17 @@ def _render_check_expander(check: str, repo_row: pd.Series, selected_repo: str, 
                 action_right.link_button("Open PR with fix", pr_url)
 
 
-def _render_activity(repo_row: pd.Series, snapshot_columns: list[str]) -> None:
+def _render_activity(repo_row: pd.Series, snapshot: pd.DataFrame) -> None:
     st.header("Activity")
-    if not snapshot_has_signals(snapshot_columns):
+    if not snapshot_has_signals(list(snapshot.columns)):
         empty_state(
             "info",
             "Issue, PR backlog, CI and newcomer signals are not in this snapshot yet.",
             "They appear once the upstream repo-health run starts reporting them.",
         )
         return
-    grouped = repo_signals(repo_row)
+    unmeasured = unmeasured_columns(snapshot)
+    grouped = repo_signals(repo_row, skip=unmeasured)
     if not grouped:
         empty_state("info", "This repository reports no issue, PR or CI signals in this snapshot.")
         return
@@ -200,7 +201,10 @@ def _render_activity(repo_row: pd.Series, snapshot_columns: list[str]) -> None:
         with column:
             st.subheader(group)
             st.markdown("\n".join(f"- {label}: **{value}**" for label, value in signals))
-    st.caption("Counts and medians only; newcomers are PR authors GitHub marks as first-time contributors.")
+    note = "Counts and medians only; newcomers are PR authors with no earlier commit in the repo."
+    if unmeasured:
+        note += " Newcomer counts are hidden: this snapshot reports none for any repository, which is a collection gap."
+    st.caption(note)
 
 
 OEP_55_URL = "https://open-edx-proposals.readthedocs.io/en/latest/processes/oep-0055-proc-project-maintainers.html"
@@ -381,7 +385,7 @@ def render() -> None:
         "bars show each metric's contribution; unmeasured metrics are marked."
     )
 
-    _render_activity(repo_row, list(df.columns))
+    _render_activity(repo_row, df)
     _render_catalog(selected)
 
     # ----------------------------------------------------- category cards

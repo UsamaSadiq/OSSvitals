@@ -15,6 +15,8 @@ SECONDS_PER_HOUR = 3600
 SECONDS_PER_DAY = 86400
 CI_FAILING_STATES = {"FAILURE", "ERROR"}
 CI_COLUMN = "github.default_branch_ci_state"
+FIRST_TIMER_COLUMN = "github.first_timer_prs_90d"
+NEWCOMER_COLUMNS = frozenset({FIRST_TIMER_COLUMN, "github.first_timer_median_first_response_seconds"})
 
 
 def _count(value: Any) -> str:
@@ -59,7 +61,7 @@ SIGNALS = (
     Signal("github.oldest_open_pr_days", "Oldest open PR", _days, "Pull requests"),
     Signal("github.median_pr_time_to_merge_seconds", "Median time to merge", _duration, "Pull requests"),
     Signal(CI_COLUMN, "Default-branch CI", _state, "Pull requests"),
-    Signal("github.first_timer_prs_90d", "First-timer PRs (90 days)", _count, "Newcomers"),
+    Signal(FIRST_TIMER_COLUMN, "First-timer PRs (90 days)", _count, "Newcomers"),
     Signal("github.first_timer_median_first_response_seconds", "Median first response", _duration, "Newcomers"),
     Signal("github.good_first_issues_open", "Good first issues open", _count, "Newcomers"),
 )
@@ -69,12 +71,25 @@ def _present(value: Any) -> bool:
     return not pd.isna(value) and str(value).strip() != ""
 
 
-def repo_signals(row: pd.Series) -> dict[str, list[tuple[str, str]]]:
-    """Formatted signals for one repo, grouped, omitting columns it does not report."""
+def unmeasured_columns(df: pd.DataFrame) -> frozenset[str]:
+    """Columns present but not really measured in this snapshot, to be hidden rather than shown as 0.
+
+    First-timer PRs read 0 in every repo when the collecting token cannot see GitHub's
+    newcomer associations (fixed upstream in edx-repo-health#724); an org of 169 repos
+    with no newcomer at all is that failure, not a finding.
+    """
+    if FIRST_TIMER_COLUMN not in df.columns:
+        return frozenset()
+    counts = pd.to_numeric(df[FIRST_TIMER_COLUMN], errors="coerce").dropna()
+    return NEWCOMER_COLUMNS if not counts.empty and counts.sum() == 0 else frozenset()
+
+
+def repo_signals(row: pd.Series, skip: frozenset[str] = frozenset()) -> dict[str, list[tuple[str, str]]]:
+    """Formatted signals for one repo, grouped, omitting columns it does not report or ``skip``."""
     grouped: dict[str, list[tuple[str, str]]] = {}
     for signal in SIGNALS:
         value = row.get(signal.column)
-        if signal.column in row.index and _present(value):
+        if signal.column in row.index and signal.column not in skip and _present(value):
             grouped.setdefault(signal.group, []).append((signal.label, signal.formatter(value)))
     return grouped
 
@@ -86,14 +101,16 @@ def _column_sum(df: pd.DataFrame, column: str) -> int | None:
     return int(values.sum()) if not values.empty else None
 
 
-def org_totals(df: pd.DataFrame) -> list[str]:
-    """Org-wide totals as short phrases, only for columns the snapshot carries."""
+def org_totals(df: pd.DataFrame, skip: frozenset[str] = frozenset()) -> list[str]:
+    """Org-wide totals as short phrases, only for columns the snapshot carries and not in ``skip``."""
     phrases = []
     for column, noun in (
         ("github.issues_open", "open issues"),
         ("github.prs_open", "open PRs"),
-        ("github.first_timer_prs_90d", "first-timer PRs in 90 days"),
+        (FIRST_TIMER_COLUMN, "first-timer PRs in 90 days"),
     ):
+        if column in skip:
+            continue
         total = _column_sum(df, column)
         if total is not None:
             phrases.append(f"{total:,} {noun}")

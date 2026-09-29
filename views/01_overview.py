@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from dashboard.data import export_json_payload, load_config, load_scored_snapshot
-from dashboard.lib.activity import org_totals
+from dashboard.lib.activity import org_totals, unmeasured_columns
 from dashboard.lib.clock import now_utc
 from dashboard.lib.ordering import bottom, rank, top
 from dashboard.lib.schema import TIMESTAMP_COL, parse_snapshot_date
@@ -206,7 +206,7 @@ def render() -> None:
         stale_hours=stale_hours,
     )
 
-    activity_totals = org_totals(working)
+    activity_totals = org_totals(working, skip=unmeasured_columns(df))
     if activity_totals:
         st.caption(f"Across {len(working):,} repositories: " + " · ".join(activity_totals))
 
