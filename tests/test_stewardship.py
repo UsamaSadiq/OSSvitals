@@ -1,7 +1,7 @@
 """At-risk ownership: thin ownership joined with weak or falling activity."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pandas as pd
 import pytest
@@ -163,3 +163,25 @@ def test_overridden_repo_without_activity_warning_is_not_listed():
     rule = {"owner_overrides": {"openedx/ccx-keys": "no access"}}
 
     assert stewardship.at_risk_repos(scored, None, now=NOW, rule=rule).empty
+
+
+def test_changed_metrics_are_those_changed_after_the_baseline():
+    metrics = {"a": {"method_changed": "2026-09-29"}, "b": {}, "c": {"method_changed": "2026-08-01"}}
+
+    assert stewardship.changed_metrics(metrics, date(2026, 8, 31)) == {"a"}
+    assert stewardship.changed_metrics(metrics, None) == frozenset()
+
+
+def test_method_change_does_not_read_as_a_score_drop():
+    per_metric = {"response": 0.0, "recency": 80.0}
+    weights = {"response": 0.5, "recency": 0.5}
+    scored = pd.DataFrame([_needs_maintainer(
+        "openedx/x", score=40.0, score_per_metric=per_metric, score_per_metric_weight=weights,
+    )])
+    baseline = pd.DataFrame([_needs_maintainer(
+        "openedx/x", score=90.0,
+        score_per_metric={"response": 100.0, "recency": 80.0}, score_per_metric_weight=weights,
+    )])
+
+    assert not stewardship.at_risk_repos(scored, baseline, now=NOW).empty
+    assert stewardship.at_risk_repos(scored, baseline, now=NOW, skip_metrics=frozenset({"response"})).empty

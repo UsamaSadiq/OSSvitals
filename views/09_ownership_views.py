@@ -9,7 +9,7 @@ from dashboard.lib.config import get_feature_flags
 from dashboard.data import load_config, load_my_repos, load_scored_baseline, load_scored_snapshot
 from dashboard.lib.clock import now_utc
 from dashboard.lib.ownership import OWNER_KEY, grade_mix, owner_key, owner_summary, repos_for_owner
-from dashboard.lib.stewardship import DEFAULT_RULE, at_risk_repos, catalog_url
+from dashboard.lib.stewardship import DEFAULT_RULE, at_risk_repos, catalog_url, changed_metrics
 from dashboard.lib.scoring import calculate_scores
 from dashboard.lib.ordering import rank
 from dashboard.lib.share import share_link
@@ -150,8 +150,9 @@ def _render_owner_panel(df: pd.DataFrame, summary: pd.DataFrame, rule: dict) -> 
 
 def _render_by_owner(df: pd.DataFrame) -> None:
     rule = {**DEFAULT_RULE, **load_config("attention_rules").get("rules", {}).get("stewardship_risk", {})}
-    baseline, _ = load_scored_baseline()
-    at_risk = set(at_risk_repos(df, baseline, now=now_utc(), rule=rule).get("repo_name", []))
+    baseline, since = load_scored_baseline()
+    skip = changed_metrics(load_config("scoring").get("metrics", {}), since)
+    at_risk = set(at_risk_repos(df, baseline, now=now_utc(), rule=rule, skip_metrics=skip).get("repo_name", []))
     summary = owner_summary(df, unmaintained_group=rule["unmaintained_group"], at_risk_repos=at_risk)
     st.caption("Select a row to explore that owner's repositories.")
     repo_table(
