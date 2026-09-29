@@ -11,7 +11,7 @@ marked ``lifecycle: deprecated`` or archived, and those are left out.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 import pandas as pd
@@ -70,13 +70,43 @@ def has_column_data(df: pd.DataFrame, column: str) -> bool:
     return column in df.columns and df[column].map(_text).ne("").any()
 
 
-def score_deltas(current: pd.DataFrame, baseline: pd.DataFrame | None) -> pd.Series:
-    """Composite change per repo since ``baseline``; NaN where there is no baseline row."""
+def changed_metrics(metrics_cfg: dict[str, Any], since: date | None) -> frozenset[str]:
+    """Metrics whose measurement method changed after ``since`` (``method_changed`` in scoring.yaml)."""
+    if since is None:
+        return frozenset()
+    return frozenset(
+        name for name, cfg in metrics_cfg.items()
+        if cfg.get("method_changed") and date.fromisoformat(str(cfg["method_changed"])) > since
+    )
+
+
+def _composite_without(row: pd.Series, skip: frozenset[str]) -> float:
+    per_metric = row.get("score_per_metric") or {}
+    weights = row.get("score_per_metric_weight") or {}
+    kept = {name: weight for name, weight in weights.items() if name not in skip and name in per_metric}
+    total = sum(kept.values())
+    return sum(per_metric[name] * weight for name, weight in kept.items()) / total if total else float("nan")
+
+
+def _comparable_composite(frame: pd.DataFrame, skip: frozenset[str]) -> pd.Series:
+    if not skip or "score_per_metric" not in frame.columns:
+        return frame["score_composite"]
+    return frame.apply(lambda row: _composite_without(row, skip), axis=1)
+
+
+def score_deltas(
+    current: pd.DataFrame, baseline: pd.DataFrame | None, skip: frozenset[str] = frozenset()
+) -> pd.Series:
+    """Composite change per repo since ``baseline``; NaN where there is no baseline row.
+
+    Metrics in ``skip`` are left out on both sides, so a change in how a metric is
+    measured does not read as the repo getting worse.
+    """
     if baseline is None or baseline.empty:
         return pd.Series(float("nan"), index=current.index)
-    before = baseline.set_index(REPO_COL)["score_composite"]
+    before = pd.Series(_comparable_composite(baseline, skip).values, index=baseline[REPO_COL])
     before = before[~before.index.duplicated()]
-    return current["score_composite"] - current[REPO_COL].map(before)
+    return _comparable_composite(current, skip) - current[REPO_COL].map(before)
 
 
 def _days_since_push(row: pd.Series, now: datetime) -> int | None:
@@ -105,6 +135,7 @@ def at_risk_repos(
     *,
     now: datetime,
     rule: dict[str, Any] | None = None,
+    skip_metrics: frozenset[str] = frozenset(),
 ) -> pd.DataFrame:
     """One row per non-retired repo with thin ownership and at least one activity warning.
 
@@ -114,7 +145,7 @@ def at_risk_repos(
     if scored.empty or REPO_COL not in scored.columns:
         return pd.DataFrame()
 
-    deltas = score_deltas(scored, baseline)
+    deltas = score_deltas(scored, baseline, skip_metrics)
     excluded = [value.lower() for value in rule["excluded_lifecycles"]]
     overrides = rule["owner_overrides"] or {}
     rows = []

@@ -12,6 +12,7 @@ from dashboard.lib.stewardship import (
     OWNER_COL,
     RELEASE_COL,
     at_risk_repos,
+    changed_metrics,
     has_column_data,
     production_or_release,
 )
@@ -28,7 +29,8 @@ def _render_at_risk(df: pd.DataFrame) -> None:
         )
         return
     baseline, since = load_scored_baseline()
-    risky = at_risk_repos(df, baseline, now=now_utc(), rule=rule)
+    skip = changed_metrics(load_config("scoring").get("metrics", {}), since)
+    risky = at_risk_repos(df, baseline, now=now_utc(), rule=rule, skip_metrics=skip)
 
     st.caption(
         "Repositories waiting for a maintainer (`openedx-unmaintained`), owned by a "
@@ -38,7 +40,12 @@ def _render_at_risk(df: pd.DataFrame) -> None:
         "repos with thin ownership today, not changes in who owns them."
     )
     if since is not None:
-        st.caption(f"Score change is measured against the {since} snapshot.")
+        like_for_like = (
+            f" Leaves out {', '.join(sorted(name.replace('_', ' ') for name in skip))}, whose measurement "
+            "changed since then, so a method change does not read as a decline."
+            if skip else ""
+        )
+        st.caption(f"Score change is measured against the {since} snapshot.{like_for_like}")
 
     has_lifecycle = has_column_data(df, LIFECYCLE_COL) or has_column_data(df, RELEASE_COL)
     if has_lifecycle and not risky.empty:

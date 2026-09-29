@@ -30,6 +30,8 @@ metrics:
     thresholds: [{max: 86400, score: 100}, {max: 259200, score: 80}, {max: 604800, score: 50}, {max: 2592000, score: 20}]
     provisional: true
     limitation: "Blank when the repo opened no PRs in 90 days, or when every PR it opened came from a bot (bots are excluded from response times), so it scores the missing-data default."
+    # Bots stopped counting as responders (edx-repo-health #722); score drops across this date are not declines.
+    method_changed: "2026-09-29"
     status: "computable"
     default_when_missing: 50
     chaoss_metric: "Issue Response Time"
