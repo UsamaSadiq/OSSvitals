@@ -1,26 +1,24 @@
 # Contributing to Open edX Repository Health Dashboard
 
-This project is AGPL-3.0-or-later licensed and follows the contributor license agreement (CLA) described in [CLA.md](CLA.md). We use cla-assistant to enforce CLA compliance.
+This project is licensed under AGPL-3.0-or-later. Contributions are accepted under the same license (inbound = outbound).
+
+## Sign-off (DCO)
+Every commit must carry a [Developer Certificate of Origin](https://developercertificate.org/) sign-off, certifying that you have the right to submit it under the project's license. Add it with `git commit -s`, which appends:
+
+```
+Signed-off-by: Your Name <your.email@example.com>
+```
 
 ## Getting Started
 1. Fork this repository
 2. Create a new branch for your changes
-3. Make your changes following the [prD.md](docs/prD.md) requirements
+3. Make your changes, keeping config validation and feature flags intact
 4. Open a PR with detailed description
-5. Sign CLA if prompted
+5. Sign off every commit (`git commit -s`)
 6. Fix any test or lint failures
-
-## prD Compliance
-All changes must maintain compliance with prD v3 requirements:
-- Follow the directory structure in PRD section 7.11
-- Maintain config validation requirements
-- Preserve all feature flags in config/openedx/feature_flags.yaml
-- Keep UI strings in the centralization config
 
 ## Testing
 1. Run `flake8 .` for linter checks
 2. Run `mypy .` for typechecker
 3. Check all visualizations in Streamlit app
 
-## prD Reference
-For detailed implementation roadmap see [prD.md](docs/prD.md)

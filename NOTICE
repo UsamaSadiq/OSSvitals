@@ -1,0 +1,17 @@
+Open edX Repository Health Dashboard
+
+Licensed under the GNU Affero General Public License v3.0 or later. See LICENSE.
+
+This is an unofficial community project. It is not affiliated with or endorsed by
+Axim Collaborative. Open edX is a registered trademark of Axim Collaborative.
+
+Third-party components
+----------------------
+
+axe-core 4.10.2 (scripts/uxaudit/vendor/axe.min.js)
+  Copyright (c) 2015 - 2024 Deque Systems, Inc.
+  Licensed under the Mozilla Public License 2.0: https://mozilla.org/MPL/2.0/
+  Source: https://github.com/dequelabs/axe-core
+
+Python dependencies are installed from PyPI under their own licenses; see
+requirements.txt, requirements-dev.txt and requirements-collectors.txt.

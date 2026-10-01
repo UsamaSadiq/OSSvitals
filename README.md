@@ -1,8 +1,10 @@
 # Open edX Repository Health Dashboard
 
-![License](https://img.shields.io/badge/License-AGPL3.0-blue.svg) ![CLA](https://img.shields.io/badge/CLA-required-brightgreen.svg)
+![License](https://img.shields.io/badge/License-AGPL3.0-blue.svg)
 
-The Open edX Repository Health Dashboard is a community tool that provides visualization and analytical capabilities for Open edX repository health metrics. This implementation follows the [v3 PRD document](docs/PRD.md). The project is licensed under AGPL-3.0-or-later with CLA enforced via cla-assistant.
+The Open edX Repository Health Dashboard is a community tool that provides visualization and analytical capabilities for Open edX repository health metrics. The project is licensed under AGPL-3.0-or-later.
+
+This is an unofficial community project. It is not affiliated with or endorsed by Axim Collaborative. Open edX is a registered trademark of Axim Collaborative.
 
 **Live dashboard:** https://openedx-health-dashboard.streamlit.app/
 
@@ -18,27 +20,10 @@ How scores are computed (metrics, weights, thresholds, grade bands, missing-data
 
 Payment never buys ranking, visibility, score changes, early access to public results, or removal of a public result. Every check, weight, threshold and score for public repositories stays open and reproducible.
 
+Scores and labels such as "at risk" are assessments produced by that published method from public data, not statements of fact about any project or person. They are provided without warranty. To report an error or ask for a correction, open an issue on this repository.
+
 ## Contributing
-Please review [CLA.md](CLA.md) before contributing.
+Contributions are accepted under AGPL-3.0-or-later with a DCO sign-off. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## PRD Status Tracking
-Phase 01 tracking source is [docs/prd_tasks_phase1.yaml](docs/prd_tasks_phase1.yaml).
-Phase 02 tracking source is [docs/prd_tasks_phase2.yaml](docs/prd_tasks_phase2.yaml).
-Regenerate status report with:
-
-python scripts/update_prd_status.py --generate-only
-
-Generate Phase 02 status report with:
-
-python scripts/update_prd_status.py --task-file docs/prd_tasks_phase2.yaml --status-file docs/PRD_STATUS_PHASE2.md --generate-only
-
-Update one task and regenerate in one step with:
-
-python scripts/update_prd_status.py --set 3.1.8 done --notes "Implemented weekly deltas and bulletin export"
-
-Update one Phase 02 task and regenerate in one step with:
-
-python scripts/update_prd_status.py --task-file docs/prd_tasks_phase2.yaml --status-file docs/PRD_STATUS_PHASE2.md --set 3.2.2 done --notes "Enabled SQL page behind feature flag and added timeout controls"
-
-Generated report: [docs/PRD_STATUS.md](docs/PRD_STATUS.md).
-Generated Phase 02 report: [docs/PRD_STATUS_PHASE2.md](docs/PRD_STATUS_PHASE2.md).
+## Privacy
+What the dashboard shows about people, and how to ask for a correction: [docs/PRIVACY.md](docs/PRIVACY.md).
