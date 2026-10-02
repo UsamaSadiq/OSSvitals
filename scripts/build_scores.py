@@ -6,13 +6,9 @@ import sys
 from pathlib import Path
 
 from dashboard.lib.clock import now_utc
-from dashboard.lib.config import get_config
-from dashboard.lib.data import DEFAULT_CSV_URL, load_snapshot
-from dashboard.lib.proposed_scoring import applicable_config
+from dashboard.lib.config import DEFAULT_ORG, get_config
+from dashboard.lib.pipeline import score_org
 from dashboard.lib.scores_export import build_history_payload, build_snapshot_payload, dumps
-from dashboard.lib.scoring import calculate_scores
-from dashboard.lib.tiers import annotate_tiers
-from dashboard.lib.trends import Snapshot, load_history
 
 SNAPSHOT_FILENAME = "scores.json"
 HISTORY_FILENAME = "scores_history.json"
@@ -22,50 +18,31 @@ PROPOSED_FILENAME = "scores_proposed.json"
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Write pre-computed score files.")
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--org", default=DEFAULT_ORG)
     return parser.parse_args()
-
-
-def _scored_history() -> list[Snapshot]:
-    return [
-        Snapshot(timestamp=snapshot.timestamp, df=calculate_scores(snapshot.df))
-        for snapshot in load_history()
-    ]
 
 
 def main() -> int:
     args = _parse_args()
-    cfg = get_config("data_source")
-    min_rows = int(cfg.get("expected_min_rows", 1))
+    min_rows = int(get_config("data_source", args.org).get("expected_min_rows", 1))
 
-    snapshot = annotate_tiers(load_snapshot())
-    scored = calculate_scores(snapshot)
-    if len(scored) < min_rows:
-        print(f"Snapshot has {len(scored)} rows, expected at least {min_rows}; not writing.")
+    data = score_org(args.org)
+    if len(data.scored) < min_rows:
+        print(f"Snapshot has {len(data.scored)} rows, expected at least {min_rows}; not writing.")
         return 1
-
-    scored_history = _scored_history()
-    if not scored_history:
+    if not data.history:
         print("History is empty; not writing.")
         return 1
 
     generated_at = now_utc()
-    snapshot_url = cfg.get("csv_url", DEFAULT_CSV_URL)
-    history_url = cfg.get("history_csv_url") or snapshot_url.replace(
-        "dashboard_main.csv", "dashboard_history.csv"
-    )
-
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    snapshot_payload = build_snapshot_payload(scored, generated_at=generated_at, source_url=snapshot_url)
+    snapshot_payload = build_snapshot_payload(data.scored, generated_at=generated_at, source_url=data.snapshot_url)
     (args.out_dir / SNAPSHOT_FILENAME).write_text(dumps(snapshot_payload), encoding="utf-8")
 
-    proposed_config = applicable_config(get_config("scoring_proposed"), get_config("scoring"), list(snapshot.columns))
-    proposed = calculate_scores(snapshot, config=proposed_config)
-    proposed_payload = build_snapshot_payload(proposed, generated_at=generated_at, source_url=snapshot_url)
+    proposed_payload = build_snapshot_payload(data.proposed, generated_at=generated_at, source_url=data.snapshot_url)
     (args.out_dir / PROPOSED_FILENAME).write_text(dumps(proposed_payload), encoding="utf-8")
 
-    history_payload = build_history_payload(
-        scored_history, generated_at=generated_at, source_url=history_url
-    )
+    history_payload = build_history_payload(data.history, generated_at=generated_at, source_url=data.history_url)
     (args.out_dir / HISTORY_FILENAME).write_text(dumps(history_payload), encoding="utf-8")
 
     print(

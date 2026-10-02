@@ -108,3 +108,22 @@ def metric_rows(config: dict[str, Any], scored: pd.DataFrame) -> list[dict[str, 
         )
     return rows
 
+
+
+def scoring_columns(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Map each scoring column to its metric name, weight and weight-share."""
+    metrics = config.get("metrics", {})
+    total_weight = sum(float(cfg.get("weight", 0)) for cfg in metrics.values()) or 1.0
+    mapping: dict[str, dict[str, Any]] = {}
+    for metric_name, cfg in metrics.items():
+        column = cfg.get("column")
+        if not column:
+            continue
+        weight = float(cfg.get("weight", 0))
+        mapping[column] = {
+            "metric": metric_name,
+            "weight": weight,
+            "weight_pct": round(weight / total_weight * 100, 1),
+            "status": cfg.get("status", "unavailable"),
+        }
+    return mapping

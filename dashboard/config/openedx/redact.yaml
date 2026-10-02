@@ -1,0 +1,4 @@
+# Regexes applied to every string value in the published views files, for
+# example to hide client names in branch or tag names. Empty for openedx.
+patterns: []
+replacement: "[redacted]"

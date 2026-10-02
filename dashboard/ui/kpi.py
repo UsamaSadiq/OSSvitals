@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import date, timezone
+from datetime import date
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from dashboard.lib.clock import now_utc
-from dashboard.lib.schema import LAST_PUSH_COL, parse_last_push_utc
+from dashboard.lib.overview import org_average_series, org_kpis
 from dashboard.ui.theme import palette
 
 
@@ -120,21 +120,6 @@ def _gauge_figure(avg: float, measured_weight: float | None = None) -> go.Figure
     return fig
 
 
-def _count_stale(df: pd.DataFrame, stale_hours: int) -> int:
-    if LAST_PUSH_COL not in df.columns:
-        return 0
-    threshold = now_utc().timestamp() - (stale_hours * 3600)
-    count = 0
-    for value in df[LAST_PUSH_COL]:
-        pushed = parse_last_push_utc(value)
-        if pushed is None:
-            continue
-        ts = pushed.replace(tzinfo=timezone.utc).timestamp() if pushed.tzinfo is None else pushed.timestamp()
-        if ts < threshold:
-            count += 1
-    return count
-
-
 def _sparkline(values: list[float]) -> go.Figure | None:
     p = palette()
     if not values or len(values) < 2:
@@ -177,13 +162,7 @@ def _load_org_avg_history(days: int = 30) -> list[float]:
         snaps = load_scored_history(days=days)
     except Exception:  # noqa: BLE001 - no history is a normal state, not an error
         return []
-    out: list[float] = []
-    for snap in snaps[-days:]:
-        try:
-            out.append(float(snap.df["score_composite"].mean()))
-        except Exception:  # noqa: BLE001 - skip a malformed snapshot, keep the rest
-            continue
-    return out
+    return [average for _, average in org_average_series(snaps[-days:])]
 
 
 def render_kpi_strip(
@@ -196,33 +175,21 @@ def render_kpi_strip(
     """Render the hero KPI block. If `baseline` is supplied (an earlier
     snapshot frame with the same shape), each tile shows a delta vs. that point.
     """
-    total = len(df)
-    avg = float(df["score_composite"].mean()) if total else 0.0
-    grade_a = int((df["score_letter"] == "A").sum())
-    grade_f = int((df["score_letter"] == "F").sum())
-    stale = _count_stale(df, stale_hours)
-    avg_coverage = float(df["score_coverage"].mean()) if "score_coverage" in df.columns and total else 0.0
-    # Fraction of weight actually measured (see dashboard/lib/scoring.py). Falls
-    # back to coverage for frames scored before WP-4 added the column.
-    if "score_measured_weight" in df.columns and total:
-        avg_measured = float(df["score_measured_weight"].mean())
-    else:
-        avg_measured = avg_coverage
+    now = now_utc()
+    kpis = org_kpis(df, stale_hours, now)
+    total, avg, grade_a, grade_f, stale = (kpis[key] for key in ("repos", "avg_composite", "grade_a", "grade_f", "stale"))
+    avg_coverage, avg_measured = kpis["avg_coverage"], kpis["avg_measured_weight"]
 
     deltas: dict[str, str | None] = {
         "total": None, "avg": None, "a": None, "f": None, "stale": None,
     }
     if baseline is not None and not baseline.empty:
-        b_total = len(baseline)
-        b_avg = float(baseline["score_composite"].mean()) if b_total else 0.0
-        b_a = int((baseline["score_letter"] == "A").sum())
-        b_f = int((baseline["score_letter"] == "F").sum())
-        b_stale = _count_stale(baseline, stale_hours)
-        deltas["total"] = _delta_str(total - b_total)
-        deltas["avg"] = _delta_str(avg - b_avg)
-        deltas["a"] = _delta_str(grade_a - b_a)
-        deltas["f"] = _delta_str(grade_f - b_f)
-        deltas["stale"] = _delta_str(stale - b_stale)
+        before = org_kpis(baseline, stale_hours, now)
+        deltas["total"] = _delta_str(total - before["repos"])
+        deltas["avg"] = _delta_str(avg - before["avg_composite"])
+        deltas["a"] = _delta_str(grade_a - before["grade_a"])
+        deltas["f"] = _delta_str(grade_f - before["grade_f"])
+        deltas["stale"] = _delta_str(stale - before["stale"])
 
     hero_col, tiles_col = st.columns([2, 3], gap="large")
 

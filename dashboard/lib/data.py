@@ -10,7 +10,7 @@ import pandas as pd
 import requests
 
 from dashboard.lib import fixtures
-from dashboard.lib.config import DASHBOARD_DIR, get_config
+from dashboard.lib.config import DASHBOARD_DIR, DEFAULT_ORG, get_config
 from dashboard.lib.schema import LAST_PUSH_COL, REPO_COL, TIMESTAMP_COL, soft_assert_columns
 from dashboard.lib.trends import Snapshot, load_history as load_trend_history
 
@@ -25,8 +25,15 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 _LAST_KNOWN_GOOD = CACHE_DIR / "last_known_good.csv"
 
 
-def _latest_cache_file() -> Path | None:
-    return _LAST_KNOWN_GOOD if _LAST_KNOWN_GOOD.exists() else None
+def _cache_file(org: str) -> Path:
+    if org == DEFAULT_ORG:
+        return _LAST_KNOWN_GOOD
+    return _LAST_KNOWN_GOOD.with_name(f"{_LAST_KNOWN_GOOD.stem}_{org}.csv")
+
+
+def _latest_cache_file(org: str) -> Path | None:
+    cache = _cache_file(org)
+    return cache if cache.exists() else None
 
 
 def _validate_snapshot(df: pd.DataFrame, cfg: dict[str, Any]) -> tuple[bool, list[str]]:
@@ -55,24 +62,24 @@ def _fetch_snapshot_dataframe(cfg: dict[str, Any]) -> pd.DataFrame:
     return pd.read_csv(pd.io.common.StringIO(response.text))
 
 
-def _save_cache(df: pd.DataFrame) -> None:
+def _save_cache(df: pd.DataFrame, org: str) -> None:
     # Only ever reached on the live path: load_snapshot returns before here when
     # a fixture is configured, so pinned data cannot become a later live run's
     # fallback. One mechanism rather than two, so there is no question about
     # which is authoritative.
-    df.to_csv(_LAST_KNOWN_GOOD, index=False)
+    df.to_csv(_cache_file(org), index=False)
 
 
-def _load_from_cache() -> pd.DataFrame:
-    latest = _latest_cache_file()
+def _load_from_cache(org: str) -> pd.DataFrame:
+    latest = _latest_cache_file(org)
     if latest is None:
         return pd.DataFrame()
     return pd.read_csv(latest)
 
 
-def load_snapshot() -> pd.DataFrame:
+def load_snapshot(org: str = DEFAULT_ORG) -> pd.DataFrame:
     """Fetch current snapshot with schema checks and fallback to last-known-good."""
-    cfg = get_config("data_source")
+    cfg = get_config("data_source", org)
 
     # Resolved before the try, and deliberately outside it. A misconfigured
     # fixture must reach the caller: the `except Exception` below exists to keep
@@ -107,23 +114,23 @@ def load_snapshot() -> pd.DataFrame:
                 missing,
             )
             if fallback_enabled:
-                cached = _load_from_cache()
+                cached = _load_from_cache(org)
                 if not cached.empty:
                     return cached
-        _save_cache(df)
+        _save_cache(df, org)
         return df
     except Exception as exc:  # noqa: BLE001 - resilience by design
         logger.warning("CSV fetch failed, attempting cached snapshot: %s", exc)
         if fallback_enabled:
-            cached = _load_from_cache()
+            cached = _load_from_cache(org)
             if not cached.empty:
                 return cached
     return pd.DataFrame()
 
 
-def load_history(days: int | None = None) -> list[Snapshot]:
+def load_history(days: int | None = None, org: str = DEFAULT_ORG) -> list[Snapshot]:
     """Load historical snapshots through the trends module."""
-    return load_trend_history(days=days)
+    return load_trend_history(days=days, org=org)
 
 
 def load_my_repos(handle: str) -> pd.DataFrame:

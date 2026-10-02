@@ -1,7 +1,8 @@
 name: Build scores
 
-# Pre-computes scores from the openedx/wg-maintenance CSVs so readers render
-# files instead of running scoring. Output goes to the orphan `data` branch:
+# Pre-computes scores and page-ready views (`views/`) from the
+# openedx/wg-maintenance CSVs so readers render files instead of running
+# scoring. Output goes to the orphan `data` branch:
 # Streamlit Community Cloud redeploys on every push to main.
 # Scoring-code changes on main trigger a rebuild, so the app never pairs new
 # code with a file built by the old code for up to a day.
@@ -18,7 +19,12 @@ on:
       - dashboard/lib/proposed_scoring.py
       - dashboard/config/*/scoring.yaml
       - dashboard/config/*/scoring_proposed.yaml
+      - dashboard/lib/pipeline.py
+      - dashboard/lib/views_export.py
+      - dashboard/lib/redaction.py
+      - dashboard/config/*/redact.yaml
       - scripts/build_scores.py
+      - scripts/build_views.py
 
 concurrency:
   group: build-scores
@@ -39,7 +45,10 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python scripts/build_scores.py --out-dir "$OUT_DIR"
+      - run: python scripts/build_scores.py --org openedx --out-dir "$OUT_DIR"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+      - run: python scripts/build_views.py --org openedx --out-dir "$OUT_DIR/views"
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -54,7 +63,7 @@ jobs:
             git -C data-branch remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           fi
           mkdir -p data-branch/openedx
-          cp "$OUT_DIR"/*.json data-branch/openedx/
+          cp -R "$OUT_DIR"/. data-branch/openedx/
           cd data-branch
           git add openedx
           if git diff --cached --quiet; then

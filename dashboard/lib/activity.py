@@ -101,23 +101,30 @@ def _column_sum(df: pd.DataFrame, column: str) -> int | None:
     return int(values.sum()) if not values.empty else None
 
 
+CI_FAILING_REPOS = "ci_failing_repos"
+TOTAL_NOUNS = {
+    "github.issues_open": "open issues",
+    "github.prs_open": "open PRs",
+    FIRST_TIMER_COLUMN: "first-timer PRs in 90 days",
+    CI_FAILING_REPOS: "repos with failing default-branch CI",
+}
+
+
+def org_total_values(df: pd.DataFrame, skip: frozenset[str] = frozenset()) -> dict[str, int]:
+    """Org-wide totals keyed by column, only for columns the snapshot carries and not in ``skip``."""
+    totals = {}
+    for column in ("github.issues_open", "github.prs_open", FIRST_TIMER_COLUMN):
+        total = None if column in skip else _column_sum(df, column)
+        if total is not None:
+            totals[column] = total
+    if CI_COLUMN in df.columns:
+        totals[CI_FAILING_REPOS] = int(df[CI_COLUMN].astype(str).str.upper().isin(CI_FAILING_STATES).sum())
+    return totals
+
+
 def org_totals(df: pd.DataFrame, skip: frozenset[str] = frozenset()) -> list[str]:
     """Org-wide totals as short phrases, only for columns the snapshot carries and not in ``skip``."""
-    phrases = []
-    for column, noun in (
-        ("github.issues_open", "open issues"),
-        ("github.prs_open", "open PRs"),
-        (FIRST_TIMER_COLUMN, "first-timer PRs in 90 days"),
-    ):
-        if column in skip:
-            continue
-        total = _column_sum(df, column)
-        if total is not None:
-            phrases.append(f"{total:,} {noun}")
-    if CI_COLUMN in df.columns:
-        failing = int(df[CI_COLUMN].astype(str).str.upper().isin(CI_FAILING_STATES).sum())
-        phrases.append(f"{failing:,} repos with failing default-branch CI")
-    return phrases
+    return [f"{total:,} {TOTAL_NOUNS[key]}" for key, total in org_total_values(df, skip).items()]
 
 
 def snapshot_has_signals(columns: list[str]) -> bool:

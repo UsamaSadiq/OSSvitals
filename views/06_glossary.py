@@ -10,26 +10,8 @@ from dashboard.lib.checks import coverage, is_check_column
 from dashboard.lib.check_review import SATURATED, SATURATION_SHARE, SPARSE, SPARSE_FILL, review_window, up_for_review
 from dashboard.lib.remediation import missing_remediation_checks
 from dashboard.lib.schema import humanize_check
+from dashboard.lib.scoring_method import scoring_columns
 from dashboard.ui import empty_state, page_init, repo_table
-
-def _score_map() -> dict[str, dict]:
-    """Map each scoring column to its metric name, weight and weight-share."""
-    metrics = load_config("scoring").get("metrics", {})
-    total_weight = sum(float(cfg.get("weight", 0)) for cfg in metrics.values()) or 1.0
-    mapping: dict[str, dict] = {}
-    for metric_name, cfg in metrics.items():
-        column = cfg.get("column")
-        if not column:
-            continue
-        weight = float(cfg.get("weight", 0))
-        mapping[column] = {
-            "metric": metric_name,
-            "weight": weight,
-            "weight_pct": round(weight / total_weight * 100, 1),
-            "status": cfg.get("status", "unavailable"),
-        }
-    return mapping
-
 
 def _render_check(check: str, *, descriptions: dict, score_map: dict, df: pd.DataFrame,
                   missing_desc: set, missing_remediation: set) -> None:
@@ -166,7 +148,7 @@ def render() -> None:
 
     descriptions = load_config("check_descriptions").get("checks", {})
     groups = load_config("check_groups").get("groups", [])
-    score_map = _score_map()
+    score_map = scoring_columns(load_config("scoring"))
     df = load_snapshot()
     check_columns = sorted([col for col in df.columns if is_check_column(col)]) if not df.empty else []
 
