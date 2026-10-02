@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 LIB_DIR = Path(__file__).resolve().parent
 DASHBOARD_DIR = LIB_DIR.parent
 CONFIG_DIR = DASHBOARD_DIR / "config"
-ORG_CONFIG_DIR = CONFIG_DIR / "openedx"
+DEFAULT_ORG = "openedx"
+ORG_CONFIG_DIR = CONFIG_DIR / DEFAULT_ORG
 
 
 def read_config_file(path: str | Path) -> dict:
@@ -31,7 +32,7 @@ def read_config_file(path: str | Path) -> dict:
 
 
 @lru_cache(maxsize=32)
-def get_config(section: str, org: str = "openedx") -> dict:
+def get_config(section: str, org: str = DEFAULT_ORG) -> dict:
     """Get configuration by section name from org config directory."""
     path = CONFIG_DIR / org / f"{section}.yaml"
     if path.exists():

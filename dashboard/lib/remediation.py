@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from dashboard.lib.config import get_config
+from dashboard.lib.config import DEFAULT_ORG, get_config
 
 
 @dataclass(frozen=True)
@@ -18,8 +18,8 @@ class RemediationEntry:
     issue_body_template: str | None
 
 
-def load_remediation_map() -> dict[str, RemediationEntry]:
-    config = get_config("remediation")
+def load_remediation_map(org: str = DEFAULT_ORG) -> dict[str, RemediationEntry]:
+    config = get_config("remediation", org)
     checks = config.get("checks", {})
     entries: dict[str, RemediationEntry] = {}
 
@@ -42,6 +42,6 @@ def get_remediation(check_name: str) -> RemediationEntry | None:
     return load_remediation_map().get(check_name)
 
 
-def missing_remediation_checks(checks_in_snapshot: list[str]) -> list[str]:
-    configured = set(load_remediation_map().keys())
+def missing_remediation_checks(checks_in_snapshot: list[str], org: str = DEFAULT_ORG) -> list[str]:
+    configured = set(load_remediation_map(org).keys())
     return sorted([check for check in checks_in_snapshot if check not in configured])

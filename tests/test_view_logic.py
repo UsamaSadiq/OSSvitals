@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
+from dashboard.lib import data, trends
+from dashboard.lib.activity import org_total_values, org_totals
 from dashboard.lib.attention import attention_reasons, needing_attention
 from dashboard.lib.checks import (
     category_columns,
@@ -14,7 +16,9 @@ from dashboard.lib.checks import (
     coverage,
     failing_counts,
 )
-from dashboard.lib.overview import top_failing, top_movers
+from dashboard.lib.config import DEFAULT_ORG
+from dashboard.lib.overview import org_kpis, top_failing, top_movers
+from dashboard.lib.scoring_method import scoring_columns
 
 NOW = datetime(2026, 10, 2, tzinfo=timezone.utc)
 RULES = {
@@ -134,3 +138,34 @@ def test_needing_attention_ignores_language_bytes_zeros():
         }
     )
     assert needing_attention(frame, RULES, {}, now=NOW).empty
+
+
+def test_org_kpis_counts_grades_and_stale_repos():
+    frame = pd.DataFrame(
+        {
+            "score_composite": [90.0, 10.0],
+            "score_letter": ["A", "F"],
+            "github.last_push": ["2026-10-01 00:00:00", "2026-01-01 00:00:00"],
+        }
+    )
+    kpis = org_kpis(frame, stale_hours=48, now=NOW)
+    assert (kpis["repos"], kpis["avg_composite"], kpis["grade_a"], kpis["grade_f"], kpis["stale"]) == (2, 50.0, 1, 1, 1)
+    assert kpis["avg_measured_weight"] == kpis["avg_coverage"] == 0.0
+
+
+def test_org_total_values_are_raw_and_match_phrases():
+    frame = pd.DataFrame({"github.issues_open": [2, 3], "github.default_branch_ci_state": ["FAILURE", "SUCCESS"]})
+    assert org_total_values(frame) == {"github.issues_open": 5, "ci_failing_repos": 1}
+    assert org_totals(frame) == ["5 open issues", "1 repos with failing default-branch CI"]
+
+
+def test_scoring_columns_maps_columns_to_weight_share():
+    config = {"metrics": {"a": {"column": "x.a", "weight": 1}, "b": {"column": "x.b", "weight": 3}, "c": {"weight": 1}}}
+    mapping = scoring_columns(config)
+    assert set(mapping) == {"x.a", "x.b"}
+    assert mapping["x.b"]["weight_pct"] == 60.0
+
+
+def test_other_orgs_get_their_own_caches():
+    assert data._cache_file("edly") != data._cache_file(DEFAULT_ORG)
+    assert trends._history_cache("edly") != trends._history_cache(DEFAULT_ORG)

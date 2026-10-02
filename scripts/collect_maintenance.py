@@ -5,13 +5,13 @@ import argparse
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 
 from collectors import catalog, github, publish, redundant_prs, upgrade_jobs, waves
 from dashboard.lib.clock import now_utc
-from dashboard.lib.config import get_config
+from dashboard.lib.config import DEFAULT_ORG, get_config
 
-ORG = "openedx"
 UPGRADE_JOBS_FILE = "upgrade_jobs.json"
 WAVES_DIR = "waves"
 REDUNDANT_PRS_FILE = "redundant_prs.json"
@@ -21,19 +21,30 @@ TREE_WORKERS = 8
 COLLECTORS = ("upgrade_jobs", "waves", "redundant_prs", "catalog")
 
 
+@dataclass(frozen=True)
+class Target:
+    org: str
+    github_org: str
+
+
+def _target(org: str) -> Target:
+    return Target(org=org, github_org=get_config("data_source", org).get("github_org", org))
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect maintenance signals into files the dashboard reads.")
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--org", default=DEFAULT_ORG, help="Config folder under dashboard/config.")
     parser.add_argument("--repo", action="append", default=[], help="Limit to these repos (bare names); default is the whole org.")
     parser.add_argument("--collector", action="append", choices=COLLECTORS, help="Run only these collectors; default is all.")
     return parser.parse_args()
 
 
-def collect_upgrade_jobs(out_dir: Path, repos: list[str]) -> int:
+def collect_upgrade_jobs(out_dir: Path, repos: list[str], target: Target) -> int:
     generated_at = now_utc()
     with tempfile.TemporaryDirectory() as tmp:
-        rows = upgrade_jobs.read_rows(upgrade_jobs.run_tool(ORG, Path(tmp), repos))
-    records = upgrade_jobs.records(rows, org=ORG, today=generated_at.date())
+        rows = upgrade_jobs.read_rows(upgrade_jobs.run_tool(target.github_org, Path(tmp), repos))
+    records = upgrade_jobs.records(rows, org=target.github_org, today=generated_at.date())
     if not records:
         print("No upgrade-job records; not writing.")
         return 1
@@ -58,15 +69,15 @@ def _repo_trees(repos: list[dict]) -> dict[str, set[str]]:
         return dict(pool.map(tree, repos))
 
 
-def collect_waves(out_dir: Path, repo_filter: list[str]) -> int:
+def collect_waves(out_dir: Path, repo_filter: list[str], target: Target) -> int:
     generated_at = now_utc()
-    repos = [repo for repo in github.org_repos(ORG) if not repo_filter or repo["name"] in repo_filter]
+    repos = [repo for repo in github.org_repos(target.github_org) if not repo_filter or repo["name"] in repo_filter]
     if not repos:
         print("No repositories found; not writing waves.")
         return 1
     trees = _repo_trees(repos)
-    for wave_id, wave in get_config("waves").get("waves", {}).items():
-        prs = [pr for term in wave["pull_requests"]["search_terms"] for pr in github.search_open_prs(ORG, term)]
+    for wave_id, wave in get_config("waves", target.org).get("waves", {}).items():
+        prs = [pr for term in wave["pull_requests"]["search_terms"] for pr in github.search_open_prs(target.github_org, term)]
         open_prs = waves.matching_prs(prs, wave)
         records = waves.ordered(
             [
@@ -88,12 +99,12 @@ def collect_waves(out_dir: Path, repo_filter: list[str]) -> int:
     return 0
 
 
-def collect_redundant_prs(out_dir: Path, repo_filter: list[str]) -> int:
+def collect_redundant_prs(out_dir: Path, repo_filter: list[str], target: Target) -> int:
     generated_at = now_utc()
     found, checked = [], 0
-    for campaign_id, campaign in get_config("campaign_supersession").get("campaigns", {}).items():
+    for campaign_id, campaign in get_config("campaign_supersession", target.org).get("campaigns", {}).items():
         bot_prs = [
-            pr for pr in github.search_open_prs_by_author(ORG, campaign["bot_author"], campaign["bot_title_prefix"])
+            pr for pr in github.search_open_prs_by_author(target.github_org, campaign["bot_author"], campaign["bot_title_prefix"])
             if pr["title"].startswith(campaign["bot_title_prefix"])
             and (not repo_filter or pr["repository"]["nameWithOwner"].split("/", 1)[1] in repo_filter)
         ]
@@ -132,9 +143,9 @@ def _existing_users(logins: set[str]) -> set[str]:
         return {login for login, exists in zip(logins, pool.map(github.user_exists, logins)) if exists}
 
 
-def collect_catalog(out_dir: Path, repo_filter: list[str]) -> int:
+def collect_catalog(out_dir: Path, repo_filter: list[str], target: Target) -> int:
     generated_at = now_utc()
-    repos = [repo for repo in github.org_repos(ORG) if not repo_filter or repo["name"] in repo_filter]
+    repos = [repo for repo in github.org_repos(target.github_org) if not repo_filter or repo["name"] in repo_filter]
     if not repos:
         print("No repositories found; not writing the catalog.")
         return 1
@@ -162,7 +173,8 @@ def main() -> int:
         "redundant_prs": collect_redundant_prs,
         "catalog": collect_catalog,
     }
-    results = [runners[name](args.out_dir, args.repo) for name in selected]
+    target = _target(args.org)
+    results = [runners[name](args.out_dir, args.repo, target) for name in selected]
     return max(results)
 
 

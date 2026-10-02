@@ -11,7 +11,7 @@ import pandas as pd
 import requests
 
 from dashboard.lib import fixtures
-from dashboard.lib.config import DASHBOARD_DIR, get_config
+from dashboard.lib.config import DASHBOARD_DIR, DEFAULT_ORG, get_config
 from dashboard.lib.schema import REPO_COL, TIMESTAMP_COL, parse_snapshot_date
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,13 @@ def _history_url(cfg: dict[str, Any]) -> str:
     return f"https://raw.githubusercontent.com/{history_repo}/main/{history_file}"
 
 
-def _fetch_history_frame(cfg: dict[str, Any]) -> pd.DataFrame | None:
+def _history_cache(org: str) -> Path:
+    if org == DEFAULT_ORG:
+        return _HISTORY_CACHE
+    return _HISTORY_CACHE.with_name(f"{_HISTORY_CACHE.stem}_{org}.csv")
+
+
+def _fetch_history_frame(cfg: dict[str, Any], org: str) -> pd.DataFrame | None:
     """Fetch the single pre-computed history file, caching it for offline fallback.
 
     Makes exactly one HTTP request to the same static-file host as the main
@@ -53,19 +59,19 @@ def _fetch_history_frame(cfg: dict[str, Any]) -> pd.DataFrame | None:
         response.raise_for_status()
         frame = pd.read_csv(StringIO(response.text))
         try:
-            _HISTORY_CACHE.parent.mkdir(parents=True, exist_ok=True)
-            frame.to_csv(_HISTORY_CACHE, index=False)
+            _history_cache(org).parent.mkdir(parents=True, exist_ok=True)
+            frame.to_csv(_history_cache(org), index=False)
         except OSError as exc:  # caching is best-effort
             logger.warning("Could not cache history file: %s", exc)
         return frame
     except Exception as exc:  # noqa: BLE001 - resilience by design
         logger.warning("History fetch failed, trying local cache: %s", exc)
-        if _HISTORY_CACHE.exists():
-            return pd.read_csv(_HISTORY_CACHE)
+        if _history_cache(org).exists():
+            return pd.read_csv(_history_cache(org))
     return None
 
 
-def load_history(days: int | None = None) -> list[Snapshot]:
+def load_history(days: int | None = None, org: str = DEFAULT_ORG) -> list[Snapshot]:
     """Load historical snapshots from a single pre-computed history file.
 
     The history file accumulates one block of rows per snapshot date, each row
@@ -75,10 +81,10 @@ def load_history(days: int | None = None) -> list[Snapshot]:
     runtime. Returns an empty list when no history is available (callers already
     treat < 2 snapshots as "no trend data").
     """
-    cfg = get_config("data_source")
+    cfg = get_config("data_source", org)
     history_days = int(days or cfg.get("history_days", 90))
 
-    frame = _fetch_history_frame(cfg)
+    frame = _fetch_history_frame(cfg, org)
     if frame is None or frame.empty or TIMESTAMP_COL not in frame.columns:
         return []
 
