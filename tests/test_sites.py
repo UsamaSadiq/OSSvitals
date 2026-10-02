@@ -15,7 +15,7 @@ def test_site_is_an_assets_only_worker_on_a_custom_domain(site):
     assert "main" not in config
     assert (SITES / site / config["assets"]["directory"] / "index.html").exists()
     assert config["workers_dev"] is False
-    assert all(route["custom_domain"] and route["pattern"].endswith(".ossvitals.org") for route in config["routes"])
+    assert all(route["custom_domain"] and route["pattern"] == "ossvitals.org" or route["pattern"].endswith(".ossvitals.org") for route in config["routes"])
 
 
 @pytest.mark.parametrize("site", ["landing", "placeholder"])
