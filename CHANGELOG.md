@@ -34,4 +34,4 @@ Initial release of Phase 1 implementation
 ### Breaking Changes
 - None
 
-[1.0.0]: https://github.com/UsamaSadiq/org-health-dashboard/compare/v1.0.0...v1.0.0
+[1.0.0]: https://github.com/UsamaSadiq/OSSvitals/compare/v1.0.0...v1.0.0

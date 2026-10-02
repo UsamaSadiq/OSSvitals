@@ -14,7 +14,7 @@ The dashboard shows public information about Open edX repositories. Some of it n
 
 ## Corrections and removal
 
-If you are named on the dashboard and something is wrong, or you want your handle removed, open an issue on [this repository](https://github.com/UsamaSadiq/org-health-dashboard/issues). Owner names come from the repository's `catalog-info.yaml`, so the lasting fix is a change to that file.
+If you are named on the dashboard and something is wrong, or you want your handle removed, open an issue on [this repository](https://github.com/UsamaSadiq/OSSvitals/issues). Owner names come from the repository's `catalog-info.yaml`, so the lasting fix is a change to that file.
 
 ## Visitors
 

@@ -1,0 +1,36 @@
+name: Deploy sites
+
+# Static pages for ossvitals.org: the landing page and the placeholder for
+# dashboards that are not public yet. Each is an assets-only Cloudflare Worker,
+# so requests run no code and stay within the free plan.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - sites/**
+      - .github/workflows/deploy-sites.yml
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-sites
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        site: [landing, placeholder]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: sites/${{ matrix.site }}
+          command: deploy

@@ -9,12 +9,12 @@ history_path: "dashboards/dashboard_main.csv"
 history_file: "dashboards/dashboard_history.csv"
 # Scores pre-computed by .github/workflows/build-scores.yml. Used only when the
 # file matches the current snapshot date and scoring.yaml version.
-scores_url: "https://raw.githubusercontent.com/UsamaSadiq/org-health-dashboard/data/openedx/scores.json"
-history_scores_url: "https://raw.githubusercontent.com/UsamaSadiq/org-health-dashboard/data/openedx/scores_history.json"
+scores_url: "https://raw.githubusercontent.com/UsamaSadiq/OSSvitals/data/openedx/scores.json"
+history_scores_url: "https://raw.githubusercontent.com/UsamaSadiq/OSSvitals/data/openedx/scores_history.json"
 # Same snapshot scored with scoring_proposed.yaml, for the WG comparison on How Scoring Works.
-proposed_scores_url: "https://raw.githubusercontent.com/UsamaSadiq/org-health-dashboard/data/openedx/scores_proposed.json"
+proposed_scores_url: "https://raw.githubusercontent.com/UsamaSadiq/OSSvitals/data/openedx/scores_proposed.json"
 # Files from .github/workflows/collect-maintenance.yml (upgrade jobs, waves, redundant PRs).
-maintenance_base_url: "https://raw.githubusercontent.com/UsamaSadiq/org-health-dashboard/data/openedx/maintenance"
+maintenance_base_url: "https://raw.githubusercontent.com/UsamaSadiq/OSSvitals/data/openedx/maintenance"
 # Retention of the accumulated history file (matches the pipeline producer).
 history_days: 30
 cache_ttl_seconds: 300

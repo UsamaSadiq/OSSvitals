@@ -1,0 +1,7 @@
+{
+  "name": "ossvitals-landing",
+  "compatibility_date": "2026-09-01",
+  "assets": { "directory": "./public" },
+  "workers_dev": false,
+  "routes": [{ "pattern": "preview.ossvitals.org", "custom_domain": true }]
+}

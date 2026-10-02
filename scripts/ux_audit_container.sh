@@ -40,8 +40,8 @@ fi
 # unpack (a few seconds) rather than a re-download on every invocation. Only a
 # cache: the install itself still runs each time, which is what keeps this
 # identical to the CI step rather than merely similar. Drop it with
-# `docker volume rm org-health-dashboard-audit-pip` if it ever misbehaves.
-PIP_CACHE_VOLUME="org-health-dashboard-audit-pip"
+# `docker volume rm ossvitals-audit-pip` if it ever misbehaves.
+PIP_CACHE_VOLUME="ossvitals-audit-pip"
 
 # -t only when stdout is a terminal, so CI and pipes still work.
 TTY_FLAG=()

@@ -9,7 +9,7 @@ from dashboard.lib.scoring_method import letter_bands, metric_rows
 from dashboard.lib.share import share_link
 from dashboard.ui import empty_state, page_init, repo_table, share_link_block
 
-SCORES_FILE_URL = "https://github.com/UsamaSadiq/org-health-dashboard/blob/data/openedx/scores.json"
+SCORES_FILE_URL = "https://github.com/UsamaSadiq/OSSvitals/blob/data/openedx/scores.json"
 
 METRIC_COLUMNS = {
     "metric": st.column_config.TextColumn("Metric"),
@@ -143,7 +143,7 @@ def _render_never_paid_rule() -> None:
         "Open edX repo health checks collect from every repository through daily jobs. Labels "
         "such as \"at risk\" describe what those checks measure, not a judgement of any project "
         "or person. The dashboard is provided without warranty; to report an error, "
-        "[open an issue](https://github.com/UsamaSadiq/org-health-dashboard/issues)."
+        "[open an issue](https://github.com/UsamaSadiq/OSSvitals/issues)."
     )
 
 

@@ -7,6 +7,6 @@ colors:
   danger: "#E22D2D"
   success: "#166534"
 footer:
-  source_url: "https://github.com/UsamaSadiq/org-health-dashboard"
-  privacy_url: "https://github.com/UsamaSadiq/org-health-dashboard/blob/main/docs/PRIVACY.md"
+  source_url: "https://github.com/UsamaSadiq/OSSvitals"
+  privacy_url: "https://github.com/UsamaSadiq/OSSvitals/blob/main/docs/PRIVACY.md"
   notice: "Unofficial community project, not affiliated with Axim Collaborative. Open edX is a registered trademark of Axim Collaborative."
