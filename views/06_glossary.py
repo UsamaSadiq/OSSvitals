@@ -6,18 +6,11 @@ import pandas as pd
 import streamlit as st
 
 from dashboard.data import load_config, load_history, load_snapshot
+from dashboard.lib.checks import coverage, is_check_column
 from dashboard.lib.check_review import SATURATED, SATURATION_SHARE, SPARSE, SPARSE_FILL, review_window, up_for_review
 from dashboard.lib.remediation import missing_remediation_checks
 from dashboard.lib.schema import humanize_check
 from dashboard.ui import empty_state, page_init, repo_table
-
-PASS_TOKENS = {"true", "1", "yes"}
-FAIL_TOKENS = {"false", "0", "no", "fail", "failing"}
-
-
-def _is_check_col(name: str) -> bool:
-    return "." in name and not name.startswith("github.") and not name.startswith("language_bytes.")
-
 
 def _score_map() -> dict[str, dict]:
     """Map each scoring column to its metric name, weight and weight-share."""
@@ -36,19 +29,6 @@ def _score_map() -> dict[str, dict]:
             "status": cfg.get("status", "unavailable"),
         }
     return mapping
-
-
-def _coverage(series: pd.Series) -> tuple[float, float]:
-    """Return (populated %, pass %) for a check column."""
-    values = series.fillna("").astype(str).str.strip()
-    populated = values.ne("")
-    populated_pct = round(float(populated.mean()) * 100, 1) if len(values) else 0.0
-    lowered = values.str.lower()
-    passes = lowered.isin(PASS_TOKENS)
-    fails = lowered.isin(FAIL_TOKENS)
-    denom = int((passes | fails).sum())
-    pass_pct = round(int(passes.sum()) / denom * 100, 1) if denom else None
-    return populated_pct, pass_pct
 
 
 def _render_check(check: str, *, descriptions: dict, score_map: dict, df: pd.DataFrame,
@@ -82,7 +62,7 @@ def _render_check(check: str, *, descriptions: dict, score_map: dict, df: pd.Dat
             st.caption(" · ".join(meta_parts))
 
         if check in df.columns:
-            populated_pct, pass_pct = _coverage(df[check])
+            populated_pct, pass_pct = coverage(df[check])
             cols = st.columns(2)
             cols[0].metric("Org coverage (populated)", f"{populated_pct}%")
             cols[1].metric("Pass rate", f"{pass_pct}%" if pass_pct is not None else "—")
@@ -188,7 +168,7 @@ def render() -> None:
     groups = load_config("check_groups").get("groups", [])
     score_map = _score_map()
     df = load_snapshot()
-    check_columns = sorted([col for col in df.columns if _is_check_col(col)]) if not df.empty else []
+    check_columns = sorted([col for col in df.columns if is_check_column(col)]) if not df.empty else []
 
     if not check_columns:
         empty_state(

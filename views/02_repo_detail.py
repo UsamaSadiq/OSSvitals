@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 from rapidfuzz import fuzz
 
+from dashboard.lib.checks import category_columns, category_stats, classify
 from dashboard.lib.config import get_config, get_feature_flags
 from dashboard.data import load_maintenance, load_scored_history, load_scored_snapshot
 from dashboard.lib import catalog
@@ -18,53 +19,11 @@ from dashboard.ui import empty_state, page_init, grade_pill, share_link_block, s
 from dashboard.ui.charts import metric_score_bar, sparkline
 
 
-CATEGORY_GROUPS: dict[str, callable] = {
-    "File Existence": lambda c: c.startswith("exists."),
-    "CI / Tooling": lambda c: c in {"github_actions", "renovate.configured", "travis_ci.active", "travis_yml.parsable", "tox_tox_section"},
-    "Dependencies": lambda c: c.startswith("dependabot.") or c.startswith("dependencies."),
-    "Documentation": lambda c: c in {"readthedocs_config.exists", "docs.build_badge"},
-    "README": lambda c: c.startswith("readme."),
-}
-
-PASS_TOKENS = {"true", "1", "yes"}
-FAIL_TOKENS = {"false", "0", "no", "fail", "failing"}
-
-
 def _fuzzy_repo_options(repos: list[str], query: str) -> list[str]:
     if not query:
         return repos
     ranked = sorted(repos, key=lambda name: fuzz.partial_ratio(query.lower(), name.lower()), reverse=True)
     return ranked[:30]
-
-
-def _classify(value: object) -> str:
-    token = str(value).strip().lower()
-    if token in PASS_TOKENS:
-        return "pass"
-    if token in FAIL_TOKENS:
-        return "fail"
-    return "unknown"
-
-
-def _category_columns(df: pd.DataFrame) -> dict[str, list[str]]:
-    columns = [
-        col for col in df.columns
-        if "." in col and not col.startswith("github.") and not col.startswith("language_bytes.")
-    ]
-    return {name: [c for c in columns if predicate(c)] for name, predicate in CATEGORY_GROUPS.items()}
-
-
-def _category_stats(row: pd.Series, category_cols: list[str]) -> tuple[int, int, int]:
-    pass_count = fail_count = na_count = 0
-    for col in category_cols:
-        bucket = _classify(row.get(col, ""))
-        if bucket == "pass":
-            pass_count += 1
-        elif bucket == "fail":
-            fail_count += 1
-        else:
-            na_count += 1
-    return pass_count, fail_count, na_count
 
 
 def _history_for_repo(repo: str) -> list[dict]:
@@ -94,7 +53,7 @@ def _history_for_repo(repo: str) -> list[dict]:
 def _repo_sparkline(repo: str, cols: list[str]) -> pd.DataFrame:
     points = []
     for entry in _history_for_repo(repo):
-        pass_count, fail_count, _ = _category_stats(entry["row"], cols)
+        pass_count, fail_count, _ = category_stats(entry["row"], cols)
         total = pass_count + fail_count
         if total == 0:
             continue
@@ -103,7 +62,7 @@ def _repo_sparkline(repo: str, cols: list[str]) -> pd.DataFrame:
 
 
 def _category_card(category: str, repo: str, row: pd.Series, cols: list[str], *, key_prefix: str) -> dict[str, int]:
-    pass_count, fail_count, na_count = _category_stats(row, cols)
+    pass_count, fail_count, na_count = category_stats(row, cols)
     total = pass_count + fail_count
     pass_rate = (pass_count / total) * 100 if total else 0
     with st.container(border=True):
@@ -130,7 +89,7 @@ def _category_card(category: str, repo: str, row: pd.Series, cols: list[str], *,
 
 def _render_check_expander(check: str, repo_row: pd.Series, selected_repo: str, *, descriptions: dict, pr_cfg: dict, feature_flags: dict, whitelisted: set[str]) -> None:
     value = repo_row.get(check)
-    bucket = _classify(value)
+    bucket = classify(value)
     label_chip = status_chip(bucket, bucket.upper())
     short_desc = descriptions.get(check, {}).get("description", "No description available.")
     # Status and a readable title in the *collapsed* header: previously every row
@@ -390,7 +349,7 @@ def render() -> None:
 
     # ----------------------------------------------------- category cards
     st.header("Category overview")
-    categories = _category_columns(df)
+    categories = category_columns(df.columns)
     grid_cols = st.columns(min(3, max(1, len(categories))))
     for idx, (category, cols) in enumerate(categories.items()):
         if not cols:
@@ -431,7 +390,7 @@ def render() -> None:
         if category_choice != "All":
             if check not in categories[category_choice]:
                 continue
-        if bucket_for_choice and _classify(repo_row.get(check)) != bucket_for_choice:
+        if bucket_for_choice and classify(repo_row.get(check)) != bucket_for_choice:
             continue
         visible_checks.append(check)
 

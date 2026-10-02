@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import pandas as pd
 import streamlit as st
 
 from dashboard.data import load_scored_snapshot
+from dashboard.lib.checks import check_columns, failing_counts, failing_mask
 from dashboard.lib.ordering import rank
 from dashboard.lib.share import share_link
 from dashboard.ui import empty_state, page_init, repo_table, share_link_block
@@ -24,11 +24,7 @@ def render() -> None:
         )
         return
 
-    check_cols = [
-        col
-        for col in df.columns
-        if "." in col and not col.startswith("github.") and not col.startswith("language_bytes.")
-    ]
+    check_cols = check_columns(df.columns)
     if not check_cols:
         empty_state(
             "warn",
@@ -37,22 +33,14 @@ def render() -> None:
         )
         return
 
-    rows = []
-    for check in check_cols:
-        failing_mask = df[check].astype(str).str.lower().isin(["false", "0", "no", "fail", "failing"])
-        count = int(failing_mask.sum())
-        if count > 0:
-            rows.append({"check": check, "fail_count": count})
-
-    if not rows:
+    fail_df = failing_counts(df, check_cols)
+    if fail_df.empty:
         empty_state(
             "good",
             "No failing checks detected.",
             "Every collected check passes across the whole organisation.",
         )
         return
-
-    fail_df = rank(pd.DataFrame(rows), "fail_count", ascending=False, tiebreak="check")
 
     st.header("Most-failed checks")
 
@@ -62,7 +50,7 @@ def render() -> None:
     # off (backlog E1, and the readable half of D26). Capped and disclosed rather
     # than silently truncated.
     TOP_N = 15
-    shown = fail_df.head(TOP_N).rename(columns={"fail_count": "failing"})
+    shown = fail_df.head(TOP_N)
     st.plotly_chart(
         top_failing_bar(shown),
         width="stretch",
@@ -89,8 +77,7 @@ def render() -> None:
 
     filtered = df
     if selected_check:
-        fail_mask = filtered[selected_check].astype(str).str.lower().isin(["false", "0", "no", "fail", "failing"])
-        filtered = filtered[fail_mask]
+        filtered = filtered[failing_mask(filtered[selected_check])]
         st.caption(f"{len(filtered)} repositories fail `{selected_check}`.")
 
     result = rank(filtered[["repo_name", "score_composite", "score_letter"]], "score_composite")

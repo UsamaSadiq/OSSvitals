@@ -6,8 +6,10 @@ import streamlit as st
 
 from dashboard.data import export_json_payload, load_config, load_scored_snapshot
 from dashboard.lib.activity import org_totals, unmeasured_columns
+from dashboard.lib.checks import category_pass_rates
 from dashboard.lib.clock import now_utc
 from dashboard.lib.ordering import bottom, rank, top
+from dashboard.lib.overview import top_failing, top_movers
 from dashboard.lib.schema import TIMESTAMP_COL, parse_snapshot_date
 from dashboard.lib.share import share_link
 from dashboard.lib.tiers import tier_counts
@@ -29,45 +31,6 @@ from dashboard.ui.charts import (
     top_failing_bar,
 )
 from dashboard.ui.kpi import render_kpi_strip
-
-
-CATEGORY_GROUPS = {
-    "File Existence": lambda c: c.startswith("exists."),
-    "CI / Tooling": lambda c: c in {"github_actions", "renovate.configured", "travis_ci.active", "travis_yml.parsable", "tox_tox_section"},
-    "Dependencies": lambda c: c.startswith("dependabot.") or c.startswith("dependencies."),
-    "Documentation": lambda c: c in {"readthedocs_config.exists", "docs.build_badge"},
-    "README": lambda c: c.startswith("readme."),
-}
-
-
-def _category_pass_rates(frame: pd.DataFrame) -> pd.DataFrame:
-    rows = []
-    for name, predicate in CATEGORY_GROUPS.items():
-        usable = [c for c in frame.columns if predicate(c)]
-        if not usable:
-            continue
-        values = frame[usable].astype(str).apply(lambda s: s.str.lower())
-        pass_count = values.isin(["true", "1", "yes"]).sum().sum()
-        total = len(frame) * len(usable)
-        rate = (pass_count / total) * 100 if total else 0
-        rows.append({"category": name, "pass_rate": round(rate, 2)})
-    return pd.DataFrame(rows)
-
-
-def _top_failing(frame: pd.DataFrame, limit: int = 10) -> pd.DataFrame:
-    check_cols = [
-        col for col in frame.columns
-        if "." in col and not col.startswith("github.") and col not in {"repo_name", TIMESTAMP_COL}
-    ]
-    rows = []
-    for col in check_cols:
-        is_fail = frame[col].astype(str).str.lower().isin(["false", "0", "no", "fail", "failing"])
-        count = int(is_fail.sum())
-        if count > 0:
-            rows.append({"check": col, "failing": count})
-    if not rows:
-        return pd.DataFrame()
-    return top(pd.DataFrame(rows), "failing", limit, tiebreak="check")
 
 
 def _baseline_frame() -> pd.DataFrame | None:
@@ -98,25 +61,14 @@ def _history_span() -> tuple[object, object] | None:
     return history[0].timestamp, history[-1].timestamp
 
 
-def _top_movers(frame: pd.DataFrame) -> pd.DataFrame:
+def _movers_baseline() -> pd.DataFrame | None:
     try:
         history = load_scored_history(days=30)
     except Exception:
-        return pd.DataFrame()
+        return None
     if len(history) < 2:
-        return pd.DataFrame()
-
-    baseline = history[0].df
-    recent = frame[["repo_name", "score_composite"]]
-    merged = recent.merge(
-        baseline[["repo_name", "score_composite"]].rename(columns={"score_composite": "baseline_score"}),
-        on="repo_name",
-        how="inner",
-    )
-    if merged.empty:
-        return pd.DataFrame()
-    merged["delta"] = (merged["score_composite"] - merged["baseline_score"]).round(2)
-    return rank(merged, "delta", ascending=False)
+        return None
+    return history[0].df
 
 
 def render() -> None:
@@ -225,7 +177,7 @@ def render() -> None:
     with primary_tab:
         st.plotly_chart(grade_histogram(working), width="stretch")
     with category_tab:
-        category_df = _category_pass_rates(working)
+        category_df = category_pass_rates(working)
         if category_df.empty:
             empty_state(
                 "warn",
@@ -236,7 +188,7 @@ def render() -> None:
         else:
             st.plotly_chart(category_pass_rate_bar(category_df), width="stretch")
     with failing_tab:
-        fail_df = _top_failing(working)
+        fail_df = top_failing(working)
         if fail_df.empty:
             empty_state(
                 "good",
@@ -280,7 +232,7 @@ def render() -> None:
         st.markdown("**Bottom 5**")
         render_repo_pill_list(bottom_rows, link_fn=_repo_link)
 
-    movers = _top_movers(working)
+    movers = top_movers(working, _movers_baseline())
     if not movers.empty:
         span = _history_span()
         # Label with the real span. "(30d)" was hardcoded regardless of how much
