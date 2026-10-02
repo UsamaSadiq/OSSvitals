@@ -1,0 +1,113 @@
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --primary: #2dd4bf;
+  --primary-dark: #0a3642;
+  --accent: #2dd4bf;
+  --focus: var(--accent);
+
+  --success: #4ade80;
+  --warn: #fbbf24;
+  --fail: #f87171;
+
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --page: #0f172a;
+  --surface: #1e293b;
+  --surface-alt: #1e293b;
+  --border: #334155;
+
+  --on-primary: #ffffff;
+  --sidebar-from: #0a3642;
+  --sidebar-to: #071f27;
+
+  --chip-text-pass: #4ade80;
+  --chip-text-warn: #fbbf24;
+  --chip-text-fail: #fca5a5;
+  --chip-text-unknown: #94a3b8;
+  --chip-text-nodata: #94a3b8;
+
+  --sidebar-input-bg: #14414f;
+  --code-text: #e2e8f0;
+  --delta-text: #4ade80;
+
+  --grade-a: #4ade80;
+  --grade-b: #34d399;
+  --grade-c: #fbbf24;
+  --grade-d: #fb923c;
+  --grade-f: #f87171;
+
+  --grade-a-text: #0f172a;
+  --grade-b-text: #0f172a;
+  --grade-c-text: #0f172a;
+  --grade-d-text: #0f172a;
+  --grade-f-text: #0f172a;
+
+  --cat-1: #2dd4bf;
+  --cat-2: #38bdf8;
+  --cat-3: #a78bfa;
+  --cat-4: #4ade80;
+  --cat-5: #fbbf24;
+  --cat-6: #f87171;
+  --cat-7: #94a3b8;
+
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --primary: #0f4c5c;
+  --primary-dark: #0a3642;
+  --accent: #14b8a6;
+  --focus: var(--primary);
+
+  --success: #15803d;
+  --warn: #d97706;
+  --fail: #b91c1c;
+
+  --text: #0f172a;
+  --muted: #475569;
+  --page: #f1f5f9;
+  --surface: #f8fafc;
+  --surface-alt: #ffffff;
+  --border: #e2e8f0;
+
+  --on-primary: #ffffff;
+  --sidebar-from: #0f4c5c;
+  --sidebar-to: #0a3642;
+
+  --chip-text-pass: #14532d;
+  --chip-text-warn: #92400e;
+  --chip-text-fail: #991b1b;
+  --chip-text-unknown: #334155;
+  --chip-text-nodata: #334155;
+
+  --sidebar-input-bg: #1b5a6b;
+  --code-text: #0f172a;
+  --delta-text: #15803d;
+
+  --grade-a: #15803d;
+  --grade-b: #16a34a;
+  --grade-c: #d97706;
+  --grade-d: #ea580c;
+  --grade-f: #b91c1c;
+
+  --grade-a-text: #ffffff;
+  --grade-b-text: #111827;
+  --grade-c-text: #111827;
+  --grade-d-text: #111827;
+  --grade-f-text: #ffffff;
+
+  --cat-1: #0f4c5c;
+  --cat-2: #14b8a6;
+  --cat-3: #7c3aed;
+  --cat-4: #0ea5e9;
+  --cat-5: #d97706;
+  --cat-6: #b91c1c;
+  --cat-7: #475569;
+}
