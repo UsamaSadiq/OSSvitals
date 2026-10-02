@@ -63,7 +63,7 @@ def needing_attention(
     tier_filter: str = "all",
 ) -> pd.DataFrame:
     """Flagged repositories with their reasons, most urgent tier and lowest score first."""
-    fail_columns = check_columns(df.columns, skip_prefixes=("github.",))
+    fail_columns = check_columns(df.columns)
     rows = []
     for _, row in df.iterrows():
         repo = str(row.get("repo_name", ""))

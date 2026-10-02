@@ -64,8 +64,8 @@ def test_failing_counts_empty_when_all_pass():
     assert failing_counts(frame, ["exists.x"]).empty
 
 
-def test_top_failing_keeps_language_bytes():
-    assert "language_bytes.css" in top_failing(_frame())["check"].tolist()
+def test_top_failing_ignores_language_bytes():
+    assert "language_bytes.css" not in top_failing(_frame())["check"].tolist()
 
 
 def test_category_columns_require_a_dot():
@@ -119,3 +119,18 @@ def test_top_movers_against_baseline():
         {"repo_name": "b", "delta": -5.0},
     ]
     assert top_movers(frame, None).empty
+
+
+def test_needing_attention_ignores_language_bytes_zeros():
+    frame = pd.DataFrame(
+        {
+            "repo_name": ["a"],
+            "repo_tier": ["important"],
+            "score_composite": [70.0],
+            "score_letter": ["B"],
+            "exists.readme": ["False"],
+            "language_bytes.css": ["0"],
+            "language_bytes.shell": ["0"],
+        }
+    )
+    assert needing_attention(frame, RULES, {}, now=NOW).empty
