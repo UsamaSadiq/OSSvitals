@@ -5,13 +5,14 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from dashboard.lib import config, fixtures
 from dashboard.lib.pipeline import score_org
 from dashboard.lib.redaction import compile_patterns, redact
 from dashboard.lib.scores_export import build_snapshot_payload
-from dashboard.lib.views_export import BUILDERS, BuildContext, write_views
+from dashboard.lib.views_export import BUILDERS, BuildContext, gainers_and_losers, highlights, kpi_deltas, write_views
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "data"
 GENERATED_AT = datetime(2026, 9, 1, tzinfo=timezone.utc)
@@ -80,6 +81,64 @@ def test_overview_and_what_changed_use_history_windows(built):
     assert overview["kpi_baseline_date"] == "2026-08-25"
     assert overview["movers_from"] == "2026-08-16"
     assert (changed["previous"], changed["latest"]) == ("2026-08-25", "2026-08-31")
+
+
+def test_overview_grades_the_org_average_with_scoring_config(built):
+    _, files = built
+    overview = files["overview.json"]
+    assert overview["kpis"]["avg_composite"] == pytest.approx(71.459, abs=1e-3)
+    assert overview["avg_letter"] == "B"
+
+
+def test_overview_kpi_deltas_subtract_the_baseline(built):
+    _, files = built
+    overview = files["overview.json"]
+    kpis, baseline, deltas = overview["kpis"], overview["kpi_baseline"], overview["kpi_deltas"]
+    assert set(deltas) == {"repos", "avg_composite", "grade_a", "grade_f", "stale"}
+    assert deltas["avg_composite"] == pytest.approx(kpis["avg_composite"] - baseline["avg_composite"])
+    for field in ("repos", "grade_a", "grade_f", "stale"):
+        assert deltas[field] == kpis[field] - baseline[field]
+        assert isinstance(deltas[field], int)
+    assert (deltas["repos"], deltas["grade_a"], deltas["grade_f"]) == (-2, 3, 0)
+
+
+def test_kpi_deltas_are_null_without_baseline():
+    assert kpi_deltas({"repos": 3}, None) is None
+
+
+def test_overview_highlights_rank_with_alphabetical_tiebreak(built):
+    _, files = built
+    top, bottom = files["overview.json"]["highlights"]["top"], files["overview.json"]["highlights"]["bottom"]
+    assert len(top) == len(bottom) == 5
+    assert set(top[0]) == {"repo_name", "score_composite", "score_letter"}
+    assert [r["repo_name"] for r in top[-2:]] == ["openedx/XBlock", "openedx/openedx-filters"]
+    assert [r["score_composite"] for r in top] == sorted((r["score_composite"] for r in top), reverse=True)
+    assert [r["score_composite"] for r in bottom] == sorted(r["score_composite"] for r in bottom)
+    assert bottom[0]["score_composite"] == min(r["score_composite"] for r in files["repos.json"]["records"])
+
+
+def test_overview_gainers_and_losers_split_movers_by_sign(built):
+    _, files = built
+    overview = files["overview.json"]
+    gainers, losers = overview["gainers"], overview["losers"]
+    assert len(gainers) == len(losers) == 5
+    assert set(gainers[0]) == {"repo_name", "score_composite", "baseline_score", "delta"}
+    assert all(r["delta"] > 0 for r in gainers) and all(r["delta"] < 0 for r in losers)
+    assert gainers[0]["delta"] == max(r["delta"] for r in overview["movers"])
+    assert losers[0]["delta"] == min(r["delta"] for r in overview["movers"])
+    assert [r["repo_name"] for r in losers[:2]] == sorted(r["repo_name"] for r in losers[:2])
+
+
+def test_gainers_and_losers_never_relabel_gains_as_losses():
+    movers = pd.DataFrame({"repo_name": ["a", "b"], "score_composite": [60.0, 70.0], "baseline_score": [50.0, 65.0], "delta": [10.0, 5.0]})
+    gainers, losers = gainers_and_losers(movers)
+    assert [r["repo_name"] for r in gainers] == ["a", "b"]
+    assert losers == []
+
+
+def test_empty_inputs_give_empty_highlights_and_movers():
+    assert highlights(pd.DataFrame()) == {"top": [], "bottom": []}
+    assert gainers_and_losers(pd.DataFrame()) == ([], [])
 
 
 def test_at_risk_applies_like_for_like_deltas(built):
