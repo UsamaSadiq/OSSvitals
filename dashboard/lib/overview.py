@@ -8,7 +8,7 @@ from dashboard.lib.ordering import rank
 
 
 def top_failing(frame: pd.DataFrame, limit: int = 10) -> pd.DataFrame:
-    columns = check_columns(frame.columns, skip_prefixes=("github.",))
+    columns = check_columns(frame.columns)
     return failing_counts(frame, columns).head(limit)
 
 
