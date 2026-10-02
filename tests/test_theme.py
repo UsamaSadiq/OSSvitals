@@ -143,3 +143,11 @@ def test_repo_pill_list_always_renders_the_grade_and_score() -> None:
     markup = "".join(captured)
     assert "grade-f" in markup, "grade pill missing from the row"
     assert "13.3" in markup, "score missing from the row"
+
+
+def test_footer_links_skip_missing_urls():
+    from dashboard.ui.sidebar import footer_links
+
+    assert footer_links({"source_url": "https://s", "privacy_url": "https://p"}) == "[Source code](https://s) · [Privacy](https://p)"
+    assert footer_links({"source_url": "https://s"}) == "[Source code](https://s)"
+    assert footer_links({}) == ""

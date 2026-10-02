@@ -20,7 +20,7 @@ How scores are computed (metrics, weights, thresholds, grade bands, missing-data
 
 Payment never buys ranking, visibility, score changes, early access to public results, or removal of a public result. Every check, weight, threshold and score for public repositories stays open and reproducible.
 
-Scores and labels such as "at risk" are assessments produced by that published method from public data, not statements of fact about any project or person. They are provided without warranty. To report an error or ask for a correction, open an issue on this repository.
+Scores are not estimates. They are computed by that published method from real data that the Open edX repo health checks collect from every repository through daily jobs. Labels such as "at risk" describe what those checks measure, not a judgement of any project or person. The dashboard is provided without warranty; to report an error or ask for a correction, open an issue on this repository.
 
 ## Contributing
 Contributions are accepted under AGPL-3.0-or-later with a DCO sign-off. See [CONTRIBUTING.md](CONTRIBUTING.md).

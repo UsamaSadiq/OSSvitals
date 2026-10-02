@@ -138,6 +138,13 @@ def _render_never_paid_rule() -> None:
         "results, or removal of a public result. Every check, weight, threshold and score "
         "for public repositories stays open and reproducible."
     )
+    st.markdown(
+        "Scores are not estimates: they are computed by this method from real data that the "
+        "Open edX repo health checks collect from every repository through daily jobs. Labels "
+        "such as \"at risk\" describe what those checks measure, not a judgement of any project "
+        "or person. The dashboard is provided without warranty; to report an error, "
+        "[open an issue](https://github.com/UsamaSadiq/org-health-dashboard/issues)."
+    )
 
 
 def render() -> None:

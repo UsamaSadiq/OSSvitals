@@ -36,3 +36,18 @@ def render_sidebar_header() -> None:
             on_change=_store_theme_choice,
             help="Switches the whole dashboard between the dark and light palettes.",
         )
+        _render_footer(get_config("org_branding").get("footer") or {})
+
+
+def footer_links(footer: dict) -> str:
+    """Markdown links to the source (AGPL's network clause) and the privacy notice."""
+    links = [("Source code", footer.get("source_url")), ("Privacy", footer.get("privacy_url"))]
+    return " · ".join(f"[{label}]({url})" for label, url in links if url)
+
+
+def _render_footer(footer: dict) -> None:
+    links = footer_links(footer)
+    if links:
+        st.caption(links)
+    if footer.get("notice"):
+        st.caption(str(footer["notice"]))
