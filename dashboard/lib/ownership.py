@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from dashboard.lib.ordering import rank
 from dashboard.lib.schema import REPO_COL
 from dashboard.lib.scoring import DEFAULT_LETTER_GRADES
 from dashboard.lib.stewardship import (
@@ -91,3 +92,56 @@ def repos_for_owner(df: pd.DataFrame, key: str) -> pd.DataFrame:
 def grade_mix(repos: pd.DataFrame) -> dict[str, int]:
     counts = repos["score_letter"].value_counts() if "score_letter" in repos.columns else pd.Series(dtype=int)
     return {letter: int(counts.get(letter, 0)) for letter in DEFAULT_LETTER_GRADES}
+
+
+# catalog-info.yaml (spec.owner) is the primary source; the Google-Sheet
+# theme/squad/priority columns are a secondary, 2U-only source.
+COVERAGE_COLUMNS = [
+    "ownership.owner_name",
+    "ownership.owner",
+    "ownership.theme",
+    "ownership.squad",
+    "ownership.priority",
+]
+UNASSIGNED = "Unassigned"
+
+
+def _filled(series: pd.Series) -> pd.Series:
+    return series.fillna("").astype(str).str.strip().ne("")
+
+
+def has_text_data(df: pd.DataFrame, column: str) -> bool:
+    return column in df.columns and bool(_filled(df[column]).any())
+
+
+def ownership_coverage(df: pd.DataFrame) -> float:
+    """Percent of repos with any ownership field set."""
+    existing = [col for col in COVERAGE_COLUMNS if col in df.columns]
+    if df.empty or not existing:
+        return 0.0
+    populated = pd.Series(False, index=df.index)
+    for col in existing:
+        populated = populated | _filled(df[col])
+    return round(float(populated.mean()) * 100, 2)
+
+
+def _bucket(value: object) -> str:
+    normalized = str(value).strip()
+    return normalized if normalized else UNASSIGNED
+
+
+def group_summary(df: pd.DataFrame, column: str) -> pd.DataFrame:
+    """Repo count, average score and D/F count per value of ``column``, largest first."""
+    if column not in df.columns:
+        return pd.DataFrame()
+    grouped = df.assign(**{column: df[column].map(_bucket)})
+    summary = (
+        grouped.groupby(column, as_index=False)
+        .agg(
+            repo_count=(REPO_COL, "count"),
+            avg_score=("score_composite", "mean"),
+            d_or_f=("score_letter", lambda series: int(series.isin(["D", "F"]).sum())),
+        )
+        .pipe(rank, ["repo_count", "avg_score"], ascending=[False, False], tiebreak=column)
+    )
+    return summary.assign(avg_score=summary["avg_score"].round(2))

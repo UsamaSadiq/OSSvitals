@@ -8,65 +8,21 @@ import streamlit as st
 from dashboard.lib.config import get_feature_flags
 from dashboard.data import load_config, load_my_repos, load_scored_baseline, load_scored_snapshot
 from dashboard.lib.clock import now_utc
-from dashboard.lib.ownership import OWNER_KEY, grade_mix, owner_key, owner_summary, repos_for_owner
+from dashboard.lib.ownership import (
+    OWNER_KEY,
+    grade_mix,
+    group_summary,
+    has_text_data,
+    owner_key,
+    owner_summary,
+    ownership_coverage,
+    repos_for_owner,
+)
 from dashboard.lib.stewardship import DEFAULT_RULE, at_risk_repos, catalog_url, changed_metrics
 from dashboard.lib.scoring import calculate_scores
 from dashboard.lib.ordering import rank
 from dashboard.lib.share import share_link
 from dashboard.ui import empty_state, page_init, repo_table, share_link_block
-
-
-def _normalize_bucket(value: object) -> str:
-    normalized = str(value).strip()
-    return normalized if normalized else "Unassigned"
-
-
-# catalog-info.yaml (spec.owner) is the primary source; the Google-Sheet
-# theme/squad/priority columns are a secondary, 2U-only source.
-_COVERAGE_COLS = [
-    "ownership.owner_name",
-    "ownership.owner",
-    "ownership.theme",
-    "ownership.squad",
-    "ownership.priority",
-]
-
-
-def _has_data(df: pd.DataFrame, column: str) -> bool:
-    return (
-        column in df.columns
-        and df[column].fillna("").astype(str).str.strip().ne("").any()
-    )
-
-
-def _ownership_coverage(df: pd.DataFrame) -> float:
-    if df.empty:
-        return 0.0
-    existing = [col for col in _COVERAGE_COLS if col in df.columns]
-    if not existing:
-        return 0.0
-    populated = pd.Series(False, index=df.index)
-    for col in existing:
-        populated = populated | df[col].fillna("").astype(str).str.strip().ne("")
-    return round(float(populated.mean()) * 100, 2)
-
-
-def _group_summary(df: pd.DataFrame, column: str) -> pd.DataFrame:
-    if column not in df.columns:
-        return pd.DataFrame()
-    group_df = df.copy()
-    group_df[column] = group_df[column].map(_normalize_bucket)
-    summary = (
-        group_df.groupby(column, as_index=False)
-        .agg(
-            repo_count=("repo_name", "count"),
-            avg_score=("score_composite", "mean"),
-            d_or_f=("score_letter", lambda series: int(series.isin(["D", "F"]).sum())),
-        )
-        .pipe(rank, ["repo_count", "avg_score"], ascending=[False, False], tiebreak=column)
-    )
-    summary["avg_score"] = summary["avg_score"].round(2)
-    return summary
 
 
 OWNER_PARAM = "owner"
@@ -188,7 +144,7 @@ def render() -> None:
         )
         return
 
-    coverage = _ownership_coverage(df)
+    coverage = ownership_coverage(df)
     st.metric("Ownership Coverage", f"{coverage}%")
     st.caption(
         "Ownership is sourced primarily from each repo's `catalog-info.yaml` "
@@ -205,13 +161,13 @@ def render() -> None:
     # By Owner is primary (catalog-info). Theme/Squad tabs only appear when the
     # secondary spreadsheet columns actually carry data.
     owner_col = next(
-        (col for col in ("ownership.owner_name", "ownership.owner") if _has_data(df, col)),
+        (col for col in ("ownership.owner_name", "ownership.owner") if has_text_data(df, col)),
         None,
     )
     tab_labels = ["By Owner"]
-    if _has_data(df, "ownership.theme"):
+    if has_text_data(df, "ownership.theme"):
         tab_labels.append("By Theme")
-    if _has_data(df, "ownership.squad"):
+    if has_text_data(df, "ownership.squad"):
         tab_labels.append("By Squad")
     tab_labels.append("My Repos")
     tabs = dict(zip(tab_labels, st.tabs(tab_labels)))
@@ -229,11 +185,11 @@ def render() -> None:
 
     if "By Theme" in tabs:
         with tabs["By Theme"]:
-            repo_table(_group_summary(df, "ownership.theme"), empty_message="No themes found.")
+            repo_table(group_summary(df, "ownership.theme"), empty_message="No themes found.")
 
     if "By Squad" in tabs:
         with tabs["By Squad"]:
-            repo_table(_group_summary(df, "ownership.squad"), empty_message="No squads found.")
+            repo_table(group_summary(df, "ownership.squad"), empty_message="No squads found.")
 
     with tabs["My Repos"]:
         if not get_feature_flags().get("enable_my_repos_filter", True):
