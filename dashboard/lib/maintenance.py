@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -48,6 +49,16 @@ def load(relative_path: str) -> dict[str, Any] | None:
             response.raise_for_status()
             payload = response.json()
     except Exception as exc:  # noqa: BLE001 - the page shows an empty state instead
+        logger.warning("Maintenance file %s unavailable: %s", relative_path, exc)
+        return None
+    return payload if _valid(payload) else None
+
+
+def load_file(directory: Path, relative_path: str) -> dict[str, Any] | None:
+    """A maintenance file from a local directory, as the views builder reads it."""
+    try:
+        payload = json.loads((directory / relative_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
         logger.warning("Maintenance file %s unavailable: %s", relative_path, exc)
         return None
     return payload if _valid(payload) else None

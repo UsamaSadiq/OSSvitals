@@ -13,6 +13,7 @@ from dashboard.lib.pipeline import score_org
 from dashboard.lib.redaction import compile_patterns, redact
 from dashboard.lib.scores_export import build_snapshot_payload
 from dashboard.lib.views_export import BUILDERS, BuildContext, gainers_and_losers, highlights, kpi_deltas, write_views
+from dashboard.lib.views_maintenance import load_maintenance_dir
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "data"
 GENERATED_AT = datetime(2026, 9, 1, tzinfo=timezone.utc)
@@ -24,7 +25,8 @@ def built(tmp_path_factory):
         mp.setenv(fixtures.FIXTURE_DIR_ENV, str(FIXTURE_DIR))
         data = score_org()
         out_dir = tmp_path_factory.mktemp("views")
-        write_views(BuildContext(data=data, generated_at=GENERATED_AT), out_dir)
+        maintenance = load_maintenance_dir(FIXTURE_DIR / "maintenance", config.get_config("waves").get("waves", {}))
+        write_views(BuildContext(data=data, generated_at=GENERATED_AT, maintenance=maintenance), out_dir)
     files = {path.name: json.loads(path.read_text(encoding="utf-8")) for path in out_dir.iterdir()}
     return data, files
 
@@ -171,7 +173,7 @@ def test_write_views_applies_org_redaction(built, tmp_path, monkeypatch):
     data, _ = built
     real = config.get_config
     monkeypatch.setattr(
-        "dashboard.lib.views_export.get_config",
+        "dashboard.lib.views_common.get_config",
         lambda section, org: {"patterns": [re.escape("openedx/")], "replacement": ""} if section == "redact" else real(section, org),
     )
     write_views(BuildContext(data=data, generated_at=GENERATED_AT), tmp_path)
@@ -201,3 +203,88 @@ def test_checks_carry_review_thresholds(built):
     _, files = built
     checks = files["checks.json"]
     assert 0 < checks["sparse_fill"] < checks["saturation_share"] <= 1
+
+
+def test_failing_checks_rank_every_failing_check(built):
+    _, files = built
+    rows = files["failing_checks.json"]["records"]
+    counts = [row["failing"] for row in rows]
+    assert counts == sorted(counts, reverse=True) and min(counts) > 0
+    assert not any(row["check"].startswith(("github.", "language_bytes.")) for row in rows)
+
+
+def test_repos_carry_category_stats_and_owner_handles(built):
+    _, files = built
+    record = files["repos.json"]["records"][0]
+    assert all(len(stats) == 3 for stats in record["category_stats"].values())
+    assert record["repo_name"].split("/")[0] in record["owner_handles"]
+
+
+def test_meta_lists_activity_signals_with_a_format_kind(built):
+    _, files = built
+    signals = files["meta.json"]["signals"]
+    assert {signal["kind"] for signal in signals} <= {"count", "ratio", "days", "duration", "state"}
+    assert signals[0] == {"column": "github.issues_open", "label": "Open issues", "group": "Issues", "kind": "count"}
+
+
+def test_checks_carry_titles_remediation_and_pr_templates(built):
+    _, files = built
+    by_check = {row["check"]: row for row in files["checks.json"]["records"]}
+    dependabot = by_check["dependabot.exists"]
+    assert dependabot["title"] == "Dependabot Config"
+    assert "`dependabot.exists`" in dependabot["remediation"]["issue_body"]
+    assert dependabot["pr_template"]["branch"] == "chore/dependabot-config"
+    unlisted = next(row for row in by_check.values() if not row["has_remediation"])
+    assert unlisted["remediation"] is None and unlisted["pr_template"] is None
+
+
+def test_repo_history_aligns_rates_to_dates(built):
+    _, files = built
+    history = files["repo_history.json"]
+    series = next(iter(history["repos"].values()))
+    assert all(len(rates) == len(history["dates"]) for rates in series.values())
+
+
+def test_repo_checks_hold_raw_values(built):
+    _, files = built
+    values = next(iter(files["repo_checks.json"]["repos"].values()))
+    assert all(value is None or (isinstance(value, str) and value == value.strip() and value) for value in values.values())
+    assert {"True", "False"} & set(values.values())
+    assert not any(column.startswith(("github.", "language_bytes.", "ownership.")) for column in values)
+
+
+def test_components_join_findings_to_grades(built):
+    _, files = built
+    components = files["components.json"]
+    assert components["available"] is True
+    assert components["summary"]["repos"] == len(components["components"])
+    first = components["findings"][0]
+    assert {"label", "severity", "repos"} <= set(first)
+    assert set(first["repos"][0]) == {"repo_name", "score_letter", "owner"}
+
+
+def test_upgrades_carry_jobs_waves_and_redundant_prs(built):
+    _, files = built
+    upgrades = files["upgrades.json"]
+    assert set(upgrades["upgrade_jobs"]["states"]) == {"failing", "not_landing", "healthy"}
+    wave = upgrades["waves"][0]
+    assert wave["available"] is True and wave["done_rule"].startswith("has ")
+    not_started = next(row for row in wave["records"] if row["status"] == "not_started")
+    assert not_started["gaps"]
+    assert upgrades["redundant_prs"]["redundant"] == len(upgrades["redundant_prs"]["records"])
+
+
+def test_owners_report_coverage_and_groups(built):
+    _, files = built
+    owners = files["owners.json"]
+    assert owners["has_owner_data"] is False
+    assert set(owners["groups"]) == {"theme", "squad"}
+
+
+def test_views_without_maintenance_files_mark_them_unavailable(built, tmp_path):
+    data, _ = built
+    write_views(BuildContext(data=data, generated_at=GENERATED_AT), tmp_path)
+    assert json.loads((tmp_path / "components.json").read_text())["available"] is False
+    upgrades = json.loads((tmp_path / "upgrades.json").read_text())
+    assert upgrades["upgrade_jobs"] is None and upgrades["redundant_prs"] is None
+    assert all(wave["available"] is False for wave in upgrades["waves"])

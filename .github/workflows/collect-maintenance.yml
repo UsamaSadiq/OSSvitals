@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OUT_DIR: ${{ github.workspace }}/out/openedx/maintenance
+      VIEWS_DIR: ${{ github.workspace }}/out/openedx/views
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -34,16 +35,22 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Views that read these files are rebuilt here, from today's files, rather
+      # than waiting for tomorrow's build-scores run.
+      - run: python scripts/build_views.py --org openedx --out-dir "$VIEWS_DIR" --maintenance-dir "$OUT_DIR"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Publish to data branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch
-          mkdir -p data-branch/openedx/maintenance
+          mkdir -p data-branch/openedx/maintenance data-branch/openedx/views
           cp -R "$OUT_DIR"/. data-branch/openedx/maintenance/
+          cp -R "$VIEWS_DIR"/. data-branch/openedx/views/
           cd data-branch
-          git add openedx/maintenance
+          git add openedx/maintenance openedx/views
           if git diff --cached --quiet; then
             echo "Maintenance data unchanged."
             exit 0

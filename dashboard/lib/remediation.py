@@ -18,6 +18,17 @@ class RemediationEntry:
     issue_body_template: str | None
 
 
+DEFAULT_ISSUE_BODY = (
+    "This repository fails a health check and needs remediation.\n\n"
+    "Filed via the Open edX Repository Health Dashboard ({dashboard_url}) - "
+    "please review and edit before submitting."
+)
+
+
+def issue_body(entry: RemediationEntry, dashboard_url: str) -> str:
+    return (entry.issue_body_template or DEFAULT_ISSUE_BODY).replace("{dashboard_url}", dashboard_url)
+
+
 def load_remediation_map(org: str = DEFAULT_ORG) -> dict[str, RemediationEntry]:
     config = get_config("remediation", org)
     checks = config.get("checks", {})

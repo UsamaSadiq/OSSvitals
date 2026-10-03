@@ -164,6 +164,35 @@ def load_my_repos(handle: str) -> pd.DataFrame:
     return df[mask]
 
 
+OWNER_HANDLE_COLUMNS = [
+    "owner",
+    "maintainers",
+    "ownership.owner",
+    "ownership.owner_name",
+    "ownership.squad",
+    "ownership.theme",
+]
+
+
+def _value_handles(value: object) -> set[str]:
+    if not isinstance(value, str) and pd.isna(value):
+        return set()
+    text = _normalize_handle(value)
+    if not text:
+        return set()
+    tokens = {token.lstrip("@") for token in re.split(r"[^a-zA-Z0-9_.-]+", text) if token}
+    return {text} | tokens
+
+
+def owner_handles(row: pd.Series) -> list[str]:
+    """Every handle that ``load_my_repos`` would match this row on, normalised."""
+    handles = {_normalize_handle(str(row.get(REPO_COL, "")).split("/", 1)[0])}
+    for column in OWNER_HANDLE_COLUMNS:
+        if column in row.index:
+            handles |= _value_handles(row[column])
+    return sorted(handle for handle in handles if handle)
+
+
 def _normalize_handle(value: object) -> str:
     normalized = str(value or "").strip().lower()
     return normalized.lstrip("@")

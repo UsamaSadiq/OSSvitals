@@ -21,6 +21,8 @@ on:
       - dashboard/config/*/scoring_proposed.yaml
       - dashboard/lib/pipeline.py
       - dashboard/lib/views_export.py
+      - dashboard/lib/views_common.py
+      - dashboard/lib/views_maintenance.py
       - dashboard/lib/redaction.py
       - dashboard/config/*/redact.yaml
       - scripts/build_scores.py
@@ -48,7 +50,13 @@ jobs:
       - run: python scripts/build_scores.py --org openedx --out-dir "$OUT_DIR"
         env:
           PYTHONPATH: ${{ github.workspace }}
-      - run: python scripts/build_views.py --org openedx --out-dir "$OUT_DIR/views"
+      - name: Fetch published maintenance files
+        run: |
+          mkdir -p "$RUNNER_TEMP/published"
+          if git fetch --depth 1 origin data; then
+            git archive FETCH_HEAD openedx/maintenance | tar -x -C "$RUNNER_TEMP/published" || true
+          fi
+      - run: python scripts/build_views.py --org openedx --out-dir "$OUT_DIR/views" --maintenance-dir "$RUNNER_TEMP/published/openedx/maintenance"
         env:
           PYTHONPATH: ${{ github.workspace }}
 
