@@ -19,6 +19,7 @@ from dashboard.lib.attention import needing_attention
 from dashboard.lib.check_review import review_window, up_for_review
 from dashboard.lib.checks import CATEGORY_GROUPS, category_pass_rates, check_columns, classify, coverage
 from dashboard.lib.config import get_config, get_feature_flags
+from dashboard.lib.ordering import bottom, top
 from dashboard.lib.overview import org_average_series, org_kpis, top_failing, top_movers
 from dashboard.lib.ownership import OWNER_KEY, grade_mix, owner_summary, repos_for_owner
 from dashboard.lib.pipeline import ScoredOrg
@@ -27,6 +28,7 @@ from dashboard.lib.redaction import DEFAULT_REPLACEMENT, compile_patterns, redac
 from dashboard.lib.remediation import load_remediation_map
 from dashboard.lib.schema import LAST_PUSH_COL, REPO_COL, TIMESTAMP_COL
 from dashboard.lib.scores_export import dumps
+from dashboard.lib.scoring import DEFAULT_LETTER_GRADES, _get_letter_grade
 from dashboard.lib.scoring_method import letter_bands, metric_rows, scoring_columns
 from dashboard.lib.stewardship import (
     DEFAULT_RULE,
@@ -42,6 +44,9 @@ KPI_BASELINE_DAYS = 7
 CHANGE_BASELINE_DAYS = 30
 OWNERSHIP_PREFIX = "ownership."
 SCORE_PREFIX = "score_"
+HIGHLIGHT_COUNT = 5
+HIGHLIGHT_COLUMNS = [REPO_COL, "score_composite", "score_letter"]
+KPI_DELTA_FIELDS = {"repos": int, "avg_composite": float, "grade_a": int, "grade_f": int, "stale": int}
 
 
 @dataclass(frozen=True)
@@ -148,6 +153,30 @@ def build_history(ctx: BuildContext) -> dict[str, Any]:
     )
 
 
+def kpi_deltas(kpis: dict[str, Any], baseline: dict[str, Any] | None) -> dict[str, int | float] | None:
+    if baseline is None:
+        return None
+    return {field: cast(kpis[field] - baseline[field]) for field, cast in KPI_DELTA_FIELDS.items()}
+
+
+def highlights(scored: pd.DataFrame) -> dict[str, list[dict[str, Any]]]:
+    if scored.empty:
+        return {"top": [], "bottom": []}
+    ranked = scored[HIGHLIGHT_COLUMNS]
+    return {
+        "top": records(top(ranked, "score_composite", HIGHLIGHT_COUNT)),
+        "bottom": records(bottom(ranked, "score_composite", HIGHLIGHT_COUNT)),
+    }
+
+
+def gainers_and_losers(movers: pd.DataFrame) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    if movers.empty:
+        return [], []
+    gainers = top(movers[movers["delta"] > 0], "delta", HIGHLIGHT_COUNT)
+    losers = bottom(movers[movers["delta"] < 0], "delta", HIGHLIGHT_COUNT)
+    return records(gainers), records(losers)
+
+
 def build_overview(ctx: BuildContext) -> dict[str, Any]:
     scored, history = ctx.data.scored, ctx.data.history
     stale_hours = int(ctx.config("data_source").get("stale_threshold_hours", 48))
@@ -158,19 +187,29 @@ def build_overview(ctx: BuildContext) -> dict[str, Any]:
     unavailable = sorted(
         {name for metrics in scored.get("score_unavailable_metrics", []) if isinstance(metrics, list) for name in metrics}
     )
+    kpis = org_kpis(scored, stale_hours, now)
+    baseline_kpis = org_kpis(kpi_baseline.df, stale_hours, now) if kpi_baseline else None
+    letter_grades = ctx.config("scoring").get("letter_grades", DEFAULT_LETTER_GRADES)
+    movers = top_movers(scored, movers_baseline.df if movers_baseline else None)
+    gainers, losers = gainers_and_losers(movers)
     return envelope(
         ctx,
         "overview",
-        kpis=org_kpis(scored, stale_hours, now),
-        kpi_baseline=org_kpis(kpi_baseline.df, stale_hours, now) if kpi_baseline else None,
+        kpis=kpis,
+        kpi_baseline=baseline_kpis,
         kpi_baseline_date=_iso(kpi_baseline.timestamp if kpi_baseline else None),
+        avg_letter=_get_letter_grade(kpis["avg_composite"], letter_grades),
+        kpi_deltas=kpi_deltas(kpis, baseline_kpis),
         grade_mix=grade_mix(scored),
         unavailable_metrics=unavailable,
         activity_totals=org_total_values(scored, skip=unmeasured),
         unmeasured_columns=sorted(unmeasured),
         category_pass_rates=records(category_pass_rates(scored)),
         top_failing=records(top_failing(scored)),
-        movers=records(top_movers(scored, movers_baseline.df if movers_baseline else None)),
+        highlights=highlights(scored),
+        movers=records(movers),
+        gainers=gainers,
+        losers=losers,
         movers_from=_iso(movers_baseline.timestamp if movers_baseline else None),
         movers_to=_iso(history[-1].timestamp if movers_baseline else None),
     )
