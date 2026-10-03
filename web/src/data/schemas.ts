@@ -40,6 +40,14 @@ const brandingSchema = z.looseObject({
 const featureFlagsSchema = z.looseObject({
   enable_maintainer_views: z.boolean(),
   enable_weekly_bulletin_export: z.boolean().optional(),
+  enable_my_repos_filter: z.boolean().optional(),
+});
+
+const signalSchema = z.object({
+  column: z.string(),
+  label: z.string(),
+  group: z.string(),
+  kind: z.enum(["count", "ratio", "days", "duration", "state"]),
 });
 
 export const metaSchema = view({
@@ -50,6 +58,7 @@ export const metaSchema = view({
   critically_stale_threshold_hours: int,
   snapshot_url: z.string().nullable(),
   history_url: z.string().nullable(),
+  signals: z.array(signalSchema),
 });
 
 const checkStateSchema = z.enum(["pass", "fail", "unknown"]);
@@ -59,6 +68,8 @@ const repoRecordSchema = z.looseObject({
   score_composite: z.number(),
   score_letter: grade,
   checks: z.record(z.string(), checkStateSchema),
+  category_stats: z.record(z.string(), z.tuple([int, int, int])),
+  owner_handles: z.array(z.string()),
 });
 
 export const reposSchema = view({
@@ -179,31 +190,58 @@ export const atRiskSchema = view({
   ),
 });
 
+const ownerRepoSchema = z.looseObject({
+  repo_name: z.string(),
+  score_composite: z.number(),
+  score_letter: grade,
+  score_activity: nullableNumber.optional(),
+  lifecycle: optionalText,
+  release: optionalText,
+  catalog_link: z.string(),
+});
+
+const groupRowSchema = z.looseObject({ repo_count: int, avg_score: z.number(), d_or_f: int });
+
 export const ownersSchema = view({
+  coverage: z.number(),
+  has_owner_data: z.boolean(),
+  groups: z.object({ theme: z.array(groupRowSchema).nullable(), squad: z.array(groupRowSchema).nullable() }),
   records: z.array(
     z.looseObject({
       owner: z.string(),
+      owner_type: z.string(),
       owner_key: z.string(),
       repo_count: int,
       avg_score: z.number(),
+      d_or_f: int,
+      at_risk: int,
     }),
   ),
-  repos: z.record(
-    z.string(),
-    z.array(z.looseObject({ repo_name: z.string(), score_composite: z.number(), score_letter: grade })),
-  ),
+  grade_mix: z.record(z.string(), z.object({ A: int, B: int, C: int, D: int, F: int })),
+  repos: z.record(z.string(), z.array(ownerRepoSchema)),
 });
 
 export const checksSchema = view({
   records: z.array(
     z.looseObject({
       check: z.string(),
+      title: z.string(),
       category: z.string().nullable(),
       description: z.looseObject({}).nullable(),
       populated_pct: z.number(),
       pass_pct: nullableNumber,
       scored_by: z.looseObject({ metric: z.string() }).nullable(),
       has_remediation: z.boolean(),
+      remediation: z
+        .looseObject({
+          title: z.string(),
+          description: z.string(),
+          source_url: z.string(),
+          snippet: z.string().nullable(),
+          issue_body: z.string(),
+        })
+        .nullable(),
+      pr_template: z.object({ branch: z.string(), title: z.string(), body: z.string() }).nullable(),
     }),
   ),
   review_window: z.object({
@@ -213,6 +251,7 @@ export const checksSchema = view({
   }),
   up_for_review: z.array(z.looseObject({ check: z.string(), kind: z.string() })),
   candidates: z.array(z.looseObject({})),
+  groups: z.array(z.object({ name: z.string(), checks: z.array(z.string()) })),
   saturation_share: z.number().optional(),
   sparse_fill: z.number().optional(),
 });
@@ -263,6 +302,111 @@ export const scoringSchema = view({
   proposed: proposedSchema.nullable(),
 });
 
+export const failingChecksSchema = view({
+  records: z.array(z.object({ check: z.string(), failing: int })),
+});
+
+export const repoHistorySchema = view({
+  dates: z.array(isoString),
+  repos: z.record(z.string(), z.record(z.string(), z.array(nullableNumber))),
+});
+
+export const repoChecksSchema = view({
+  repos: z.record(z.string(), z.record(z.string(), z.string().nullable())),
+});
+
+const findingRepoSchema = z.object({ repo_name: z.string(), score_letter: grade.nullable(), owner: optionalText });
+
+export const componentsSchema = view({
+  available: z.boolean(),
+  collected_at: isoString.nullable().optional(),
+  summary: z.looseObject({ repos: int, with_file: int, with_problem: int }).optional(),
+  findings: z
+    .array(
+      z.looseObject({
+        code: z.string(),
+        label: z.string(),
+        severity: z.string(),
+        repos: z.array(findingRepoSchema),
+      }),
+    )
+    .optional(),
+  components: z
+    .array(
+      z.looseObject({
+        repo_name: z.string(),
+        has_file: z.boolean(),
+        type: optionalText,
+        lifecycle: optionalText,
+        owner: optionalText,
+        release: optionalText,
+        score_letter: grade.nullable().optional(),
+        score_composite: nullableNumber.optional(),
+        finding_count: int,
+        backstage_url: optionalText,
+      }),
+    )
+    .optional(),
+  relations: z
+    .array(z.object({ repo_name: z.string(), relation: z.string(), target: z.string(), status: z.string() }))
+    .optional(),
+});
+
+const upgradeJobRowSchema = z.looseObject({
+  repo_name: z.string(),
+  state: z.string(),
+  reason: optionalText,
+  "github.upgrade_job_runs_failed": nullableNumber.optional(),
+  "github.upgrade_job_runs_total": nullableNumber.optional(),
+  "github.requirements_pr_last_merged": optionalText,
+  workflow_url: optionalText,
+});
+
+const waveSchema = z.looseObject({
+  id: z.string(),
+  title: z.string(),
+  epic: optionalText,
+  done_rule: z.string(),
+  available: z.boolean(),
+  collected_at: isoString.nullable().optional(),
+  summary: z.record(z.string(), z.number()).optional(),
+  records: z
+    .array(
+      z.looseObject({
+        repo_name: z.string(),
+        status: z.string(),
+        pr_url: optionalText,
+        pr_title: optionalText,
+        pr_age_days: nullableNumber.optional(),
+        gaps: z.string(),
+      }),
+    )
+    .optional(),
+});
+
+export const upgradesSchema = view({
+  upgrade_jobs: z
+    .object({ collected_at: isoString.nullable(), states: z.record(z.string(), int), records: z.array(upgradeJobRowSchema) })
+    .nullable(),
+  waves: z.array(waveSchema),
+  redundant_prs: z
+    .object({
+      collected_at: isoString.nullable(),
+      redundant: int,
+      bot_prs_checked: int,
+      records: z.array(
+        z.looseObject({
+          repo_name: z.string(),
+          bot_pr_url: optionalText,
+          superseded_by_url: optionalText,
+          superseded_by_merged: z.union([z.string(), z.boolean()]).nullable().optional(),
+          confidence: optionalText,
+        }),
+      ),
+    })
+    .nullable(),
+});
+
 export const VIEW_SCHEMAS = {
   meta: metaSchema,
   repos: reposSchema,
@@ -274,6 +418,11 @@ export const VIEW_SCHEMAS = {
   owners: ownersSchema,
   checks: checksSchema,
   scoring: scoringSchema,
+  failing_checks: failingChecksSchema,
+  repo_history: repoHistorySchema,
+  repo_checks: repoChecksSchema,
+  components: componentsSchema,
+  upgrades: upgradesSchema,
 } as const;
 
 export type ViewName = keyof typeof VIEW_SCHEMAS;
@@ -295,3 +444,8 @@ export type AtRiskView = View<"at_risk">;
 export type OwnersView = View<"owners">;
 export type ChecksView = View<"checks">;
 export type ScoringView = View<"scoring">;
+export type FailingChecksView = View<"failing_checks">;
+export type RepoHistoryView = View<"repo_history">;
+export type RepoChecksView = View<"repo_checks">;
+export type ComponentsView = View<"components">;
+export type UpgradesView = View<"upgrades">;

@@ -39,6 +39,8 @@ function reposFixture(): ReposView {
     score_composite,
     score_letter,
     checks: {},
+    category_stats: {},
+    owner_handles: [],
   });
   return {
     metadata: metadata("repos"),

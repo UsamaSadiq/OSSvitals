@@ -3,9 +3,9 @@ import { metaFixture } from "../../data/fixtures";
 import { exportCsv, exportJson, exportName, rankedRows } from "./ShareExport";
 
 const records = [
-  { repo_name: "openedx/b", score_composite: 80, score_letter: "A" as const, checks: {} },
-  { repo_name: "openedx/a", score_composite: 80, score_letter: "A" as const, checks: {} },
-  { repo_name: "openedx/c", score_composite: 90.5, score_letter: "A" as const, checks: {} },
+  { repo_name: "openedx/b", score_composite: 80, score_letter: "A" as const, checks: {}, category_stats: {}, owner_handles: [] },
+  { repo_name: "openedx/a", score_composite: 80, score_letter: "A" as const, checks: {}, category_stats: {}, owner_handles: [] },
+  { repo_name: "openedx/c", score_composite: 90.5, score_letter: "A" as const, checks: {}, category_stats: {}, owner_handles: [] },
 ];
 
 describe("Overview export", () => {

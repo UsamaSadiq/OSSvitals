@@ -11,7 +11,6 @@ import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import { AtRiskTable } from "./AtRiskTable";
 import { AT_RISK_CAPTION, atRiskCsv, baselineCaption, visibleRows, type AtRiskRow } from "./atRiskText";
 import { CodeText } from "../../components/CodeText";
-import "./atRisk.css";
 
 function ProductionToggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
   return (

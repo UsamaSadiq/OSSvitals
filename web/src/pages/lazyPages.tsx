@@ -12,6 +12,11 @@ export const PORTED_PAGES: Record<string, PageComponent> = {
   "/what_changed": lazyPage(() => import("./WhatChanged/WhatChanged"), (m) => m.WhatChanged),
   "/at_risk": lazyPage(() => import("./AtRisk/AtRisk"), (m) => m.AtRisk),
   "/scoring": lazyPage(() => import("./Scoring/Scoring"), (m) => m.Scoring),
+  "/failing_checks": lazyPage(() => import("./FailingChecks/FailingChecks"), (m) => m.FailingChecks),
+  "/glossary": lazyPage(() => import("./ChecksCatalog/ChecksCatalog"), (m) => m.ChecksCatalog),
+  "/components": lazyPage(() => import("./Components/Components"), (m) => m.Components),
+  "/maintenance": lazyPage(() => import("./Upgrades/Upgrades"), (m) => m.Upgrades),
+  "/ownership_views": lazyPage(() => import("./Owners/Owners"), (m) => m.Owners),
 };
 
 export function PageLoader({ page: Page }: { page: PageComponent }) {

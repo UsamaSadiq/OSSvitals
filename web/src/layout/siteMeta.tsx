@@ -15,6 +15,7 @@ export interface SiteMeta {
   featureFlags: {
     enableMaintainerViews: boolean;
     enableWeeklyBulletinExport: boolean;
+    enableMyReposFilter: boolean;
   };
   freshness?: FreshnessBannerProps;
   loadError?: string;
@@ -33,6 +34,7 @@ export const DEFAULT_SITE_META: SiteMeta = {
   featureFlags: {
     enableMaintainerViews: true,
     enableWeeklyBulletinExport: true,
+    enableMyReposFilter: true,
   },
 };
 

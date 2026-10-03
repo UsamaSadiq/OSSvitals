@@ -1,0 +1,35 @@
+.owners-coverage {
+  max-width: 18rem;
+}
+
+.owners-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin-block: 0.75rem;
+}
+
+.owners-panel {
+  margin-top: 1.5rem;
+}
+
+.owners-panel > .button-link {
+  margin-top: 0.75rem;
+}
+
+.owners-handle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-block: 0.5rem 1rem;
+  max-width: 18rem;
+}
+
+.owners-handle input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}

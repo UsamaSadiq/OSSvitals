@@ -1,0 +1,40 @@
+.components-section {
+  margin-top: 1.75rem;
+}
+
+.components-section h2 {
+  font-size: 1.3rem;
+  margin: 0 0 0.75rem;
+}
+
+.components-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.components-finding {
+  border-bottom: 1px solid var(--border);
+}
+
+.components-finding summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+
+.components-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+}
+
+.components-filters .query-select {
+  flex: 1 1 12rem;
+}
+
+@media (max-width: 599px) {
+  .components-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
