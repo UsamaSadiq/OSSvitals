@@ -288,3 +288,12 @@ def test_views_without_maintenance_files_mark_them_unavailable(built, tmp_path):
     upgrades = json.loads((tmp_path / "upgrades.json").read_text())
     assert upgrades["upgrade_jobs"] is None and upgrades["redundant_prs"] is None
     assert all(wave["available"] is False for wave in upgrades["waves"])
+
+
+def test_checks_carry_catalog_groups(built):
+    _, files = built
+    groups = files["checks.json"]["groups"]
+    names = [group["name"] for group in groups]
+    assert "Ownership" in names and names.index("Ownership") < len(names)
+    listed = {check for group in groups for check in group["checks"]}
+    assert listed == {row["check"] for row in files["checks.json"]["records"]}

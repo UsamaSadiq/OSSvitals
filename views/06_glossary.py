@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import re
-
 import pandas as pd
 import streamlit as st
 
 from dashboard.data import load_config, load_history, load_snapshot
-from dashboard.lib.checks import coverage, is_check_column
+from dashboard.lib.checks import catalog_groups, coverage, is_check_column
 from dashboard.lib.check_review import SATURATED, SATURATION_SHARE, SPARSE, SPARSE_FILL, review_window, up_for_review
 from dashboard.lib.remediation import missing_remediation_checks
 from dashboard.lib.schema import humanize_check
@@ -170,31 +168,9 @@ def render() -> None:
     c2.metric("Feeding the score", len(scored))
     c3.metric("Missing descriptions", len(missing_desc))
 
-    grouped_seen: set[str] = set()
-    for group in groups:
-        group_name = group.get("name", "Ungrouped")
-        explicit = set(group.get("explicit", []))
-        pattern = group.get("pattern")
-
-        grouped_checks = [
-            check for check in check_columns
-            if check in explicit or (pattern and re.match(pattern, check))
-        ]
-        if not grouped_checks:
-            continue
-
+    for group_name, grouped_checks in catalog_groups(check_columns, groups):
         st.header(group_name)
         for check in grouped_checks:
-            grouped_seen.add(check)
-            _render_check(
-                check, descriptions=descriptions, score_map=score_map, df=df,
-                missing_desc=missing_desc, missing_remediation=missing_remediation,
-            )
-
-    ungrouped = [c for c in check_columns if c not in grouped_seen]
-    if ungrouped:
-        st.header("Other checks")
-        for check in ungrouped:
             _render_check(
                 check, descriptions=descriptions, score_map=score_map, df=df,
                 missing_desc=missing_desc, missing_remediation=missing_remediation,

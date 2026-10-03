@@ -169,3 +169,19 @@ def test_scoring_columns_maps_columns_to_weight_share():
 def test_other_orgs_get_their_own_caches():
     assert data._cache_file("edly") != data._cache_file(DEFAULT_ORG)
     assert trends._history_cache("edly") != trends._history_cache(DEFAULT_ORG)
+
+
+def test_catalog_groups_follow_config_order_and_collect_the_rest():
+    from dashboard.lib.checks import catalog_groups
+
+    groups = [
+        {"name": "Files", "pattern": "^exists\\."},
+        {"name": "Empty", "pattern": "^nothing\\."},
+        {"name": "Mixed", "explicit": ["exists.readme", "github_actions"]},
+    ]
+    checks = ["exists.readme", "exists.license", "github_actions", "readme.badge"]
+    assert catalog_groups(checks, groups) == [
+        ("Files", ["exists.readme", "exists.license"]),
+        ("Mixed", ["exists.readme", "github_actions"]),
+        ("Other checks", ["readme.badge"]),
+    ]
