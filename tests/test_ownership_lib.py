@@ -92,3 +92,30 @@ def test_snapshot_without_ownership_columns_gives_empty_summary():
 
 def test_owner_without_a_kind_is_labelled_not_stated():
     assert ownership.owner_type("2U-aperture", "unknown", unmaintained_group="openedx-unmaintained") == "not stated"
+
+
+def test_ownership_coverage_counts_any_filled_owner_field():
+    from dashboard.lib.ownership import ownership_coverage
+
+    frame = pd.DataFrame({"ownership.owner": ["a", "", None, " "], "ownership.theme": [None, "t", None, None]})
+    assert ownership_coverage(frame) == 50.0
+    assert ownership_coverage(pd.DataFrame({"other": [1]})) == 0.0
+
+
+def test_group_summary_buckets_blank_values_and_ranks_by_size():
+    from dashboard.lib.ownership import group_summary
+
+    frame = pd.DataFrame(
+        {
+            "repo_name": ["a", "b", "c"],
+            "ownership.theme": ["x", "", "x"],
+            "score_composite": [80.0, 10.0, 61.0],
+            "score_letter": ["A", "F", "B"],
+        }
+    )
+    summary = group_summary(frame, "ownership.theme")
+    assert summary.to_dict("records") == [
+        {"ownership.theme": "x", "repo_count": 2, "avg_score": 70.5, "d_or_f": 0},
+        {"ownership.theme": "Unassigned", "repo_count": 1, "avg_score": 10.0, "d_or_f": 1},
+    ]
+    assert group_summary(frame, "missing").empty

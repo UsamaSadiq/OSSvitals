@@ -6,6 +6,7 @@ import streamlit as st
 from dashboard.data import load_config, load_maintenance
 from dashboard.lib import maintenance
 from dashboard.lib.share import share_link
+from dashboard.lib.upgrades import done_rule, gaps
 from dashboard.ui import empty_state, page_init, repo_table, share_link_block
 
 STATE_LABELS = {"failing": "Job failing", "not_landing": "PRs not merged", "healthy": "Healthy"}
@@ -95,7 +96,7 @@ def _render_wave(wave_id: str, wave: dict) -> None:
     columns = st.columns(3)
     for column, status in zip(columns, ("done", "pr_open", "not_started")):
         column.metric(WAVE_LABELS[status], summary.get(status, 0))
-    st.caption(f"Done means: {_done_rule(wave)}. Collected {_generated(payload)}.")
+    st.caption(f"Done means: {done_rule(wave)}. Collected {_generated(payload)}.")
     frame = pd.DataFrame(payload["records"])
 
     st.subheader("Open migration PRs, oldest first")
@@ -111,7 +112,7 @@ def _render_wave(wave_id: str, wave: dict) -> None:
     st.subheader("Not started")
     not_started = frame[frame["status"] == "not_started"]
     not_started = not_started.assign(
-        gaps=[_gaps(missing, leftover) for missing, leftover in zip(not_started["missing"], not_started["leftover"])]
+        gaps=[gaps(missing, leftover) for missing, leftover in zip(not_started["missing"], not_started["leftover"])]
     )
     repo_table(
         not_started,
@@ -120,21 +121,6 @@ def _render_wave(wave_id: str, wave: dict) -> None:
         height=380,
         empty_message="Every applicable repo has started.",
     )
-
-
-def _done_rule(wave: dict) -> str:
-    done = wave.get("done") or {}
-    parts = []
-    if done.get("present"):
-        parts.append("has " + ", ".join(f"`{path}`" for path in done["present"]))
-    if done.get("absent"):
-        parts.append("no " + ", ".join(f"`{path}`" for path in done["absent"]))
-    return "; ".join(parts)
-
-
-def _gaps(missing: list, leftover: list) -> str:
-    parts = [f"add {path}" for path in missing or []] + [f"remove {path}" for path in leftover or []]
-    return ", ".join(parts)
 
 
 def _render_redundant_prs() -> None:
