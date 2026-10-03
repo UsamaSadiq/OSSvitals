@@ -6,28 +6,45 @@ ISO dates) and the frontend formats them.
 """
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Callable
 
 import pandas as pd
 
+from dashboard.lib import activity
 from dashboard.lib.activity import SIGNALS, org_total_values, unmeasured_columns
 from dashboard.lib.attention import needing_attention
 from dashboard.lib.bulletin import generate_weekly_bulletin
 from dashboard.lib.check_review import SATURATION_SHARE, SPARSE_FILL, review_window, up_for_review
-from dashboard.lib.checks import CATEGORY_GROUPS, category_pass_rates, check_columns, classify, coverage
-from dashboard.lib.config import get_config, get_feature_flags
+from dashboard.lib.checks import (
+    CATEGORY_GROUPS,
+    category_columns,
+    category_pass_rates,
+    category_stats,
+    check_columns,
+    classify,
+    coverage,
+    failing_counts,
+)
+from dashboard.lib.config import get_feature_flags
 from dashboard.lib.ordering import bottom, top
 from dashboard.lib.overview import org_average_series, org_kpis, top_failing, top_movers
-from dashboard.lib.ownership import OWNER_KEY, grade_mix, owner_summary, repos_for_owner
-from dashboard.lib.pipeline import ScoredOrg
+from dashboard.lib.data import owner_handles
+from dashboard.lib.linking import pr_template
+from dashboard.lib.ownership import (
+    OWNER_KEY,
+    grade_mix,
+    group_summary,
+    has_text_data,
+    owner_summary,
+    ownership_coverage,
+    repos_for_owner,
+)
 from dashboard.lib.proposed_scoring import grade_changes, grade_migration, swap_rows
 from dashboard.lib.redaction import DEFAULT_REPLACEMENT, compile_patterns, redact
-from dashboard.lib.remediation import load_remediation_map
-from dashboard.lib.schema import LAST_PUSH_COL, REPO_COL, TIMESTAMP_COL
+from dashboard.lib.remediation import RemediationEntry, issue_body, load_remediation_map
+from dashboard.lib.schema import LAST_PUSH_COL, REPO_COL, humanize_check
 from dashboard.lib.scores_export import dumps
 from dashboard.lib.scoring import DEFAULT_LETTER_GRADES, _get_letter_grade
 from dashboard.lib.scoring_method import letter_bands, metric_rows, scoring_columns
@@ -37,77 +54,40 @@ from dashboard.lib.stewardship import (
     OWNER_COL,
     RELEASE_COL,
     at_risk_repos,
+    catalog_url,
     changed_metrics,
     has_column_data,
     production_or_release,
 )
 from dashboard.lib.tiers import TIER_COL
 from dashboard.lib.trends import Snapshot, summarize_weekly_changes
+from dashboard.lib.views_maintenance import build_components, build_upgrades
+from dashboard.lib.views_common import (
+    BuildContext,
+    _iso,
+    baseline_of,
+    envelope,
+    records,
+    window,
+)
 
-SCHEMA_VERSION = 1
 KPI_BASELINE_DAYS = 7
 CHANGE_BASELINE_DAYS = 30
 OWNERSHIP_PREFIX = "ownership."
 SCORE_PREFIX = "score_"
 HIGHLIGHT_COUNT = 5
 HIGHLIGHT_COLUMNS = [REPO_COL, "score_composite", "score_letter"]
+REPO_HISTORY_DAYS = 30
+SIGNAL_KINDS = {
+    activity._count: "count",
+    activity._ratio: "ratio",
+    activity._days: "days",
+    activity._duration: "duration",
+    activity._state: "state",
+}
+OWNER_COLUMNS = ("ownership.owner_name", "ownership.owner")
+GROUP_COLUMNS = {"theme": "ownership.theme", "squad": "ownership.squad"}
 KPI_DELTA_FIELDS = {"repos": int, "avg_composite": float, "grade_a": int, "grade_f": int, "stale": int}
-
-
-@dataclass(frozen=True)
-class BuildContext:
-    data: ScoredOrg
-    generated_at: datetime
-    commit_sha: str = "local"
-
-    @property
-    def org(self) -> str:
-        return self.data.org
-
-    def config(self, section: str) -> dict[str, Any]:
-        return get_config(section, self.org)
-
-
-def records(df: pd.DataFrame) -> list[dict[str, Any]]:
-    if df.empty:
-        return []
-    return json.loads(df.to_json(orient="records", date_format="iso"))
-
-
-def _iso(value: date | None) -> str | None:
-    return value.isoformat() if value else None
-
-
-def _snapshot_timestamp(scored: pd.DataFrame) -> str | None:
-    if scored.empty or TIMESTAMP_COL not in scored.columns:
-        return None
-    return str(scored[TIMESTAMP_COL].iloc[0])
-
-
-def window(history: list[Snapshot], days: int) -> list[Snapshot]:
-    """Snapshots within ``days`` of the latest, as ``load_history(days=...)`` selects them."""
-    if not history:
-        return []
-    cutoff = history[-1].timestamp - timedelta(days=days)
-    return [snapshot for snapshot in history if snapshot.timestamp >= cutoff]
-
-
-def baseline_of(history: list[Snapshot], days: int) -> Snapshot | None:
-    selected = window(history, days)
-    return selected[0] if len(selected) >= 2 else None
-
-
-def envelope(ctx: BuildContext, source: str, **fields: Any) -> dict[str, Any]:
-    return {
-        "metadata": {
-            "schema_version": SCHEMA_VERSION,
-            "org": ctx.org,
-            "generated_at": ctx.generated_at.isoformat(),
-            "snapshot_timestamp": _snapshot_timestamp(ctx.data.scored),
-            "source": source,
-        },
-        **fields,
-    }
 
 
 def build_meta(ctx: BuildContext) -> dict[str, Any]:
@@ -123,6 +103,10 @@ def build_meta(ctx: BuildContext) -> dict[str, Any]:
         critically_stale_threshold_hours=int(data_source.get("critically_stale_threshold_hours", 168)),
         snapshot_url=ctx.data.snapshot_url,
         history_url=ctx.data.history_url,
+        signals=[
+            {"column": s.column, "label": s.label, "group": s.group, "kind": SIGNAL_KINDS[s.formatter]}
+            for s in SIGNALS
+        ],
     )
 
 
@@ -138,9 +122,12 @@ def _repo_columns(scored: pd.DataFrame) -> list[str]:
 def build_repos(ctx: BuildContext) -> dict[str, Any]:
     scored = ctx.data.scored
     checks = [col for col in check_columns(scored.columns) if not col.startswith(OWNERSHIP_PREFIX)]
+    categories = {name: cols for name, cols in category_columns(scored.columns).items() if cols}
     rows = records(scored[_repo_columns(scored)])
     for row, (_, source) in zip(rows, scored.iterrows()):
         row["checks"] = {check: classify(source.get(check)) for check in checks}
+        row["category_stats"] = {name: list(category_stats(source, cols)) for name, cols in categories.items()}
+        row["owner_handles"] = owner_handles(source)
     return envelope(ctx, "scores and checks for the current snapshot", records=rows)
 
 
@@ -297,24 +284,59 @@ def build_owners(ctx: BuildContext) -> dict[str, Any]:
     risky, _, _ = _at_risk(ctx)
     at_risk = set(risky.get(REPO_COL, []))
     summary = owner_summary(scored, unmaintained_group=rule["unmaintained_group"], at_risk_repos=at_risk)
-    repos = {key: records(repos_for_owner(scored, key)) for key in sorted(summary[OWNER_KEY])} if not summary.empty else {}
-    return envelope(ctx, "catalog-info.yaml owners", records=records(summary), repos=repos)
+    keys = sorted(summary[OWNER_KEY]) if not summary.empty else []
+    owned = {key: repos_for_owner(scored, key) for key in keys}
+    template = rule["catalog_url_template"]
+    return envelope(
+        ctx,
+        "catalog-info.yaml owners",
+        coverage=ownership_coverage(scored),
+        has_owner_data=any(has_text_data(scored, column) for column in OWNER_COLUMNS),
+        groups={
+            name: records(group_summary(scored, column)) if has_text_data(scored, column) else None
+            for name, column in GROUP_COLUMNS.items()
+        },
+        records=records(summary),
+        grade_mix={key: grade_mix(frame) for key, frame in owned.items()},
+        repos={
+            key: records(frame.assign(catalog_link=frame[REPO_COL].map(lambda repo: catalog_url(repo, template))))
+            for key, frame in owned.items()
+        },
+    )
 
 
 def _category(check: str) -> str | None:
     return next((name for name, predicate in CATEGORY_GROUPS.items() if predicate(check)), None)
 
 
-def _check_record(check: str, series: pd.Series, *, descriptions: dict, score_map: dict, remediation: set[str]) -> dict[str, Any]:
+def _remediation(entry: RemediationEntry | None, dashboard_url: str) -> dict[str, Any] | None:
+    if entry is None:
+        return None
+    return {**asdict(entry), "issue_body": issue_body(entry, dashboard_url)}
+
+
+def _check_record(
+    check: str,
+    series: pd.Series,
+    *,
+    descriptions: dict,
+    score_map: dict,
+    remediation: dict[str, RemediationEntry],
+    pr_config: dict,
+    dashboard_url: str,
+) -> dict[str, Any]:
     populated_pct, pass_pct = coverage(series)
     return {
         "check": check,
+        "title": humanize_check(check, descriptions),
         "category": _category(check),
         "description": descriptions.get(check),
         "populated_pct": populated_pct,
         "pass_pct": pass_pct,
         "scored_by": score_map.get(check),
         "has_remediation": check in remediation,
+        "remediation": _remediation(remediation.get(check), dashboard_url),
+        "pr_template": pr_template(check, pr_config) if check in pr_config.get("whitelist", []) else None,
     }
 
 
@@ -323,13 +345,23 @@ def build_checks(ctx: BuildContext) -> dict[str, Any]:
     columns = sorted(check_columns(snapshot.columns))
     descriptions = ctx.config("check_descriptions").get("checks", {})
     score_map = scoring_columns(ctx.config("scoring"))
-    remediation = set(load_remediation_map(ctx.org))
+    remediation = load_remediation_map(ctx.org)
+    pr_config = ctx.config("pr_templates")
+    dashboard_url = str(ctx.config("data_source").get("site_url", "")).rstrip("/")
     review = review_window(ctx.data.history)
     return envelope(
         ctx,
         "check columns in the current snapshot",
         records=[
-            _check_record(check, snapshot[check], descriptions=descriptions, score_map=score_map, remediation=remediation)
+            _check_record(
+                check,
+                snapshot[check],
+                descriptions=descriptions,
+                score_map=score_map,
+                remediation=remediation,
+                pr_config=pr_config,
+                dashboard_url=dashboard_url,
+            )
             for check in columns
         ],
         review_window={"snapshots": review.snapshots, "first": _iso(review.first), "last": _iso(review.last)},
@@ -365,6 +397,64 @@ def build_scoring(ctx: BuildContext) -> dict[str, Any]:
     )
 
 
+def build_failing_checks(ctx: BuildContext) -> dict[str, Any]:
+    scored = ctx.data.scored
+    return envelope(
+        ctx,
+        "check columns in the current snapshot",
+        records=records(failing_counts(scored, check_columns(scored.columns))),
+    )
+
+
+def _pass_rate(row: pd.Series, columns: list[str]) -> float | None:
+    passed, failed, _ = category_stats(row, columns)
+    total = passed + failed
+    return round(passed / total * 100, 2) if total else None
+
+
+def _snapshot_rates(snapshot: Snapshot) -> dict[str, dict[str, float | None]]:
+    categories = {name: cols for name, cols in category_columns(snapshot.df.columns).items() if cols}
+    return {
+        str(row[REPO_COL]): {name: _pass_rate(row, cols) for name, cols in categories.items()}
+        for _, row in snapshot.df.iterrows()
+    }
+
+
+def build_repo_history(ctx: BuildContext) -> dict[str, Any]:
+    """Per-repo category pass rates over the last 30 days, aligned to ``dates`` (null where absent)."""
+    snapshots = window(ctx.data.history, REPO_HISTORY_DAYS)
+    rates = [_snapshot_rates(snapshot) for snapshot in snapshots]
+    repos = sorted({repo for snapshot_rates in rates for repo in snapshot_rates})
+    categories = list(dict.fromkeys(name for snapshot_rates in rates for row in snapshot_rates.values() for name in row))
+    return envelope(
+        ctx,
+        "scored snapshot history",
+        dates=[snapshot.timestamp.isoformat() for snapshot in snapshots],
+        repos={
+            repo: {name: [snapshot_rates.get(repo, {}).get(name) for snapshot_rates in rates] for name in categories}
+            for repo in repos
+        },
+    )
+
+
+def _raw_value(value: object) -> str | None:
+    text = str(value).strip()
+    return None if not text or text.lower() == "nan" else text
+
+
+def build_repo_checks(ctx: BuildContext) -> dict[str, Any]:
+    scored = ctx.data.scored
+    columns = [col for cols in category_columns(scored.columns).values() for col in cols]
+    return envelope(
+        ctx,
+        "raw check values for the current snapshot",
+        repos={
+            str(row[REPO_COL]): {column: _raw_value(row.get(column)) for column in columns}
+            for _, row in scored.iterrows()
+        },
+    )
+
+
 BUILDERS: dict[str, Callable[[BuildContext], dict[str, Any]]] = {
     "meta.json": build_meta,
     "repos.json": build_repos,
@@ -376,6 +466,11 @@ BUILDERS: dict[str, Callable[[BuildContext], dict[str, Any]]] = {
     "owners.json": build_owners,
     "checks.json": build_checks,
     "scoring.json": build_scoring,
+    "failing_checks.json": build_failing_checks,
+    "repo_history.json": build_repo_history,
+    "repo_checks.json": build_repo_checks,
+    "components.json": build_components,
+    "upgrades.json": build_upgrades,
 }
 
 
