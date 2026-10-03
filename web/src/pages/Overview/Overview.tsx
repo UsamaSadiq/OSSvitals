@@ -11,6 +11,7 @@ import { FullTable } from "./FullTable";
 import { GradeMix } from "./GradeMix";
 import { Highlights } from "./Highlights";
 import { KpiHero } from "./KpiHero";
+import { ShareExport } from "./ShareExport";
 import { activityLine } from "./overviewText";
 import "./overview.css";
 
@@ -38,6 +39,7 @@ function OverviewSections({ overview, history, scoring }: OverviewSectionsProps)
       <ChartTabs overview={overview} />
       <Highlights overview={overview} />
       <FullTable repoCount={overview.kpis.repos} />
+      <ShareExport />
     </>
   );
 }

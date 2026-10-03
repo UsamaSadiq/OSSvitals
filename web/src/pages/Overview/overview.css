@@ -94,7 +94,8 @@
   overflow-wrap: anywhere;
 }
 
-.full-table summary {
+.full-table summary,
+.share-export summary {
   cursor: pointer;
   font-weight: 600;
   padding: 0.5rem 0;

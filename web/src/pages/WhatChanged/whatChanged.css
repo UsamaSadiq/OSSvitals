@@ -1,0 +1,31 @@
+.bulletin__body {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.bulletin__body h3 {
+  margin-block: 0.25rem 0.5rem;
+}
+
+.bulletin__body h4 {
+  margin-block: 1rem 0.25rem;
+}
+
+.bulletin__source {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.bulletin__source textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}

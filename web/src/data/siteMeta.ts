@@ -14,7 +14,10 @@ export function toSiteMeta(meta: MetaView, now: Date = new Date()): SiteMeta {
       privacyUrl: footer.privacy_url,
       notice: footer.notice,
     },
-    featureFlags: { enableMaintainerViews: flags.enable_maintainer_views },
+    featureFlags: {
+      enableMaintainerViews: flags.enable_maintainer_views,
+      enableWeeklyBulletinExport: flags.enable_weekly_bulletin_export ?? true,
+    },
     freshness: freshnessOf(meta, now),
   };
 }

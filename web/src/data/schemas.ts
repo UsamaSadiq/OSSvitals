@@ -39,6 +39,7 @@ const brandingSchema = z.looseObject({
 
 const featureFlagsSchema = z.looseObject({
   enable_maintainer_views: z.boolean(),
+  enable_weekly_bulletin_export: z.boolean().optional(),
 });
 
 export const metaSchema = view({
@@ -136,12 +137,14 @@ export const whatChangedSchema = view({
   previous: isoString.optional(),
   new_failures: z.array(repoCheckSchema),
   new_passes: z.array(repoCheckSchema),
+  bulletin: z.string().optional(),
 });
 
 export const attentionSchema = view({
   records: z.array(
     z.looseObject({
       repo_name: z.string(),
+      repo_tier: z.string(),
       score_composite: z.number(),
       score_letter: grade,
       reasons: z.string(),
@@ -149,16 +152,29 @@ export const attentionSchema = view({
   ),
 });
 
+const optionalText = z.string().nullable().optional();
+
 export const atRiskSchema = view({
   enabled: z.boolean(),
+  has_owner_data: z.boolean(),
+  has_lifecycle_data: z.boolean(),
   baseline_date: isoString.nullable().optional(),
   skipped_metrics: z.array(z.string()).optional(),
   records: z.array(
     z.looseObject({
       repo_name: z.string(),
+      owner_status: z.string(),
+      owner: optionalText,
+      lifecycle: optionalText,
+      release: optionalText,
       score_composite: z.number(),
       score_letter: grade,
+      score_activity: nullableNumber.optional(),
+      days_since_push: nullableNumber.optional(),
+      delta: nullableNumber.optional(),
       reasons: z.string(),
+      catalog_link: optionalText,
+      production_or_release: z.boolean(),
     }),
   ),
 });
@@ -197,13 +213,54 @@ export const checksSchema = view({
   }),
   up_for_review: z.array(z.looseObject({ check: z.string(), kind: z.string() })),
   candidates: z.array(z.looseObject({})),
+  saturation_share: z.number().optional(),
+  sparse_fill: z.number().optional(),
+});
+
+const metricRowSchema = z.looseObject({
+  metric: z.string(),
+  category: z.string(),
+  weight_pct: z.number(),
+  source: z.string(),
+  rule: z.string(),
+  missing_scores_as: z.number(),
+  measured_pct: nullableNumber,
+  defaulted_pct: nullableNumber,
+  chaoss_metric: z.string(),
+  provisional: z.boolean(),
+  limitation: z.string(),
+});
+
+const proposedSchema = z.looseObject({
+  version: z.string().nullable(),
+  swaps: z.array(
+    z.looseObject({
+      metric: z.string(),
+      replaces: z.string(),
+      source: z.string(),
+      rule: z.string(),
+      in_snapshot: z.boolean(),
+      measured_pct: nullableNumber,
+    }),
+  ),
+  migration: z.record(z.string(), z.record(z.string(), int)),
+  changes: z.array(
+    z.looseObject({
+      repo_name: z.string(),
+      current: grade,
+      proposed: grade,
+      current_score: z.number(),
+      proposed_score: z.number(),
+      change: z.number(),
+    }),
+  ),
 });
 
 export const scoringSchema = view({
   version: z.string().nullable(),
-  metrics: z.array(z.looseObject({ metric: z.string(), weight_pct: z.number() })),
+  metrics: z.array(metricRowSchema),
   letter_bands: z.array(z.object({ grade, from: z.number(), to: z.number() })),
-  proposed: z.looseObject({}).nullable(),
+  proposed: proposedSchema.nullable(),
 });
 
 export const VIEW_SCHEMAS = {
