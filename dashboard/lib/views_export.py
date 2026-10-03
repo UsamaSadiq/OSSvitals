@@ -19,6 +19,7 @@ from dashboard.lib.bulletin import generate_weekly_bulletin
 from dashboard.lib.check_review import SATURATION_SHARE, SPARSE_FILL, review_window, up_for_review
 from dashboard.lib.checks import (
     CATEGORY_GROUPS,
+    catalog_groups,
     category_columns,
     category_pass_rates,
     category_stats,
@@ -365,6 +366,10 @@ def build_checks(ctx: BuildContext) -> dict[str, Any]:
             for check in columns
         ],
         review_window={"snapshots": review.snapshots, "first": _iso(review.first), "last": _iso(review.last)},
+        groups=[
+            {"name": name, "checks": members}
+            for name, members in catalog_groups(columns, ctx.config("check_groups").get("groups", []))
+        ],
         saturation_share=SATURATION_SHARE,
         sparse_fill=SPARSE_FILL,
         up_for_review=records(up_for_review(ctx.data.history, columns)),

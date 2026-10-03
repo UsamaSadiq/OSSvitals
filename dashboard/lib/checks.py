@@ -5,6 +5,7 @@ explicitly, so the difference is visible at the call site.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterable
 
 import pandas as pd
@@ -92,3 +93,26 @@ def coverage(series: pd.Series) -> tuple[float, float | None]:
     denom = int((passes | fails).sum())
     pass_pct = round(int(passes.sum()) / denom * 100, 1) if denom else None
     return populated_pct, pass_pct
+
+
+OTHER_GROUP = "Other checks"
+
+
+def _in_group(check: str, group: dict) -> bool:
+    pattern = group.get("pattern")
+    return check in set(group.get("explicit", [])) or bool(pattern and re.match(pattern, check))
+
+
+def catalog_groups(checks: list[str], groups_config: list[dict]) -> list[tuple[str, list[str]]]:
+    """Checks per configured group in config order, then the ungrouped ones under "Other checks".
+
+    A check matching several groups is listed in each, as the catalog always has.
+    """
+    grouped = [
+        (group.get("name", "Ungrouped"), [check for check in checks if _in_group(check, group)])
+        for group in groups_config
+    ]
+    non_empty = [(name, members) for name, members in grouped if members]
+    seen = {check for _, members in non_empty for check in members}
+    ungrouped = [check for check in checks if check not in seen]
+    return non_empty + ([(OTHER_GROUP, ungrouped)] if ungrouped else [])
