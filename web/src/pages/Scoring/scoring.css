@@ -1,0 +1,25 @@
+.scoring-section {
+  margin-top: 1.75rem;
+}
+
+.scoring-section h2 {
+  font-size: 1.3rem;
+  margin: 0 0 0.75rem;
+}
+
+.scoring-section h3 {
+  font-size: 1rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.scoring-section li + li {
+  margin-top: 0.35rem;
+}
+
+.scoring-migration th[scope="row"] {
+  text-align: left;
+}
+
+.scoring-migration th[scope="colgroup"] {
+  text-align: center;
+}

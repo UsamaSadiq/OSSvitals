@@ -14,6 +14,7 @@ export interface SiteMeta {
   footer: FooterMeta;
   featureFlags: {
     enableMaintainerViews: boolean;
+    enableWeeklyBulletinExport: boolean;
   };
   freshness?: FreshnessBannerProps;
   loadError?: string;
@@ -31,6 +32,7 @@ export const DEFAULT_SITE_META: SiteMeta = {
   },
   featureFlags: {
     enableMaintainerViews: true,
+    enableWeeklyBulletinExport: true,
   },
 };
 
