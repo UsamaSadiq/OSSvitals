@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -24,7 +25,8 @@ def main() -> int:
     if data.scored.empty:
         print("Snapshot is empty; not writing.")
         return 1
-    written = write_views(BuildContext(data=data, generated_at=now_utc()), args.out_dir)
+    ctx = BuildContext(data=data, generated_at=now_utc(), commit_sha=os.environ.get("GITHUB_SHA", "local"))
+    written = write_views(ctx, args.out_dir)
     print(f"Wrote {len(written)} view files for {args.org} to {args.out_dir}")
     return 0
 

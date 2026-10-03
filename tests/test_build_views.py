@@ -177,3 +177,27 @@ def test_write_views_applies_org_redaction(built, tmp_path, monkeypatch):
     write_views(BuildContext(data=data, generated_at=GENERATED_AT), tmp_path)
     repos = json.loads((tmp_path / "repos.json").read_text(encoding="utf-8"))["records"]
     assert not any(r["repo_name"].startswith("openedx/") for r in repos)
+
+
+def test_what_changed_carries_the_bulletin(built):
+    _, files = built
+    changed = files["what_changed.json"]
+    bulletin = changed["bulletin"]
+    assert bulletin.startswith("## Open edX Repo Health Weekly Bulletin")
+    assert "Dashboard: https://openedx.ossvitals.org" in bulletin
+    assert "Commit:" not in bulletin
+    first = changed["new_failures"][0]
+    assert f"- {first['repo_name']}: {first['check']}" in bulletin
+
+
+def test_at_risk_reports_data_presence(built):
+    _, files = built
+    at_risk = files["at_risk.json"]
+    assert at_risk["has_owner_data"] is False
+    assert isinstance(at_risk["has_lifecycle_data"], bool)
+
+
+def test_checks_carry_review_thresholds(built):
+    _, files = built
+    checks = files["checks.json"]
+    assert 0 < checks["sparse_fill"] < checks["saturation_share"] <= 1

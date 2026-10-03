@@ -16,7 +16,8 @@ import pandas as pd
 
 from dashboard.lib.activity import SIGNALS, org_total_values, unmeasured_columns
 from dashboard.lib.attention import needing_attention
-from dashboard.lib.check_review import review_window, up_for_review
+from dashboard.lib.bulletin import generate_weekly_bulletin
+from dashboard.lib.check_review import SATURATION_SHARE, SPARSE_FILL, review_window, up_for_review
 from dashboard.lib.checks import CATEGORY_GROUPS, category_pass_rates, check_columns, classify, coverage
 from dashboard.lib.config import get_config, get_feature_flags
 from dashboard.lib.ordering import bottom, top
@@ -32,8 +33,12 @@ from dashboard.lib.scoring import DEFAULT_LETTER_GRADES, _get_letter_grade
 from dashboard.lib.scoring_method import letter_bands, metric_rows, scoring_columns
 from dashboard.lib.stewardship import (
     DEFAULT_RULE,
+    LIFECYCLE_COL,
+    OWNER_COL,
+    RELEASE_COL,
     at_risk_repos,
     changed_metrics,
+    has_column_data,
     production_or_release,
 )
 from dashboard.lib.tiers import TIER_COL
@@ -53,6 +58,7 @@ KPI_DELTA_FIELDS = {"repos": int, "avg_composite": float, "grade_a": int, "grade
 class BuildContext:
     data: ScoredOrg
     generated_at: datetime
+    commit_sha: str = "local"
 
     @property
     def org(self) -> str:
@@ -221,6 +227,12 @@ def build_what_changed(ctx: BuildContext) -> dict[str, Any]:
         return envelope(ctx, "two most recent snapshots", snapshots=len(history), new_failures=[], new_passes=[])
     latest, previous = history[-1], history[-2]
     changes = summarize_weekly_changes(latest.df, previous.df)
+    bulletin = generate_weekly_bulletin(
+        changes["new_failures"],
+        changes["new_passes"],
+        dashboard_url=str(ctx.config("data_source").get("site_url", "")).rstrip("/"),
+        commit_sha=ctx.commit_sha,
+    )
     return envelope(
         ctx,
         "two most recent snapshots",
@@ -229,6 +241,7 @@ def build_what_changed(ctx: BuildContext) -> dict[str, Any]:
         previous=previous.timestamp.isoformat(),
         new_failures=records(changes["new_failures"]),
         new_passes=records(changes["new_passes"]),
+        bulletin=bulletin,
     )
 
 
@@ -257,9 +270,13 @@ def _at_risk(ctx: BuildContext) -> tuple[pd.DataFrame, Snapshot | None, frozense
 
 
 def build_at_risk(ctx: BuildContext) -> dict[str, Any]:
-    rule = _stewardship_rule(ctx)
-    if not rule.get("enabled"):
-        return envelope(ctx, "stewardship_risk rule", enabled=False, records=[])
+    scored = ctx.data.scored
+    presence = {
+        "has_owner_data": bool(has_column_data(scored, OWNER_COL)),
+        "has_lifecycle_data": bool(has_column_data(scored, LIFECYCLE_COL) or has_column_data(scored, RELEASE_COL)),
+    }
+    if not _stewardship_rule(ctx).get("enabled", True):
+        return envelope(ctx, "stewardship_risk rule", enabled=False, **presence, records=[])
     risky, baseline, skip = _at_risk(ctx)
     if not risky.empty:
         risky = risky.assign(production_or_release=production_or_release(risky))
@@ -267,6 +284,7 @@ def build_at_risk(ctx: BuildContext) -> dict[str, Any]:
         ctx,
         "stewardship_risk rule",
         enabled=True,
+        **presence,
         baseline_date=_iso(baseline.timestamp if baseline else None),
         skipped_metrics=sorted(skip),
         records=records(risky),
@@ -315,6 +333,8 @@ def build_checks(ctx: BuildContext) -> dict[str, Any]:
             for check in columns
         ],
         review_window={"snapshots": review.snapshots, "first": _iso(review.first), "last": _iso(review.last)},
+        saturation_share=SATURATION_SHARE,
+        sparse_fill=SPARSE_FILL,
         up_for_review=records(up_for_review(ctx.data.history, columns)),
         candidates=ctx.config("check_candidates").get("candidates", []),
     )
