@@ -1,0 +1,58 @@
+name: Deploy web
+
+on:
+  pull_request:
+    paths:
+      - web/**
+      - .github/workflows/deploy-web.yml
+  push:
+    branches: [main]
+    paths:
+      - web/**
+      - .github/workflows/deploy-web.yml
+  workflow_run:
+    workflows: ["Build scores", "Collect maintenance signals"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('deploy-web-pr-{0}', github.ref) || 'deploy-web' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - name: Fetch data
+        working-directory: .
+        shell: bash
+        run: |
+          git fetch --depth 1 origin data
+          mkdir -p web/public/data
+          git archive FETCH_HEAD openedx/views openedx/maintenance | tar -x -C web/public/data
+      - run: npm run validate-data
+      - run: npm run build
+      - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          wranglerVersion: "4.146.0"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: web
+          command: deploy

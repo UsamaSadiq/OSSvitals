@@ -6,3 +6,9 @@ __pycache__/
 # The reference PNGs under tests/baseline/ stay tracked - they are reviewed
 # artefacts, and only this directory is throwaway.
 .ux-audit/
+
+# Web app build and dev data
+web/node_modules/
+web/dist/
+web/public/data/
+web/.wrangler/
