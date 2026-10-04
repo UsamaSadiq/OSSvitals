@@ -18,7 +18,7 @@ This is an unofficial community project. It is not affiliated with or endorsed b
 ## Scoring and independence
 How scores are computed (metrics, weights, thresholds, grade bands, missing-data policy) is shown on the dashboard's **How Scoring Works** page, generated from [scoring.yaml](dashboard/config/openedx/scoring.yaml).
 
-Payment never buys ranking, visibility, score changes, early access to public results, or removal of a public result. Every check, weight, threshold and score for public repositories stays open and reproducible.
+Every check, weight, threshold and score for public repositories stays open and reproducible.
 
 Scores are not estimates. They are computed by that published method from real data that the Open edX repo health checks collect from every repository through daily jobs. Labels such as "at risk" describe what those checks measure, not a judgement of any project or person. The dashboard is provided without warranty; to report an error or ask for a correction, open an issue on this repository.
 

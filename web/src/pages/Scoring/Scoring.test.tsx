@@ -264,7 +264,7 @@ describe("How Scoring Works page", () => {
   it("renders the independence statement with the issue link", async () => {
     renderRoute("/scoring");
 
-    expect(await screen.findByText(/^Payment never buys ranking, visibility, score changes/)).toBeInTheDocument();
+    expect(await screen.findByText(/^Every check, weight, threshold and score for public repositories/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "open an issue" })).toHaveAttribute(
       "href",
       "https://github.com/UsamaSadiq/OSSvitals/issues",

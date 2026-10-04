@@ -131,12 +131,11 @@ def _render_proposed(live_scored: pd.DataFrame) -> None:
     repo_table(changes, columns=list(CHANGE_COLUMNS), extra_config=CHANGE_COLUMNS)
 
 
-def _render_never_paid_rule() -> None:
+def _render_independence() -> None:
     st.header("Independence")
     st.markdown(
-        "Payment never buys ranking, visibility, score changes, early access to public "
-        "results, or removal of a public result. Every check, weight, threshold and score "
-        "for public repositories stays open and reproducible."
+        "Every check, weight, threshold and score for public repositories stays open and "
+        "reproducible."
     )
     st.markdown(
         "Scores are not estimates: they are computed by this method from real data that the "
@@ -183,7 +182,7 @@ def render() -> None:
     _render_missing_data_policy(rows)
     _render_limitations(rows)
     _render_proposed(scored)
-    _render_never_paid_rule()
+    _render_independence()
 
     share_link_block(share_link({"tab": "scoring"}), label="Copy link to this view")
 
