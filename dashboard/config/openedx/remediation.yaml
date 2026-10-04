@@ -2,7 +2,7 @@ checks:
   dependabot.exists:
     title: "Add Dependabot configuration"
     description: "Dependabot keeps dependency versions fresh and security alerts visible."
-    source_url: "https://github.com/openedx/.github/blob/main/dependabot.yml"
+    source_url: "https://github.com/openedx/.github/blob/master/.github/dependabot.yml"
     snippet: |
       version: 2
       updates:

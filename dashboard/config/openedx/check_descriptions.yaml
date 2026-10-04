@@ -2,7 +2,7 @@ checks:
   dependabot.exists:
     title: "Dependabot Config"
     description: "Dependabot keeps dependencies updated and surfaces security advisories"
-    source_url: "https://github.com/openedx/.github/blob/main/dependabot.yml"
+    source_url: "https://github.com/openedx/.github/blob/master/.github/dependabot.yml"
     applies_to_tiers: ["critical", "important", "standard"]
     chaoss_metric: "Maintained"
     scorecard_check: "Dependency-Update-Tool"
