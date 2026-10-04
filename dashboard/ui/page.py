@@ -39,7 +39,8 @@ import streamlit as st
 
 # Imported from the submodules rather than the `dashboard.ui` package to keep
 # this module importable from `dashboard/ui/__init__.py` without a cycle.
-from dashboard.lib.config import get_feature_flags
+from dashboard.lib.config import get_config, get_feature_flags
+from dashboard.ui.banners import render_moved_banner
 from dashboard.ui.filters import hydrate_from_query_params
 from dashboard.ui.sidebar import render_sidebar_header
 from dashboard.ui.theme import apply_base_style
@@ -62,6 +63,7 @@ def page_init() -> None:
     apply_base_style()
     hydrate_from_query_params()
     render_sidebar_header()
+    render_moved_banner(str(get_config("data_source").get("moved_to_url") or ""), str(st.context.url or ""))
 
 
 def feature_enabled(*flags: str, default: bool = False) -> bool:
