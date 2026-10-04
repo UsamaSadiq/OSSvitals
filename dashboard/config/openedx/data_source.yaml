@@ -3,7 +3,7 @@ data_source_url: "https://raw.githubusercontent.com/openedx/wg-maintenance/main/
 # Public URL of this org's dashboard, used in links the pipeline writes (bulletin).
 site_url: "https://openedx.ossvitals.org"
 # Set at cutover: every Streamlit page then links to the same page here.
-moved_to_url: ""
+moved_to_url: "https://openedx.ossvitals.org"
 # GitHub org the maintenance collectors scan; defaults to the config folder name.
 github_org: "openedx"
 history_repo: "openedx/wg-maintenance"
