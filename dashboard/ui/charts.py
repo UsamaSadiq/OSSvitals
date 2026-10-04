@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from dashboard.lib.repo_detail import metric_bars
 from dashboard.ui.theme import GRADE_ORDER, palette
 
 
@@ -204,28 +205,15 @@ def metric_score_bar(repo_row) -> go.Figure:
     """
     p = palette()
 
-    per_metric = dict(repo_row.get("score_per_metric", {}) or {})
-    confidence = dict(repo_row.get("score_metric_confidence", {}) or {})
-    unavailable = sorted(set(repo_row.get("score_unavailable_metrics", []) or []))
-    weights = dict(repo_row.get("score_per_metric_weight", {}) or {})
-
-    # Measured first, descending by score, then defaulted, then not collected —
-    # so the eye lands on real signal and the gaps read as a block.
-    def _rank(name: str) -> tuple[int, float]:
-        state = confidence.get(name, "measured" if name in per_metric else "unavailable")
-        order = {"measured": 0, "defaulted": 1, "unavailable": 2}.get(state, 3)
-        return (order, -float(per_metric.get(name, 0.0)))
-
-    names = sorted(set(per_metric) | set(unavailable), key=_rank)
-    if not names:
+    bars = metric_bars(repo_row)
+    if not bars:
         return go.Figure()
 
-    values, colors, labels, hovers = [], [], [], []
-    for name in names:
-        state = confidence.get(name, "measured" if name in per_metric else "unavailable")
-        score = float(per_metric.get(name, 0.0))
-        weight = weights.get(name)
-        weight_text = f"{weight:.0%} weight" if isinstance(weight, (int, float)) else "excluded"
+    names, values, colors, labels, hovers = [], [], [], [], []
+    for bar in bars:
+        name, state, score, weight = bar["metric"], bar["state"], bar["score"], bar["weight"]
+        weight_text = f"{weight:.0%} weight" if weight is not None else "excluded"
+        names.append(name)
 
         if state == "unavailable":
             values.append(0.0)
@@ -242,7 +230,7 @@ def metric_score_bar(repo_row) -> go.Figure:
             )
         else:
             values.append(score)
-            colors.append(p.grade_colors[_letter_for(score)])
+            colors.append(p.grade_colors[bar["letter"]])
             labels.append(f"{score:.0f}")
             hovers.append(f"<b>{name}</b><br>{score:.0f} / 100<br>{weight_text}<extra></extra>")
 
@@ -275,22 +263,9 @@ def metric_score_bar(repo_row) -> go.Figure:
         hoverlabel={"bgcolor": p.surface_alt, "bordercolor": p.border},
     )
 
-    measured = sum(1 for n in names if confidence.get(n, "measured") == "measured")
+    measured = sum(1 for bar in bars if bar["state"] == "measured")
     _summary_annotation(fig, f"{measured} of {len(names)} metrics measured")
     return fig
-
-
-def _letter_for(score: float) -> str:
-    """Grade band for a 0-100 metric score, for colouring a single bar."""
-    if score >= 80:
-        return "A"
-    if score >= 60:
-        return "B"
-    if score >= 40:
-        return "C"
-    if score >= 20:
-        return "D"
-    return "F"
 
 
 def _muted_fill(p) -> str:

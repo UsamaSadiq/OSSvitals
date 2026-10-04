@@ -13,6 +13,13 @@ from dashboard.lib import catalog
 from dashboard.lib.activity import repo_signals, snapshot_has_signals, unmeasured_columns
 from dashboard.lib.linking import github_issue_url, github_pr_compare_url, pr_template
 from dashboard.lib.remediation import get_remediation, issue_body
+from dashboard.lib.repo_detail import (
+    category_card,
+    metric_summary,
+    owner_key_for_link,
+    relation_lines,
+    subscores,
+)
 from dashboard.lib.schema import humanize_check
 from dashboard.lib.share import base_url, share_link
 from dashboard.ui import empty_state, page_init, grade_pill, share_link_block, status_chip
@@ -62,21 +69,16 @@ def _repo_sparkline(repo: str, cols: list[str]) -> pd.DataFrame:
 
 
 def _category_card(category: str, repo: str, row: pd.Series, cols: list[str], *, key_prefix: str) -> dict[str, int]:
-    pass_count, fail_count, na_count = category_stats(row, cols)
-    total = pass_count + fail_count
-    pass_rate = (pass_count / total) * 100 if total else 0
+    card = category_card(row, cols)
+    pass_count, fail_count, na_count = card["pass"], card["fail"], card["na"]
     with st.container(border=True):
         head_left, head_right = st.columns([3, 2])
         with head_left:
             st.markdown(f"**{category}**")
         with head_right:
             chip = (
-                status_chip("pass", f"{pass_rate:.0f}% pass")
-                if pass_rate >= 80
-                else status_chip("warn", f"{pass_rate:.0f}% pass")
-                if pass_rate >= 50
-                else status_chip("fail", f"{pass_rate:.0f}% pass")
-                if total > 0
+                status_chip(card["level"], f"{card['pass_rate']:.0f}% pass")
+                if card["pass_rate"] is not None
                 else status_chip("unknown", "no data")
             )
             st.markdown(f"<div style='text-align:right'>{chip}</div>", unsafe_allow_html=True)
@@ -160,10 +162,10 @@ SEVERITY_CHIP = {"problem": "fail", "note": "warn"}
 
 def _owner_markdown(entry: dict) -> str:
     owner = entry.get("owner") or "not set"
-    name = entry.get("owner_name")
-    if not name or entry.get("owner_kind") == "unprefixed":
+    key = owner_key_for_link(entry)
+    if key is None:
         return f"`{owner}`"
-    return f"[`{owner}`](ownership_views?{urlencode({'owner': name.lower()})})"
+    return f"[`{owner}`](ownership_views?{urlencode({'owner': key})})"
 
 
 def _catalog_facts(entry: dict) -> list[str]:
@@ -178,12 +180,7 @@ def _catalog_facts(entry: dict) -> list[str]:
 
 
 def _catalog_relations(entry: dict) -> list[str]:
-    status_text = {"not_in_catalog": " (not in catalog)", "placeholder": " (template placeholder)"}
-    return [
-        f"- {catalog.RELATIONS.get(relation['relation'], relation['relation'])}: "
-        f"`{relation['target']}`{status_text.get(relation['status'], '')}"
-        for relation in entry.get("relations") or []
-    ]
+    return [f"- {line['label']}: `{line['target']}`{line['suffix']}" for line in relation_lines(entry)]
 
 
 def _render_catalog(selected: str) -> None:
@@ -263,59 +260,27 @@ def render() -> None:
     repo_row = df[df["repo_name"] == selected].iloc[0]
 
     # --------------------------------------------------------- repo summary
-    available_count = len(repo_row.get("score_per_metric", {}) or {})
-    unavailable_count = len(repo_row.get("score_unavailable_metrics", []) or [])
-    total_metrics = available_count + unavailable_count
-    coverage_pct = float(repo_row.get("score_coverage", 0.0)) * 100
+    summary = metric_summary(repo_row)
 
     st.markdown(
         f"## {selected} &nbsp; {grade_pill(str(repo_row.get('score_letter', '')))} &nbsp; "
         + status_chip(
-            "warn" if coverage_pct < 80 else "pass",
-            f"{available_count}/{total_metrics} metrics ({coverage_pct:.0f}% weight)",
+            summary["level"],
+            f"{summary['available']}/{summary['total']} metrics ({summary['coverage_pct']:.0f}% weight)",
         ),
         unsafe_allow_html=True,
     )
-    structural = repo_row.get("score_structural")
-    activity = repo_row.get("score_activity")
-    category_measured = repo_row.get("score_category_measured_weight", {}) or {}
+    parts = subscores(repo_row)
 
-    def _subscore(value: object, category: str, base_help: str) -> tuple[str, str]:
-        """Format a sub-score, refusing to look confident when it isn't.
-
-        Activity renders a hard 100.0 on the live snapshot while four of its five
-        metrics have no column at all, which implies the same confidence as a
-        fully-measured Structural score sitting next to it. Below a majority of
-        measured weight the number is withheld rather than dressed with a
-        footnote nobody reads.
-        """
-        fraction = float(category_measured.get(category, 1.0) or 0.0)
-        if value is None:
-            return "—", f"{base_help} Not computable from this snapshot."
-        if fraction < 0.5:
-            return (
-                "—",
-                f"{base_help} Withheld: only {fraction:.0%} of this category's "
-                f"weight is measured, so the number would be mostly the fixed "
-                f"default of 50.",
-            )
-        suffix = "" if fraction > 0.999 else f" {fraction:.0%} of this category's weight is measured."
-        return f"{float(value):.1f}", base_help + suffix
-
-    struct_text, struct_help = _subscore(
-        structural, "structural", "Baseline compliance: README, CI, openedx.yaml, deps."
-    )
-    act_text, act_help = _subscore(
-        activity,
-        "activity",
-        "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals.",
-    )
+    def _subscore_text(category: str) -> str:
+        value = parts[category]["value"]
+        return "—" if value is None else f"{value:.1f}"
 
     sum_a, sum_b, sum_c, sum_d = st.columns(4)
     sum_a.metric("Composite", f"{repo_row['score_composite']:.1f}")
     sum_b.metric("Grade", repo_row["score_letter"])
-    sum_c.metric("Structural", struct_text, help=struct_help)
-    sum_d.metric("Activity", act_text, help=act_help)
+    sum_c.metric("Structural", _subscore_text("structural"), help=parts["structural"]["help"])
+    sum_d.metric("Activity", _subscore_text("activity"), help=parts["activity"]["help"])
 
     share_link_block(
         share_link({"tab": "detail", "repo": selected}),
