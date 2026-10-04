@@ -155,7 +155,7 @@ class Violation:
     viewport: str
 
 
-def _axe_source() -> str:
+def axe_source() -> str:
     """Read the vendored axe-core bundle.
 
     Raises:
@@ -192,7 +192,7 @@ def run_axe(page: Page) -> list[dict]:
     # Re-injected after every navigation, since add_script_tag does not survive
     # a page load. Guarded so repeated calls on one loaded page are cheap.
     if not page.evaluate("() => typeof window.axe !== 'undefined'"):
-        page.add_script_tag(content=_axe_source())
+        page.add_script_tag(content=axe_source())
 
     # resultTypes: ['violations'] tells axe to skip collecting node detail for
     # passes/incomplete/inapplicable, which is most of the runtime on a page
@@ -210,7 +210,7 @@ def run_axe(page: Page) -> list[dict]:
     return json.loads(raw)
 
 
-def _to_violations(raw: list[dict], *, page_name: str, viewport: str) -> list[Violation]:
+def to_violations(raw: list[dict], *, page_name: str, viewport: str) -> list[Violation]:
     """Collapse axe's raw per-rule output into ``Violation`` records."""
     out: list[Violation] = []
     for entry in raw:
@@ -340,7 +340,7 @@ def _scan_one(
     wait_for_base_style(page, context=f"a11y {spec.name} @ {viewport}")
 
     raw = run_axe(page)
-    return _to_violations(raw, page_name=spec.name, viewport=viewport)
+    return to_violations(raw, page_name=spec.name, viewport=viewport)
 
 
 def _format_group(violations: list[Violation]) -> list[str]:
@@ -370,7 +370,7 @@ def _format_group(violations: list[Violation]) -> list[str]:
     return lines
 
 
-def format_report(blocking: list[Violation], accepted: list[Violation]) -> str:
+def format_report(blocking: list[Violation], accepted: list[Violation], *, allowlist: bool = True) -> str:
     """Human-readable stdout report. Blocking section first, then accepted.
 
     The accepted section is not decoration. It exists so a reader can check
@@ -391,6 +391,10 @@ def format_report(blocking: list[Violation], accepted: list[Violation]) -> str:
     else:
         lines.append("  None.")
         lines.append("")
+
+    if not allowlist:
+        lines.append("=" * 78)
+        return "\n".join(lines)
 
     accepted_nodes = sum(v.count for v in accepted)
     lines.append(

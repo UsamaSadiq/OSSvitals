@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata, metaFixture, overviewFixture } from "../../data/fixtures";
@@ -203,7 +203,7 @@ describe("Repo Detail page", () => {
   it("shows the first repository when none is requested, as Streamlit does", async () => {
     renderRoute("/repo_detail");
     expect(await screen.findByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
-    expect(document.title).toBe("Repo Detail · Open edX Repo Health");
+    await waitFor(() => expect(document.title).toBe("Repo Detail · Open edX Repo Health"));
     expect(screen.getByPlaceholderText("fuzzy match…")).toHaveValue("");
   });
 

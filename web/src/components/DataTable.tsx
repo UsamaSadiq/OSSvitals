@@ -97,7 +97,7 @@ export function DataTable<Row>({
     <div
       className="table-scroll data-table__scroll"
       role="region"
-      aria-label={caption}
+      aria-label={`${caption}, scrollable`}
       tabIndex={0}
       style={maxHeight ? { maxHeight } : undefined}
     >

@@ -5,6 +5,7 @@
 #   scripts/ux_audit_container.sh --mode diff
 #   scripts/ux_audit_container.sh --mode baseline
 #   scripts/ux_audit_container.sh --mode a11y --pages overview
+#   AUDIT_SCRIPT=scripts/web_audit.py scripts/ux_audit_container.sh --mode diff   # React app in web/dist
 #
 # Why this exists: the screenshot baselines in tests/baseline/ are byte-compared,
 # and text rasterisation differs between operating systems. A baseline captured
@@ -42,6 +43,7 @@ fi
 # identical to the CI step rather than merely similar. Drop it with
 # `docker volume rm ossvitals-audit-pip` if it ever misbehaves.
 PIP_CACHE_VOLUME="ossvitals-audit-pip"
+AUDIT_SCRIPT="${AUDIT_SCRIPT:-scripts/ux_audit.py}"
 
 # -t only when stdout is a terminal, so CI and pipes still work.
 TTY_FLAG=()
@@ -75,6 +77,7 @@ exec docker run --rm "${TTY_FLAG[@]}" "${USER_FLAG[@]}" \
   -e PYTHONUSERBASE=/tmp/pybase \
   -e PYTHONDONTWRITEBYTECODE=1 \
   -e PIP_TARGET_FLAG="$PIP_TARGET_FLAG" \
+  -e AUDIT_SCRIPT="$AUDIT_SCRIPT" \
   "$IMAGE" \
   bash -euc '
     # The same install the workflow runs. The image is externally managed, so
@@ -84,5 +87,5 @@ exec docker run --rm "${TTY_FLAG[@]}" "${USER_FLAG[@]}" \
     # interpreter and the same pinned versions.
     export PATH="/tmp/pybase/bin:$PATH"
     pip install --quiet "$PIP_TARGET_FLAG" -r requirements.txt -r requirements-dev.txt
-    exec python scripts/ux_audit.py "$@"
+    exec python "$AUDIT_SCRIPT" "$@"
   ' bash "$@"

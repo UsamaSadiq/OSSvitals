@@ -136,3 +136,77 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+
+  # The React frontend in web/ gets the same two gates. It is built once on the
+  # runner (Node is not in the pinned Playwright image) and handed to both jobs.
+  # scripts/web_audit.py serves it like the Cloudflare Worker (SPA fallback plus
+  # _headers, so CSP violations fail the run) with views built from the same
+  # fixture and frozen instant, and freezes the browser clock to match.
+  # Runs on every PR, not only web/ changes: the views it renders come from the
+  # Python builder.
+  web-build:
+    name: Web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist/
+          retention-days: 1
+
+  web-accessibility:
+    name: Web accessibility gate
+    needs: web-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: Run axe-core over every route (no allowlist)
+        run: python scripts/web_audit.py --mode a11y
+
+  web-visual:
+    name: Web visual diff
+    needs: web-build
+    runs-on: ubuntu-latest
+    # Same pinned image as the Streamlit visual job, for the same reason: the
+    # baselines in tests/baseline-web/ are byte-compared Linux renders.
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.60.0-noble@sha256:8ff591d613b01c884cc488339ed4318b4513eaf0c57a164a878ba49e70e3f384
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+      - run: pip install --break-system-packages -r requirements.txt -r requirements-dev.txt
+      - name: Diff every route against tests/baseline-web/
+        run: python scripts/web_audit.py --mode diff
+      - name: Upload diff images
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-visual-diff
+          path: |
+            .ux-audit/web-diff/
+            .ux-audit/web-current/
+          retention-days: 7
+          if-no-files-found: ignore

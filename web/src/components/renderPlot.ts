@@ -3,20 +3,23 @@ import type { ChartSpec, MarkSpec } from "./chartSpec";
 
 const TRANSPARENT_STYLE = { background: "transparent", overflow: "visible" };
 
+// The figure carries its own text alternative; Plot's per-mark aria-labels sit on role-less <g> elements.
+const HIDDEN = "true";
+
 function toMark(spec: MarkSpec): Plot.Markish {
   switch (spec.type) {
     case "barX":
-      return Plot.barX(spec.data, spec.options);
+      return Plot.barX(spec.data, { ...spec.options, ariaHidden: HIDDEN });
     case "barY":
-      return Plot.barY(spec.data, spec.options);
+      return Plot.barY(spec.data, { ...spec.options, ariaHidden: HIDDEN });
     case "dot":
-      return Plot.dot(spec.data, spec.options);
+      return Plot.dot(spec.data, { ...spec.options, ariaHidden: HIDDEN });
     case "lineY":
-      return Plot.lineY(spec.data, spec.options);
+      return Plot.lineY(spec.data, { ...spec.options, ariaHidden: HIDDEN });
     case "ruleY":
-      return Plot.ruleY(spec.data, spec.options);
+      return Plot.ruleY(spec.data, { ...spec.options, ariaHidden: HIDDEN });
     case "text":
-      return Plot.text(spec.data, spec.options);
+      return Plot.text(spec.data, { ...spec.options, ariaHidden: HIDDEN });
   }
 }
 

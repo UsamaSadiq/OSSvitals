@@ -194,6 +194,26 @@ The gate passes as of WP-9, which fixed the `color-contrast` and `heading-order`
 violations in our own CSS and markup. A non-zero exit now means a real
 regression, not a known-bad baseline.
 
+### React frontend (web/)
+
+The same two gates run for the static app in `web/`, through `scripts/web_audit.py`
+(baselines in `tests/baseline-web/`). It serves a built `web/dist` like the
+Cloudflare Worker: SPA fallback and `_headers`, so a CSP violation fails the run.
+The views come from the same fixture at the same frozen instant, and the browser
+clock is frozen to match.
+
+```bash
+cd web && npm run build && cd ..
+AUDIT_SCRIPT=scripts/web_audit.py scripts/ux_audit_container.sh --mode diff
+AUDIT_SCRIPT=scripts/web_audit.py scripts/ux_audit_container.sh --mode baseline   # review and commit
+python scripts/web_audit.py --mode a11y   # no allowlist: we own every node
+```
+
+Captures wait until every chart's rendered size stops changing, because charts
+re-render when their container resizes. A flaky diff almost always means some
+value is still unpinned: find it and fix it at the source rather than adding a
+mask.
+
 ### Licence note
 
 axe-core 4.10.2 is vendored at `scripts/uxaudit/vendor/axe.min.js` under the
