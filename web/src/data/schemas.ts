@@ -41,6 +41,7 @@ const featureFlagsSchema = z.looseObject({
   enable_maintainer_views: z.boolean(),
   enable_weekly_bulletin_export: z.boolean().optional(),
   enable_my_repos_filter: z.boolean().optional(),
+  enable_pr_template_generator: z.boolean().optional(),
 });
 
 const signalSchema = z.object({
@@ -407,6 +408,51 @@ export const upgradesSchema = view({
     .nullable(),
 });
 
+const levelSchema = z.enum(["pass", "warn", "fail", "unknown"]);
+
+const subscoreSchema = z.object({ value: nullableNumber, help: z.string() });
+
+const catalogDetailSchema = z.object({
+  has_file: z.boolean(),
+  has_entity: z.boolean(),
+  owner: z.string(),
+  owner_key: z.string().nullable(),
+  type: z.string(),
+  lifecycle: z.string(),
+  release: z.string(),
+  interest: z.string(),
+  description: z.string().nullable(),
+  links: z.array(z.object({ title: z.string(), url: z.string() })),
+  relations: z.array(z.object({ label: z.string(), target: z.string(), suffix: z.string() })),
+  backstage_url: z.string().nullable(),
+  findings: z.array(z.object({ severity: z.string(), label: z.string() })),
+});
+
+export const repoDetailSchema = view({
+  catalog_available: z.boolean(),
+  catalog_collected_at: isoString.nullable(),
+  repos: z.record(
+    z.string(),
+    z.object({
+      summary: z.object({ available: int, total: int, coverage_pct: z.number(), level: z.enum(["pass", "warn"]) }),
+      subscores: z.object({ structural: subscoreSchema, activity: subscoreSchema }),
+      metric_bars: z.array(
+        z.object({
+          metric: z.string(),
+          state: z.enum(["measured", "defaulted", "unavailable"]),
+          score: z.number(),
+          weight: nullableNumber,
+          letter: grade,
+        }),
+      ),
+      category_cards: z.array(
+        z.object({ name: z.string(), pass: int, fail: int, na: int, pass_rate: nullableNumber, level: levelSchema }),
+      ),
+      catalog: catalogDetailSchema.nullable(),
+    }),
+  ),
+});
+
 export const VIEW_SCHEMAS = {
   meta: metaSchema,
   repos: reposSchema,
@@ -423,6 +469,7 @@ export const VIEW_SCHEMAS = {
   repo_checks: repoChecksSchema,
   components: componentsSchema,
   upgrades: upgradesSchema,
+  repo_detail: repoDetailSchema,
 } as const;
 
 export type ViewName = keyof typeof VIEW_SCHEMAS;
@@ -449,3 +496,4 @@ export type RepoHistoryView = View<"repo_history">;
 export type RepoChecksView = View<"repo_checks">;
 export type ComponentsView = View<"components">;
 export type UpgradesView = View<"upgrades">;
+export type RepoDetailView = View<"repo_detail">;

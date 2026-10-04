@@ -42,7 +42,7 @@ export const NAV_SECTIONS: NavSection[] = [
 
 export const ALL_PAGES: PageEntry[] = NAV_SECTIONS.flatMap((section) => section.pages);
 
-export const PLACEHOLDER_PAGES: PageEntry[] = ALL_PAGES.filter((page) => page !== OVERVIEW);
+export const SUB_PAGES: PageEntry[] = ALL_PAGES.filter((page) => page !== OVERVIEW);
 
 export function visibleSections(sections: NavSection[], maintainerViews: boolean): NavSection[] {
   return sections.map((section) => ({

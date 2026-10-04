@@ -18,6 +18,7 @@ export function toSiteMeta(meta: MetaView, now: Date = new Date()): SiteMeta {
       enableMaintainerViews: flags.enable_maintainer_views,
       enableWeeklyBulletinExport: flags.enable_weekly_bulletin_export ?? true,
       enableMyReposFilter: flags.enable_my_repos_filter ?? true,
+      enablePrTemplateGenerator: flags.enable_pr_template_generator ?? true,
     },
     freshness: freshnessOf(meta, now),
   };
