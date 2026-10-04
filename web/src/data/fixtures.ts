@@ -31,6 +31,7 @@ export function metaFixture(overrides: Partial<MetaView> = {}): MetaView {
     critically_stale_threshold_hours: 168,
     snapshot_url: null,
     history_url: null,
+    signals: [],
     ...overrides,
   };
 }

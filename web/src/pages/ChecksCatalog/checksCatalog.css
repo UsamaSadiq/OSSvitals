@@ -1,0 +1,38 @@
+.checks-catalog__section {
+  margin-top: 1.75rem;
+}
+
+.checks-catalog__section h2 {
+  font-size: 1.3rem;
+  margin: 0 0 0.75rem;
+}
+
+.checks-catalog__section h3 {
+  font-size: 1rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.checks-catalog__kpis,
+.checks-catalog__metrics {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin: 0.75rem 0;
+}
+
+.checks-catalog__entry {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  margin: 0.5rem 0;
+}
+
+.checks-catalog__entry > summary {
+  cursor: pointer;
+  padding: 0.6rem 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.checks-catalog__entry-body {
+  padding: 0 0.9rem 0.75rem;
+}

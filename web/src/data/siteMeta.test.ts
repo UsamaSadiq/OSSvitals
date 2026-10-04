@@ -15,7 +15,7 @@ describe("toSiteMeta", () => {
         privacyUrl: "https://github.com/UsamaSadiq/OSSvitals/blob/main/docs/PRIVACY.md",
         notice: "Unofficial community project.",
       },
-      featureFlags: { enableMaintainerViews: false, enableWeeklyBulletinExport: true },
+      featureFlags: { enableMaintainerViews: false, enableWeeklyBulletinExport: true, enableMyReposFilter: true },
       freshness: { level: "fresh" },
     });
   });
