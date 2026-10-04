@@ -29,10 +29,12 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Callable, Literal
+from urllib.parse import urlsplit
 
 import streamlit as st
 
 from dashboard.lib.clock import now_utc
+from dashboard.lib.linking import moved_url
 
 EmptyStateKind = Literal["good", "info", "warn", "error"]
 
@@ -75,6 +77,18 @@ def empty_state(
     renderer(message)
     if action_label and action_url:
         st.link_button(action_label, action_url)
+
+
+def render_moved_banner(new_base: str, current_url: str) -> None:
+    """Point visitors of the retiring Streamlit copy at the same page on the new site."""
+    if not new_base:
+        return
+    target = moved_url(new_base, current_url)
+    host = urlsplit(new_base).netloc or new_base
+    st.warning(
+        f"**This dashboard has moved to [{host}]({target}).** "
+        "This copy is no longer updated and will be retired shortly."
+    )
 
 
 def render_freshness_banner(snapshot_date: date | None, stale_hours: int, critical_hours: int) -> None:

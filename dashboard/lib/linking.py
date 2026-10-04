@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 REDIRECT_PARAM_MAP = {
     "repository": "repo",
@@ -64,6 +64,13 @@ def github_issue_url(
     if issue_type:
         query["type"] = issue_type
     return f"https://github.com/{repo}/issues/new?{urlencode(query)}"
+
+
+def moved_url(new_base: str, current_url: str) -> str:
+    """The same page and query on the dashboard's new home."""
+    parts = urlsplit(current_url)
+    query = f"?{parts.query}" if parts.query else ""
+    return f"{new_base.rstrip('/')}{parts.path or '/'}{query}"
 
 
 def pr_template(check: str, pr_config: dict) -> dict[str, str]:
