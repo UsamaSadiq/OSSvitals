@@ -87,7 +87,7 @@ def render_moved_banner(new_base: str, current_url: str) -> None:
     host = urlsplit(new_base).netloc or new_base
     st.warning(
         f"**This dashboard has moved to [{host}]({target}).** "
-        "This copy is no longer updated and will be retired shortly."
+        "This copy will be retired shortly; please update your bookmarks."
     )
 
 
