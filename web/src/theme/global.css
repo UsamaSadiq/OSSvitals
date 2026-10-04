@@ -14,6 +14,11 @@ body {
   line-height: 1.5;
 }
 
+/* Charts measure their container; a scrollbar appearing once data loads would re-render them narrower. */
+html {
+  scrollbar-gutter: stable;
+}
+
 a {
   color: var(--primary);
 }

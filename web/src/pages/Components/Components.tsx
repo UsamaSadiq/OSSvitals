@@ -96,7 +96,7 @@ function DeclaredComponents({ components }: { components: readonly ComponentRow[
   };
   const shown = filterComponents(declared, filters);
   return (
-    <section className="components-section" aria-labelledby="components-heading">
+    <section className="components-section" aria-label="Declared components">
       <h2 id="components-heading">Components</h2>
       <div className="components-filters">
         <QuerySelect label="Type" param="type" options={typeOptions} defaultValue={ALL} />
