@@ -63,3 +63,12 @@ def test_catalog_detail_defaults_and_owner_link():
         "not set", "not set", "no", "none listed",
     )
     assert owner_key_for_link({"owner_name": "x", "owner_kind": "unprefixed"}) is None
+
+
+def test_metric_bars_break_score_ties_by_name():
+    row = _row(
+        score_per_metric={"zeta": 100.0, "alpha": 100.0, "mid": 100.0},
+        score_metric_confidence={"zeta": "measured", "alpha": "measured", "mid": "measured"},
+        score_unavailable_metrics=[],
+    )
+    assert [bar["metric"] for bar in metric_bars(row)] == ["alpha", "mid", "zeta"]

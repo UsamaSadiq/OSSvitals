@@ -82,7 +82,7 @@ def bar_letter(score: float) -> str:
 
 
 def metric_bars(row: pd.Series) -> list[dict[str, Any]]:
-    """Measured metrics first by score, then defaulted, then not collected."""
+    """Measured metrics first by score, then defaulted, then not collected; ties by name."""
     per_metric = _mapping(row.get("score_per_metric"))
     confidence = _mapping(row.get("score_metric_confidence"))
     weights = _mapping(row.get("score_per_metric_weight"))
@@ -91,8 +91,8 @@ def metric_bars(row: pd.Series) -> list[dict[str, Any]]:
     def state(name: str) -> str:
         return confidence.get(name, "measured" if name in per_metric else "unavailable")
 
-    def order(name: str) -> tuple[int, float]:
-        return (STATE_ORDER.get(state(name), 3), -float(per_metric.get(name, 0.0)))
+    def order(name: str) -> tuple[int, float, str]:
+        return (STATE_ORDER.get(state(name), 3), -float(per_metric.get(name, 0.0)), name)
 
     return [
         {
