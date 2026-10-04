@@ -66,10 +66,15 @@ def github_issue_url(
     return f"https://github.com/{repo}/issues/new?{urlencode(query)}"
 
 
-def moved_url(new_base: str, current_url: str) -> str:
-    """The same page and query on the dashboard's new home."""
+def moved_url(new_base: str, current_url: str, params: dict[str, str] | None = None) -> str:
+    """The same page and query on the dashboard's new home.
+
+    Streamlit's ``st.context.url`` has no query string, so the caller passes the
+    query params separately; they win over any query in ``current_url``.
+    """
     parts = urlsplit(current_url)
-    query = f"?{parts.query}" if parts.query else ""
+    query_string = urlencode(params) if params else parts.query
+    query = f"?{query_string}" if query_string else ""
     return f"{new_base.rstrip('/')}{parts.path or '/'}{query}"
 
 

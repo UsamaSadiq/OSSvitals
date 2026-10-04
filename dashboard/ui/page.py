@@ -63,7 +63,11 @@ def page_init() -> None:
     apply_base_style()
     hydrate_from_query_params()
     render_sidebar_header()
-    render_moved_banner(str(get_config("data_source").get("moved_to_url") or ""), str(st.context.url or ""))
+    render_moved_banner(
+        str(get_config("data_source").get("moved_to_url") or ""),
+        str(st.context.url or ""),
+        st.query_params.to_dict(),
+    )
 
 
 def feature_enabled(*flags: str, default: bool = False) -> bool:
