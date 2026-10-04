@@ -297,3 +297,18 @@ def test_checks_carry_catalog_groups(built):
     assert "Ownership" in names and names.index("Ownership") < len(names)
     listed = {check for group in groups for check in group["checks"]}
     assert listed == {row["check"] for row in files["checks.json"]["records"]}
+
+
+def test_repo_detail_carries_the_page_rules_per_repo(built):
+    data, files = built
+    detail = files["repo_detail.json"]
+    assert detail["catalog_available"] is True
+    assert set(detail["repos"]) == set(data.scored["repo_name"])
+    entry = next(iter(detail["repos"].values()))
+    assert entry["summary"]["level"] in {"pass", "warn"}
+    assert set(entry["subscores"]) == {"structural", "activity"}
+    states = [bar["state"] for bar in entry["metric_bars"]]
+    assert states == sorted(states, key=["measured", "defaulted", "unavailable"].index)
+    assert {card["level"] for card in entry["category_cards"]} <= {"pass", "warn", "fail", "unknown"}
+    with_catalog = next(value for value in detail["repos"].values() if value["catalog"])
+    assert {"owner", "type", "lifecycle", "release", "relations", "findings"} <= set(with_catalog["catalog"])
