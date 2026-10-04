@@ -4,13 +4,12 @@ import { Shell } from "./layout/Shell";
 import { NotFound } from "./pages/NotFound";
 import { Overview } from "./pages/Overview/Overview";
 import { MaintainerOnly } from "./pages/MaintainerOnly";
-import { Placeholder } from "./pages/Placeholder";
 import { PageLoader, PORTED_PAGES } from "./pages/lazyPages";
-import { PLACEHOLDER_PAGES, type PageEntry } from "./pages/catalog";
+import { SUB_PAGES, type PageEntry } from "./pages/catalog";
 
 function pageBody(page: PageEntry): ReactNode {
   const ported = PORTED_PAGES[page.path];
-  return ported ? <PageLoader page={ported} /> : <Placeholder title={page.title} />;
+  return ported ? <PageLoader page={ported} /> : <NotFound />;
 }
 
 function pageElement(page: PageEntry): ReactNode {
@@ -18,7 +17,7 @@ function pageElement(page: PageEntry): ReactNode {
   return page.maintainerOnly ? <MaintainerOnly>{body}</MaintainerOnly> : body;
 }
 
-const pageRoutes: RouteObject[] = PLACEHOLDER_PAGES.map((page) => ({
+const pageRoutes: RouteObject[] = SUB_PAGES.map((page) => ({
   path: page.path,
   element: pageElement(page),
 }));

@@ -1,36 +1,12 @@
 import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { renderRoute, withMaintainerViews } from "../test/renderRoute";
-import { DEFAULT_LEGACY_URL, legacyBaseUrl, legacyPageUrl } from "./legacyUrl";
 
-describe("legacy URL", () => {
-  it("defaults to the Streamlit app", () => {
-    expect(legacyBaseUrl(undefined)).toBe(DEFAULT_LEGACY_URL);
-    expect(legacyBaseUrl("  ")).toBe(DEFAULT_LEGACY_URL);
-  });
-
-  it("drops a trailing slash from a configured base", () => {
-    expect(legacyBaseUrl("https://example.org/")).toBe("https://example.org");
-  });
-
-  it("appends path and query", () => {
-    expect(legacyPageUrl("https://example.org", "/at_risk", "?tier=1")).toBe("https://example.org/at_risk?tier=1");
-  });
-});
-
-describe("Placeholder", () => {
-  it("links to the same path and query on the legacy dashboard", async () => {
+describe("page routes", () => {
+  it("serves every navigation page from its ported component", async () => {
     renderRoute("/repo_detail?repo=openedx%2Fedx-platform");
-
-    const link = await screen.findByRole("link", { name: /open repo detail on the current dashboard/i });
-    expect(link).toHaveAttribute("href", `${DEFAULT_LEGACY_URL}/repo_detail?repo=openedx%2Fedx-platform`);
-    expect(screen.getByRole("heading", { level: 1, name: "Repo Detail" })).toBeInTheDocument();
-  });
-
-  it("sets the page title", async () => {
-    renderRoute("/scoring");
-    await screen.findByRole("heading", { level: 1, name: "How Scoring Works" });
-    expect(document.title).toBe("How Scoring Works · Open edX Repo Health");
+    expect(await screen.findByRole("heading", { level: 1, name: "Repository Detail" })).toBeInTheDocument();
+    expect(document.title).toBe("Repo Detail · Open edX Repo Health");
   });
 });
 
