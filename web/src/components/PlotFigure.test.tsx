@@ -1,6 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChartSpec } from "./chartSpec";
 import PlotFigureImpl from "./PlotFigureImpl";
 
@@ -10,6 +10,18 @@ const SPEC: ChartSpec = {
 };
 
 describe("PlotFigure", () => {
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(480);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("draws nothing until its container has a measured width", async () => {
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(0);
+    const { container } = render(<PlotFigureImpl spec={SPEC} ariaLabel="Test chart" />);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(container.querySelectorAll("svg")).toHaveLength(0);
+  });
+
   it("renders one figure under StrictMode and removes it on unmount", async () => {
     const { container, unmount } = render(
       <StrictMode>

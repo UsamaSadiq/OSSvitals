@@ -2,8 +2,6 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import type { ChartSpec } from "./chartSpec";
 import { renderPlot } from "./renderPlot";
 
-const FALLBACK_WIDTH = 640;
-
 export interface PlotFigureProps {
   spec: ChartSpec;
   ariaLabel: string;
@@ -23,13 +21,17 @@ function useFontsReady(): boolean {
   return ready;
 }
 
-function useContainerWidth(ref: RefObject<HTMLElement | null>, fontsReady: boolean): number {
-  const [width, setWidth] = useState(FALLBACK_WIDTH);
+// Charts draw only at a measured width: a guessed fallback could stick if no later resize arrives.
+function useContainerWidth(ref: RefObject<HTMLElement | null>, fontsReady: boolean): number | null {
+  const [width, setWidth] = useState<number | null>(null);
 
   useEffect(() => {
     const element = ref.current;
     if (!element || !fontsReady) return;
-    const measure = () => setWidth(element.clientWidth || FALLBACK_WIDTH);
+    const measure = () => {
+      const measured = element.clientWidth;
+      if (measured > 0) setWidth(measured);
+    };
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
@@ -47,7 +49,7 @@ export default function PlotFigureImpl({ spec, ariaLabel }: PlotFigureProps) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !fontsReady) return;
+    if (!container || !fontsReady || width === null) return;
     const figure = renderPlot(spec, width, ariaLabel);
     container.append(figure);
     return () => figure.remove();

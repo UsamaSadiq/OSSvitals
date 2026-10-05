@@ -23,6 +23,7 @@ TWO_FRAMES = "() => new Promise((resolve) => requestAnimationFrame(() => request
 CHART_SIZES = "() => [...document.querySelectorAll('svg')].map((svg) => `${svg.getAttribute('width')}x${svg.getAttribute('height')}`).join(',')"
 STABLE_POLLS = 3
 POLL_MS = 250
+CHARTS_DRAWN = "() => [...document.querySelectorAll('.plot-figure')].every((el) => el.querySelector('svg'))"
 NOT_LOADING = "() => document.querySelectorAll('.loading').length === 0"
 
 
@@ -76,6 +77,7 @@ def open_page(browser_: Browser, spec: WebPage, base_url: str, viewport: tuple[i
     page.mouse.move(0, 0)
     page.wait_for_function(NOT_LOADING, timeout=NAVIGATION_TIMEOUT_MS)
     page.evaluate("() => document.fonts.ready")
+    page.wait_for_function(CHARTS_DRAWN, timeout=NAVIGATION_TIMEOUT_MS)
     page.wait_for_load_state("networkidle")
     page.evaluate(TWO_FRAMES)
     _wait_for_stable_charts(page)
