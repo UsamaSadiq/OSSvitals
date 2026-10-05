@@ -1,5 +1,6 @@
 import { CodeText } from "../../components/CodeText";
 import { KpiTile } from "../../components/KpiTile";
+import { MiniBar } from "../../components/MiniBar";
 import {
   configGaps,
   descriptionText,
@@ -13,13 +14,21 @@ import {
 function Summary({ record }: { record: CheckRecord }) {
   return (
     <summary>
-      <strong>{record.title}</strong>
-      {record.title !== record.check && (
-        <>
-          {"  ·  "}
-          <code>{record.check}</code>
-        </>
-      )}
+      <span className="checks-catalog__summary-line">
+        <span className="checks-catalog__name">
+          <strong>{record.title}</strong>
+          {record.title !== record.check && (
+            <>
+              {"  ·  "}
+              <code>{record.check}</code>
+            </>
+          )}
+        </span>
+        <span className="checks-catalog__pass" title="Pass rate across repositories">
+          <span className="visually-hidden">Pass rate </span>
+          <MiniBar percent={record.pass_pct} />
+        </span>
+      </span>
     </summary>
   );
 }

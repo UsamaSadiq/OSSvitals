@@ -171,6 +171,22 @@ export function GaugeIcon({ className }: IconProps) {
   );
 }
 
+export function StarIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z" />
+    </Icon>
+  );
+}
+
+export function ListIcon({ className }: IconProps) {
+  return (
+    <Icon className={className}>
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+    </Icon>
+  );
+}
+
 export function CloseIcon({ className }: IconProps) {
   return (
     <Icon className={className}>

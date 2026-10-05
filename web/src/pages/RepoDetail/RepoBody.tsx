@@ -52,7 +52,7 @@ function Checks({ repo, record, cardNames }: { repo: string; record: RepoRecord;
   if (checks.status !== "ready" || rawValues.status !== "ready") return <Loading label="Loading checks…" />;
   const rows = checkRows(checks.data.records, rawValues.data.repos[repo] ?? {}, record.checks);
   if (rows.length === 0) return null;
-  return <ChecksSection repo={repo} rows={rows} categories={categoryOptions(cardNames, rows)} />;
+  return <ChecksSection key={repo} repo={repo} rows={rows} categories={categoryOptions(cardNames, rows)} />;
 }
 
 function Anchor({ id, children }: { id: string; children: ReactNode }) {

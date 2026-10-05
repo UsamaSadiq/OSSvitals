@@ -160,6 +160,19 @@
   }
 }
 
+.grade-ribbon__segment--link {
+  cursor: pointer;
+}
+
+.grade-ribbon__segment--link:hover {
+  filter: brightness(1.12);
+}
+
+.full-table-browse {
+  margin: 0.5rem 0 0;
+  font-weight: 600;
+}
+
 .two-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -188,4 +201,99 @@
   .two-columns {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.watchlist__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+.watchlist__head a {
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.watchlist__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.watch-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.75rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+}
+
+.watch-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.watch-card__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.watch-card__name a {
+  text-decoration: none;
+}
+
+.watch-card__name a:hover {
+  text-decoration: underline;
+}
+
+.watch-card__score {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.watch-card__value {
+  font-size: 1.35rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.watch-card__delta {
+  padding: 1px 0.45rem;
+  border-radius: 999px;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.watch-card__delta--good {
+  color: var(--chip-text-pass);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+}
+
+.watch-card__delta--bad {
+  color: var(--chip-text-fail);
+  background: color-mix(in srgb, var(--fail) 15%, transparent);
+}
+
+.watch-card__delta-span {
+  font-weight: 400;
+}
+
+.watch-card__missing {
+  margin: 0;
 }

@@ -3,6 +3,7 @@ import { KpiTile } from "../../components/KpiTile";
 import { RepoName } from "../../components/RepoName";
 import { ShareLink } from "../../components/ShareLink";
 import { toFixedHalfEven } from "../../format";
+import { WatchButton } from "../../watchlist/WatchButton";
 import type { RepoDetail, RepoRecord } from "./repoDetailData";
 import { StatusChip } from "./StatusChip";
 
@@ -28,6 +29,9 @@ export function RepoHeader({ repo, record, detail }: { repo: string; record: Rep
         </h2>
         <GradePill grade={record.score_letter} />
         <StatusChip status={detail.summary.level} label={coverageLabel(detail.summary)} />
+        <span className="repo-header__actions">
+          <WatchButton repo={repo} />
+        </span>
       </div>
       <div className="repo-kpis">
         <KpiTile label="Composite" value={toFixedHalfEven(record.score_composite, 1)} />

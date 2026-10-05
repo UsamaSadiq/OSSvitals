@@ -71,6 +71,12 @@ const repoRecordSchema = z.looseObject({
   checks: z.record(z.string(), checkStateSchema),
   category_stats: z.record(z.string(), z.tuple([int, int, int])),
   owner_handles: z.array(z.string()),
+  repo_tier: z.string().nullable().optional(),
+  score_structural: nullableNumber.optional(),
+  score_activity: nullableNumber.optional(),
+  "github.last_push": z.string().nullable().optional(),
+  "ownership.owner_name": z.string().nullable().optional(),
+  "ownership.lifecycle": z.string().nullable().optional(),
 });
 
 export const reposSchema = view({

@@ -122,15 +122,24 @@ describe("Components page", () => {
     expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
-  it("lists each finding as a disclosure with its repositories", async () => {
+  it("lists each finding as a card that expands to its repositories", async () => {
     renderRoute("/components");
 
     await screen.findByRole("heading", { name: "Catalog issues" });
     expect(
       screen.getByText("Problems stop Backstage or this dashboard from reading the entry correctly; notes are worth a look."),
     ).toBeInTheDocument();
-    const summaries = [...document.querySelectorAll(".components-finding summary")].map((node) => node.textContent);
-    expect(summaries).toEqual(["No catalog-info.yaml · 1 repos · Problem", "No description · 2 repos · Note"]);
+    const cards = [...document.querySelectorAll<HTMLElement>(".finding-card")];
+    expect(cards.map((card) => card.querySelector("summary")?.textContent)).toEqual([
+      "Problem1 repoNo catalog-info.yamlRepositories",
+      "Note2 reposNo descriptionRepositories",
+    ]);
+    expect(cards[0]).toHaveClass("finding-card--problem");
+    expect(cards[1]).toHaveClass("finding-card--note");
+    expect(cards[1]?.querySelector("details")).not.toHaveAttribute("open");
+
+    await userEvent.click(within(cards[1] as HTMLElement).getByText("No description"));
+    expect(cards[1]?.querySelector("details")).toHaveAttribute("open");
 
     const noteTable = screen.getByRole("table", { name: "Repositories with No description" });
     expect(within(noteTable).getByRole("link", { name: "openedx/xblock-lti" })).toHaveAttribute(
@@ -199,14 +208,33 @@ describe("Components page", () => {
     expect(componentNames()).toEqual(["openedx/frontend-app-learning", "openedx/xblock-lti"]);
   });
 
-  it("renders declared relations", async () => {
+  it("groups declared relations by repository with a count summary", async () => {
+    setComponents(
+      snapshot({
+        relations: [
+          { repo_name: "openedx/xblock-lti", relation: "Depends on", target: "edx-platform", status: "In catalog" },
+          { repo_name: "openedx/aspects", relation: "Part of", target: "tutor", status: "Not in catalog" },
+          { repo_name: "openedx/xblock-lti", relation: "Part of", target: "xblock", status: "Not in catalog" },
+        ],
+      }),
+    );
     renderRoute("/components");
 
     await screen.findByRole("heading", { name: "Declared relations" });
-    const table = screen.getByRole("table", { name: "Declared relations" });
-    expect(within(table).getByText("dependsOn")).toBeInTheDocument();
-    expect(within(table).getByText("known")).toBeInTheDocument();
     expect(screen.getByText("subcomponentOf").tagName).toBe("CODE");
+    expect(screen.getByText("3 relations across 2 repositories: 1 in catalog · 2 not in catalog")).toBeInTheDocument();
+    const groups = [...document.querySelectorAll<HTMLElement>(".relation-group")];
+    expect(groups.map((group) => group.querySelector("summary")?.textContent)).toEqual([
+      "openedx/aspects1 relation · 1 not in catalog",
+      "openedx/xblock-lti2 relations · 1 in catalog · 1 not in catalog",
+    ]);
+
+    await userEvent.click(within(groups[1] as HTMLElement).getByText("xblock-lti"));
+    const table = screen.getByRole("table", { name: "Relations declared by openedx/xblock-lti" });
+    expect(within(table).getAllByRole("row").slice(1).map((row) => row.textContent)).toEqual([
+      "Depends onedx-platformIn catalog",
+      "Part ofxblockNot in catalog",
+    ]);
   });
 
   it("hides the relations section when nothing is declared", async () => {

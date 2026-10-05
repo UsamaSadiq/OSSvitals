@@ -16,6 +16,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: "Health",
     pages: [
       OVERVIEW,
+      { path: "/repos", title: "Repositories" },
       { path: "/repo_detail", title: "Repo Detail" },
       { path: "/failing_checks", title: "Failing Checks" },
       { path: "/what_changed", title: "What Changed" },

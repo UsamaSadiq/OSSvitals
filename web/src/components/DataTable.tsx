@@ -25,15 +25,24 @@ interface DataTableProps<Row> {
   tieBreak?: Comparator<Row>;
   emptyMessage?: string;
   maxHeight?: string;
+  sort?: SortState;
+  onSortChange?: (sort: SortState) => void;
 }
 
 function defaultDirection<Row>(column: Column<Row>): SortDirection {
   return column.numeric ? "descending" : "ascending";
 }
 
-function nextSort<Row>(current: SortState | undefined, column: Column<Row>): SortState {
+export function nextSort<Row>(current: SortState | undefined, column: Column<Row>): SortState {
   if (current?.key !== column.key) return { key: column.key, direction: defaultDirection(column) };
   return { key: column.key, direction: current.direction === "ascending" ? "descending" : "ascending" };
+}
+
+function useSort(initialSort: SortState | undefined, controlled: SortState | undefined, onSortChange?: (sort: SortState) => void) {
+  const [own, setOwn] = useState<SortState | undefined>(initialSort);
+  const sort = onSortChange ? controlled : own;
+  const change = (next: SortState) => (onSortChange ? onSortChange(next) : setOwn(next));
+  return [sort, change] as const;
 }
 
 function sortedRows<Row>(
@@ -87,8 +96,10 @@ export function DataTable<Row>({
   tieBreak,
   emptyMessage = "No repositories to show.",
   maxHeight,
+  sort: controlledSort,
+  onSortChange,
 }: DataTableProps<Row>) {
-  const [sort, setSort] = useState<SortState | undefined>(initialSort);
+  const [sort, setSort] = useSort(initialSort, controlledSort, onSortChange);
   const visibleRows = useMemo(() => sortedRows(rows, columns, sort, tieBreak), [rows, columns, sort, tieBreak]);
 
   if (rows.length === 0) return <p className="caption">{emptyMessage}</p>;
@@ -110,7 +121,7 @@ export function DataTable<Row>({
                 key={column.key}
                 column={column}
                 sort={sort}
-                onSort={(clicked) => setSort((current) => nextSort(current, clicked))}
+                onSort={(clicked) => setSort(nextSort(sort, clicked))}
               />
             ))}
           </tr>

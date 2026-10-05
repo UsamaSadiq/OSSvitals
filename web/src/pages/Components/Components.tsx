@@ -10,14 +10,16 @@ import { useView } from "../../data/useView";
 import { formatNumber } from "../../format";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
-import { ComponentsTable, FindingReposTable, RelationsTable } from "./ComponentTables";
+import { ComponentsTable } from "./ComponentTables";
+import { FindingCards } from "./FindingCards";
+import { RelationGroups } from "./RelationGroups";
 import {
   ALL,
   collectedLabel,
   declaredComponents,
   filterComponents,
   filterOptions,
-  findingSuffix,
+  relationsSummary,
   RELEASE_OPTIONS,
   type ComponentRow,
   type FindingRow,
@@ -53,18 +55,6 @@ function SummaryTiles({ summary }: { summary: Summary }) {
   );
 }
 
-function FindingDetails({ finding }: { finding: FindingRow }) {
-  return (
-    <details className="components-finding">
-      <summary>
-        <strong>{finding.label}</strong>
-        {findingSuffix(finding)}
-      </summary>
-      <FindingReposTable label={finding.label} repos={finding.repos} />
-    </details>
-  );
-}
-
 function CatalogIssues({ findings }: { findings: readonly FindingRow[] }) {
   return (
     <section className="components-section" aria-labelledby="catalog-issues-heading">
@@ -76,9 +66,7 @@ function CatalogIssues({ findings }: { findings: readonly FindingRow[] }) {
           <p className="caption">
             Problems stop Backstage or this dashboard from reading the entry correctly; notes are worth a look.
           </p>
-          {findings.map((finding) => (
-            <FindingDetails key={finding.code} finding={finding} />
-          ))}
+          <FindingCards findings={findings} />
         </>
       )}
     </section>
@@ -119,7 +107,8 @@ function DeclaredRelations({ relations }: { relations: readonly RelationRow[] })
       <p className="caption">
         <CodeText text="`dependsOn`, `subcomponentOf` and `dependencyOf`, checked against the entity names declared in the org." />
       </p>
-      <RelationsTable rows={relations} />
+      <p className="components-relations-summary">{relationsSummary(relations)}</p>
+      <RelationGroups rows={relations} />
     </section>
   );
 }

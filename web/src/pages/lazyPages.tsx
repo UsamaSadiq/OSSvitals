@@ -8,6 +8,7 @@ function lazyPage<Module>(load: () => Promise<Module>, pick: (module: Module) =>
 }
 
 export const PORTED_PAGES: Record<string, PageComponent> = {
+  "/repos": lazyPage(() => import("./Repos/Repos"), (m) => m.Repos),
   "/needing_attention": lazyPage(() => import("./NeedingAttention/NeedingAttention"), (m) => m.NeedingAttention),
   "/what_changed": lazyPage(() => import("./WhatChanged/WhatChanged"), (m) => m.WhatChanged),
   "/at_risk": lazyPage(() => import("./AtRisk/AtRisk"), (m) => m.AtRisk),

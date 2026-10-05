@@ -14,12 +14,13 @@ function navLinkNames(): string[] {
 }
 
 describe("Nav", () => {
-  it("lists every page in Streamlit order when maintainer views are on", async () => {
+  it("lists every page in nav order when maintainer views are on", async () => {
     renderRoute("/", withMaintainerViews(true));
     await screen.findByRole("navigation", { name: "Pages" });
 
     expect(navLinkNames()).toEqual([
       "Overview",
+      "Repositories",
       "Repo Detail",
       "Failing Checks",
       "What Changed",

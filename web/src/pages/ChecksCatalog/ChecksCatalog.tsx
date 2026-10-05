@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { KpiTile } from "../../components/KpiTile";
@@ -7,7 +8,20 @@ import type { ChecksView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
 import { Candidates } from "./Candidates";
-import { countMissingDescriptions, countScored, groupedChecks, type CheckGroup } from "./catalogData";
+import { useParamUpdater } from "../../components/queryParams";
+import {
+  CATALOG_PARAMS,
+  countMissingDescriptions,
+  countScored,
+  filterGroups,
+  groupedChecks,
+  hasCatalogFilters,
+  matchesCatalogFilters,
+  readCatalogFilters,
+  reviewNames,
+  type CheckGroup,
+} from "./catalogData";
+import { CatalogControls } from "./CatalogControls";
 import { CheckEntry } from "./CheckEntry";
 import "./checksCatalog.css";
 import { UpForReview } from "./UpForReview";
@@ -46,14 +60,56 @@ function GroupSection({ group }: { group: CheckGroup }) {
   );
 }
 
+const CLEARED = Object.fromEntries(Object.values(CATALOG_PARAMS).map((param) => [param, null]));
+
+function NoMatches({ onClear }: { onClear: () => void }) {
+  return (
+    <div className="note note--info checks-catalog__empty" role="status">
+      <div className="note__body">
+        <strong>No checks match these filters.</strong>
+        <p>
+          <button type="button" className="button-link" onClick={onClear}>
+            Clear filters
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function FilteredGroups({ checks }: { checks: ChecksView }) {
+  const [params] = useSearchParams();
+  const update = useParamUpdater();
+  const filters = readCatalogFilters(params);
+  const review = reviewNames(checks);
+  const groups = filterGroups(groupedChecks(checks), filters, review);
+  const matching = checks.records.filter((record) => matchesCatalogFilters(record, filters, review)).length;
+  const clear = () => update(CLEARED);
+  return (
+    <>
+      <CatalogControls
+        records={checks.records}
+        review={review}
+        filters={filters}
+        onChange={update}
+        summary={`${matching} of ${checks.records.length} checks`}
+        onClear={hasCatalogFilters(filters) && matching > 0 ? clear : undefined}
+      />
+      {groups.length === 0 ? (
+        <NoMatches onClear={clear} />
+      ) : (
+        groups.map((group) => <GroupSection key={group.name} group={group} />)
+      )}
+    </>
+  );
+}
+
 function Catalog({ checks }: { checks: ChecksView }) {
   if (checks.records.length === 0) return <NoChecks checks={checks} />;
   return (
     <>
       <Totals records={checks.records} />
-      {groupedChecks(checks).map((group) => (
-        <GroupSection key={group.name} group={group} />
-      ))}
+      <FilteredGroups checks={checks} />
       <UpForReview checks={checks} />
       <Candidates candidates={checks.candidates} />
     </>

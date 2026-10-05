@@ -1,6 +1,7 @@
 import { formatNumber, toFixedHalfEven } from "../format";
 import { labelAxis, type ChartSpec, type MarkSpec, type PointerAxis, type TipMarkOptions } from "./chartSpec";
 import { GRADE_ORDER, type Grade } from "./GradePill";
+import { reposGradePath } from "./reposPath";
 
 export type GradeMix = Record<Grade, number>;
 
@@ -81,6 +82,7 @@ export interface GradeBar {
   label: string;
   fill: string;
   tip: string;
+  to: string;
 }
 
 export function gradeBars(mix: GradeMix): GradeBar[] {
@@ -93,6 +95,7 @@ export function gradeBars(mix: GradeMix): GradeBar[] {
       label: `${mix[grade]}  ${percent}`,
       fill: gradeFill(grade),
       tip: `Grade ${grade}\n${plural(mix[grade], "repository", "repositories")} · ${percent} of scored`,
+      to: reposGradePath(grade),
     };
   });
 }
@@ -104,12 +107,20 @@ export function gradeSummary(mix: GradeMix): string | null {
   return `${atLeastB}/${total} repos (${toFixedHalfEven(share(atLeastB, total))}%) at grade B or better`;
 }
 
+export function gradeLinks(mix: GradeMix): ChartLinkList {
+  return {
+    lead: "Browse repositories:",
+    items: GRADE_ORDER.filter((grade) => mix[grade] > 0).map((grade) => ({ label: `Grade ${grade}`, to: reposGradePath(grade) })),
+  };
+}
+
 export function gradeDistributionChart(mix: GradeMix): Chart {
   const bars = gradeBars(mix);
   const ymax = Math.max(0, ...bars.map((bar) => bar.count));
   return {
     ariaLabel: `Repositories per grade: ${bars.map((bar) => `${bar.grade} ${bar.count}`).join(", ")}`,
     summary: gradeSummary(mix),
+    links: gradeLinks(mix),
     spec: {
       options: {
         height: 320,
@@ -121,7 +132,7 @@ export function gradeDistributionChart(mix: GradeMix): Chart {
         color: { type: "identity" },
       },
       marks: [
-        { type: "barY", data: bars, options: { x: "grade", y: "count", fill: "fill" } },
+        { type: "barY", data: bars, link: "to", options: { x: "grade", y: "count", fill: "fill" } },
         {
           type: "text",
           data: bars,

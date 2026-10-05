@@ -5,6 +5,7 @@ import { metadata, overviewFixture } from "../../data/fixtures";
 import type { HistoryView, OverviewView, ReposView, ScoringView, ViewName } from "../../data/schemas";
 import type { ViewState } from "../../data/useView";
 import { renderRoute } from "../../test/renderRoute";
+import { WATCHLIST_KEY, watchlistStore } from "../../watchlist/watchlist";
 
 vi.mock("../../components/PlotFigure", () => ({
   PlotFigure: ({ ariaLabel }: { ariaLabel: string }) => <div role="img" aria-label={ariaLabel} data-testid="plot" />,
@@ -72,7 +73,16 @@ function setViews(overview: OverviewView = overviewFixture()) {
   };
 }
 
-beforeEach(() => setViews());
+beforeEach(() => {
+  setViews();
+  window.localStorage.clear();
+  watchlistStore.reload();
+});
+
+function watch(...repos: string[]) {
+  window.localStorage.setItem(WATCHLIST_KEY, JSON.stringify(repos));
+  watchlistStore.reload();
+}
 
 describe("Overview page", () => {
   it("renders the header, KPI hero and activity line", async () => {
@@ -110,7 +120,12 @@ describe("Overview page", () => {
     expect(screen.getByText("2/3 repos (67%) at grade B or better")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Repositories per grade: A 1, B 1, C 1, D 0, F 0" })).toBeInTheDocument();
 
-    expect(within(screen.getByRole("tabpanel")).queryByRole("link")).not.toBeInTheDocument();
+    const gradeLinks = within(screen.getByRole("tabpanel")).getAllByRole("link");
+    expect(gradeLinks.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Grade A", "/repos?grade=A"],
+      ["Grade B", "/repos?grade=B"],
+      ["Grade C", "/repos?grade=C"],
+    ]);
 
     await userEvent.click(screen.getByRole("tab", { name: "Per-category pass rate" }));
     expect(screen.getByText("avg 47% pass · 1 categories")).toBeInTheDocument();
@@ -243,3 +258,96 @@ describe("Overview page", () => {
     expect(within(gauge).queryByText("80")).not.toBeInTheDocument();
   });
 });
+
+describe("Overview links into the Repositories explorer", () => {
+  it("lists a link per non-empty grade under the ribbon", async () => {
+    renderRoute("/");
+    const section = (await screen.findByRole("heading", { level: 2, name: "Grade mix" })).closest("section");
+    if (!section) throw new Error("grade mix section missing");
+    const links = within(section).getAllByRole("link");
+    expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      ["Grade A", "/repos?grade=A"],
+      ["Grade B", "/repos?grade=B"],
+      ["Grade C", "/repos?grade=C"],
+    ]);
+  });
+
+  it("opens the explorer filtered by a grade when a ribbon segment is clicked", async () => {
+    const { router } = renderRoute("/");
+    const ribbon = await screen.findByRole("img", { name: /Grade A: 1 repos/ });
+    const segmentB = ribbon.children[1];
+    if (!segmentB) throw new Error("segment missing");
+
+    await userEvent.click(segmentB);
+
+    expect(router.state.location.pathname).toBe("/repos");
+    expect(router.state.location.search).toBe("?grade=B");
+  });
+
+  it("links the full table to the explorer and keeps the disclosure", async () => {
+    renderRoute("/");
+    expect(await screen.findByRole("link", { name: "Browse all repositories →" })).toHaveAttribute("href", "/repos");
+    expect(screen.getByText("Full table — 3 repos", { selector: "summary" })).toBeInTheDocument();
+  });
+});
+
+describe("Overview watchlist strip", () => {
+  it("shows nothing until a repository is watched", async () => {
+    renderRoute("/");
+    await screen.findByRole("heading", { level: 2, name: "Highlights" });
+    expect(screen.queryByRole("heading", { name: "Your watchlist" })).not.toBeInTheDocument();
+  });
+
+  it("lists watched repositories with grade, score and the change against the 30-day baseline", async () => {
+    views.current = {
+      ...views.current,
+      history: ready({
+        ...historyFixture(),
+        repos: {
+          "openedx/x": [
+            ["2026-08-01", 80, "B"],
+            ["2026-09-25", 90, "A"],
+            ["2026-10-02", 93.3, "A"],
+          ],
+        },
+      }),
+    };
+    watch("openedx/x", "openedx/gone");
+    renderRoute("/");
+
+    const strip = (await screen.findByRole("heading", { level: 2, name: "Your watchlist" })).closest("section");
+    if (!strip) throw new Error("watchlist section missing");
+    const cards = within(strip).getAllByRole("listitem");
+    expect(cards).toHaveLength(2);
+    expect(within(cards[0] as HTMLElement).getByRole("link", { name: "openedx/x" })).toHaveAttribute(
+      "href",
+      "/repo_detail?repo=openedx%2Fx",
+    );
+    expect(within(cards[0] as HTMLElement).getByRole("img", { name: "Grade A" })).toBeInTheDocument();
+    expect(cards[0]).toHaveTextContent("93.3");
+    expect(within(cards[0] as HTMLElement).getByText(/\+3\.3/)).toHaveClass("watch-card__delta--good");
+    expect(cards[1]).toHaveTextContent("Not scored in this snapshot.");
+    expect(within(strip).getByRole("link", { name: "Open in Repositories →" })).toHaveAttribute("href", "/repos?watched=1");
+  });
+
+  it("omits the change when there is no earlier snapshot in the window", async () => {
+    watch("openedx/y");
+    renderRoute("/");
+    const strip = (await screen.findByRole("heading", { level: 2, name: "Your watchlist" })).closest("section");
+    if (!strip) throw new Error("watchlist section missing");
+    expect(within(strip).queryByText(/vs 30 days/)).not.toBeInTheDocument();
+  });
+
+  it("removes a repository from the strip when it is unwatched", async () => {
+    watch("openedx/x");
+    renderRoute("/");
+    const button = await screen.findByRole("button", { name: "Watch openedx/x" });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(button);
+
+    expect(screen.queryByRole("heading", { name: "Your watchlist" })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(WATCHLIST_KEY)).toBe("[]");
+  });
+});
+

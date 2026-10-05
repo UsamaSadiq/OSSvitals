@@ -112,6 +112,79 @@ export function groupedChecks(checks: Pick<ChecksView, "records" | "groups">): C
     .filter((group) => group.checks.length > 0);
 }
 
+export const CATALOG_PARAMS = {
+  query: "q",
+  scored: "scored",
+  lowPass: "low_pass",
+  missingDescription: "no_description",
+  review: "review",
+} as const;
+
+export const LOW_PASS_PCT = 50;
+
+export type CatalogFlag = Exclude<keyof typeof CATALOG_PARAMS, "query">;
+
+export const CATALOG_FLAGS: readonly CatalogFlag[] = ["scored", "lowPass", "missingDescription", "review"];
+
+export const FLAG_LABELS: Record<CatalogFlag, string> = {
+  scored: "Feeds the score",
+  lowPass: `Pass rate under ${LOW_PASS_PCT}%`,
+  missingDescription: "Missing description",
+  review: "Up for review",
+};
+
+export interface CatalogFilters {
+  query: string;
+  flags: ReadonlySet<CatalogFlag>;
+}
+
+export function readCatalogFilters(params: URLSearchParams): CatalogFilters {
+  return {
+    query: params.get(CATALOG_PARAMS.query) ?? "",
+    flags: new Set(CATALOG_FLAGS.filter((flag) => params.get(CATALOG_PARAMS[flag]) === "1")),
+  };
+}
+
+export function hasCatalogFilters(filters: CatalogFilters): boolean {
+  return filters.query.trim() !== "" || filters.flags.size > 0;
+}
+
+export function reviewNames(checks: Pick<ChecksView, "up_for_review">): ReadonlySet<string> {
+  return new Set(checks.up_for_review.map((row) => row.check));
+}
+
+export function matchesFlag(record: CheckRecord, flag: CatalogFlag, review: ReadonlySet<string>): boolean {
+  switch (flag) {
+    case "scored":
+      return record.scored_by !== null;
+    case "lowPass":
+      return record.pass_pct !== null && record.pass_pct < LOW_PASS_PCT;
+    case "missingDescription":
+      return record.description === null;
+    case "review":
+      return review.has(record.check);
+  }
+}
+
+function matchesQuery(record: CheckRecord, needle: string): boolean {
+  return record.title.toLowerCase().includes(needle) || record.check.toLowerCase().includes(needle);
+}
+
+export function matchesCatalogFilters(record: CheckRecord, filters: CatalogFilters, review: ReadonlySet<string>): boolean {
+  const needle = filters.query.trim().toLowerCase();
+  return (!needle || matchesQuery(record, needle)) && [...filters.flags].every((flag) => matchesFlag(record, flag, review));
+}
+
+export function filterGroups(groups: readonly CheckGroup[], filters: CatalogFilters, review: ReadonlySet<string>): CheckGroup[] {
+  return groups
+    .map((group) => ({ ...group, checks: group.checks.filter((record) => matchesCatalogFilters(record, filters, review)) }))
+    .filter((group) => group.checks.length > 0);
+}
+
+export function flagCount(records: readonly CheckRecord[], flag: CatalogFlag, review: ReadonlySet<string>): number {
+  return records.filter((record) => matchesFlag(record, flag, review)).length;
+}
+
 export function windowText(window: ReviewWindow): string {
   if (window.snapshots < 2 || !window.first || !window.last) {
     return "the latest snapshot only (no history retained yet)";

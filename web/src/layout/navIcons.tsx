@@ -6,6 +6,7 @@ import {
   GaugeIcon,
   HistoryIcon,
   HomeIcon,
+  ListIcon,
   RepoIcon,
   ShieldIcon,
   UpgradeIcon,
@@ -17,6 +18,7 @@ type PageIcon = ComponentType<{ className?: string }>;
 
 const PAGE_ICONS: Record<string, PageIcon> = {
   "/": HomeIcon,
+  "/repos": ListIcon,
   "/repo_detail": RepoIcon,
   "/failing_checks": XCircleIcon,
   "/what_changed": HistoryIcon,
