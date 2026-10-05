@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { ChartSpec } from "./chartSpec";
-import { renderPlot } from "./renderPlot";
+import { renderPlot, type LinkHandler } from "./renderPlot";
 
 export interface PlotFigureProps {
   spec: ChartSpec;
   ariaLabel: string;
+  onLink?: LinkHandler;
 }
 
 // Text metrics shift once the web font loads; measuring before that leaves a chart a sub-pixel off.
@@ -42,18 +43,29 @@ function useContainerWidth(ref: RefObject<HTMLElement | null>, fontsReady: boole
   return width;
 }
 
-export default function PlotFigureImpl({ spec, ariaLabel }: PlotFigureProps) {
+// Read through a ref so a new handler identity never redraws the chart.
+function useLatestLink(onLink: LinkHandler | undefined): LinkHandler | undefined {
+  const ref = useRef(onLink);
+  useEffect(() => {
+    ref.current = onLink;
+  }, [onLink]);
+  const hasLink = onLink !== undefined;
+  return useMemo(() => (hasLink ? (to: string) => ref.current?.(to) : undefined), [hasLink]);
+}
+
+export default function PlotFigureImpl({ spec, ariaLabel, onLink }: PlotFigureProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const link = useLatestLink(onLink);
   const fontsReady = useFontsReady();
   const width = useContainerWidth(containerRef, fontsReady);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !fontsReady || width === null) return;
-    const figure = renderPlot(spec, width, ariaLabel);
+    const figure = renderPlot(spec, width, ariaLabel, link);
     container.append(figure);
     return () => figure.remove();
-  }, [spec, width, ariaLabel, fontsReady]);
+  }, [spec, width, ariaLabel, fontsReady, link]);
 
   return <div className="plot-figure" ref={containerRef} />;
 }

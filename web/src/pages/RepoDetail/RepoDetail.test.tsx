@@ -502,12 +502,12 @@ describe("metricBarsChart", () => {
     expect(chart.summary).toBe("2 of 4 metrics measured");
     expect(chart.spec.options.y).toMatchObject({ domain: ["ci_status", "commit_recency", "pr_response_time", "release_frequency"] });
     const [bars, labels] = chart.spec.marks;
-    expect(bars?.data).toEqual([
+    expect(bars && "data" in bars && bars.data).toEqual([
       { metric: "ci_status", state: "measured", value: 100, label: "100", fill: "var(--grade-a)" },
       { metric: "commit_recency", state: "measured", value: 42.5, label: "42", fill: "var(--grade-c)" },
       expect.objectContaining({ metric: "pr_response_time", state: "defaulted", value: 50, label: "default (50)" }),
     ]);
-    expect((labels?.data as { label: string }[]).map((entry) => entry.label)).toEqual([
+    expect(((labels && "data" in labels ? labels.data : []) as { label: string }[]).map((entry) => entry.label)).toEqual([
       "100",
       "42",
       "default (50)",

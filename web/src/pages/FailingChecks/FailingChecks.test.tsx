@@ -112,6 +112,25 @@ describe("Failing Checks page", () => {
     expect(tableRepoNames()).toEqual(["openedx/alpha", "openedx/zeta"]);
   });
 
+  it("opens a check from the chart's link list and updates the selector", async () => {
+    renderRoute("/failing_checks");
+
+    await userEvent.click(await screen.findByRole("link", { name: "has_codeowners" }));
+
+    expect(screen.getByLabelText("Inspect a check")).toHaveValue("has_codeowners");
+    expect(tableRepoNames()).toEqual(["openedx/alpha"]);
+  });
+
+  it("links only the checks the chart plots", async () => {
+    setViews(manyChecks(20));
+    renderRoute("/failing_checks");
+
+    const links = await screen.findByText("Open a check:");
+    const row = links.closest("p") as HTMLElement;
+    expect(within(row).getAllByRole("link")).toHaveLength(15);
+    expect(within(row).getByRole("link", { name: "check_0" })).toHaveAttribute("href", "/failing_checks?category=check_0");
+  });
+
   it("filters when a check is chosen in the selector", async () => {
     renderRoute("/failing_checks");
 

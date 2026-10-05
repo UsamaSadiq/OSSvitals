@@ -1,13 +1,50 @@
 import { formatNumber, toFixedHalfEven } from "../format";
-import type { ChartSpec } from "./chartSpec";
+import { labelAxis, type ChartSpec, type MarkSpec, type PointerAxis, type TipMarkOptions } from "./chartSpec";
 import { GRADE_ORDER, type Grade } from "./GradePill";
 
 export type GradeMix = Record<Grade, number>;
+
+export interface ChartLink {
+  label: string;
+  to: string;
+}
+
+export interface ChartLinkList {
+  lead: string;
+  items: readonly ChartLink[];
+}
 
 export interface Chart {
   spec: ChartSpec;
   ariaLabel: string;
   summary: string | null;
+  links?: ChartLinkList;
+}
+
+export const FAILING_CHECKS_PATH = "/failing_checks";
+export const CHECKS_CATALOG_PATH = "/glossary";
+export const NARROW_CHART_PX = 560;
+
+export const SPARKLINE_POINTER_RADIUS = 1000;
+
+const TIP_STYLE: TipMarkOptions = {
+  fill: "var(--surface)",
+  stroke: "var(--border)",
+  fontSize: 12,
+  lineWidth: 22,
+  pointerEvents: "none",
+};
+
+export function tipMark(data: readonly object[], pointer: PointerAxis, options: TipMarkOptions): MarkSpec {
+  return { type: "tip", data, pointer, options: { ...TIP_STYLE, ...options } };
+}
+
+export function failingCheckPath(check: string): string {
+  return `${FAILING_CHECKS_PATH}?${new URLSearchParams({ category: check }).toString()}`;
+}
+
+function plural(count: number, one: string, many: string): string {
+  return `${formatNumber(count)} ${count === 1 ? one : many}`;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -43,16 +80,21 @@ export interface GradeBar {
   count: number;
   label: string;
   fill: string;
+  tip: string;
 }
 
 export function gradeBars(mix: GradeMix): GradeBar[] {
   const total = gradeTotal(mix);
-  return GRADE_ORDER.map((grade) => ({
-    grade,
-    count: mix[grade],
-    label: `${mix[grade]}  ${toFixedHalfEven(share(mix[grade], total))}%`,
-    fill: gradeFill(grade),
-  }));
+  return GRADE_ORDER.map((grade) => {
+    const percent = `${toFixedHalfEven(share(mix[grade], total))}%`;
+    return {
+      grade,
+      count: mix[grade],
+      label: `${mix[grade]}  ${percent}`,
+      fill: gradeFill(grade),
+      tip: `Grade ${grade}\n${plural(mix[grade], "repository", "repositories")} · ${percent} of scored`,
+    };
+  });
 }
 
 export function gradeSummary(mix: GradeMix): string | null {
@@ -85,6 +127,7 @@ export function gradeDistributionChart(mix: GradeMix): Chart {
           data: bars,
           options: { x: "grade", y: "count", text: "label", dy: -10, fill: "var(--text)", fontSize: 13 },
         },
+        tipMark(bars, "x", { x: "grade", y: "count", title: "tip" }),
       ],
     },
   };
@@ -124,12 +167,23 @@ export function categoryPassRateSummary(rows: readonly CategoryPassRate[]): stri
   return `avg ${toFixedHalfEven(average)}% pass · ${rows.length} categories`;
 }
 
+function categoryBar(row: CategoryPassRate) {
+  const label = `${toFixedHalfEven(row.pass_rate)}%`;
+  return {
+    ...row,
+    label,
+    tip: `${row.category}\n${toFixedHalfEven(row.pass_rate, 1)}% of checks pass`,
+    to: CHECKS_CATALOG_PATH,
+  };
+}
+
 export function categoryPassRateChart(rows: readonly CategoryPassRate[]): Chart {
-  const bars = rows.map((row) => ({ ...row, label: `${toFixedHalfEven(row.pass_rate)}%` }));
+  const bars = rows.map(categoryBar);
   const categories = rows.map((row) => row.category);
   return {
     ariaLabel: `Pass rate per check category: ${bars.map((bar) => `${bar.category} ${bar.label}`).join(", ")}`,
     summary: categoryPassRateSummary(rows),
+    links: { lead: "Open:", items: [{ label: "Checks Catalog", to: CHECKS_CATALOG_PATH }] },
     spec: {
       options: {
         height: Math.max(200, 40 * rows.length + 60),
@@ -139,12 +193,13 @@ export function categoryPassRateChart(rows: readonly CategoryPassRate[]): Chart 
         y: { label: null, domain: categories, padding: 0.3 },
       },
       marks: [
-        { type: "barX", data: bars, options: { x: "pass_rate", y: "category", fill: "var(--primary)" } },
+        { type: "barX", data: bars, link: "to", options: { x: "pass_rate", y: "category", fill: "var(--primary)" } },
         {
           type: "text",
           data: bars,
           options: { x: "pass_rate", y: "category", text: "label", dx: 6, textAnchor: "start", fill: "var(--text)" },
         },
+        tipMark(bars, "y", { x: "pass_rate", y: "category", title: "tip" }),
       ],
     },
   };
@@ -159,28 +214,61 @@ export function topFailingSummary(rows: readonly FailingCheck[]): string {
   return `${sum(rows.map((row) => row.failing))} failures across ${rows.length} checks`;
 }
 
+function failingRow(row: FailingCheck) {
+  return {
+    ...row,
+    tip: `${row.check}\n${plural(row.failing, "repository fails", "repositories fail")}`,
+    to: failingCheckPath(row.check),
+  };
+}
+
+export function topFailingLinks(rows: readonly FailingCheck[]): ChartLinkList {
+  return {
+    lead: "Open a check:",
+    items: rows.map((row) => ({ label: row.check, to: failingCheckPath(row.check) })),
+  };
+}
+
 export function topFailingChart(rows: readonly FailingCheck[]): Chart {
+  const data = rows.map(failingRow);
   const checks = rows.map((row) => row.check);
+  const xmax = Math.max(1, ...rows.map((row) => row.failing));
+  const marginLeft = labelMargin(checks, 80, 280);
   return {
     ariaLabel: `Repositories failing each check: ${rows.map((row) => `${row.check} ${row.failing}`).join(", ")}`,
     summary: topFailingSummary(rows),
+    links: topFailingLinks(rows),
     spec: {
       options: {
         height: Math.max(280, 32 * rows.length + 80),
-        marginLeft: labelMargin(checks, 80, 280),
+        marginLeft,
         marginRight: 24,
-        x: { label: "Repos failing", domain: [0, Math.max(1, ...rows.map((row) => row.failing))], nice: true, grid: true },
+        x: { label: "Repos failing", domain: [0, xmax], nice: true, grid: true },
         y: { label: null, domain: checks },
       },
+      narrow: { below: NARROW_CHART_PX, marginLeft: Math.min(marginLeft, 150), marginRight: 16 },
       marks: [
         {
+          type: "barX",
+          data,
+          link: "to",
+          options: { x1: 0, x2: xmax, y: "check", fill: "transparent", inset: 0 },
+        },
+        {
           type: "ruleY",
-          data: rows,
-          options: { y: "check", x1: 0, x2: "failing", stroke: "var(--border)", strokeWidth: 2 },
+          data,
+          options: {
+            y: "check",
+            x1: 0,
+            x2: "failing",
+            stroke: "var(--border)",
+            strokeWidth: 2,
+            pointerEvents: "none",
+          },
         },
         {
           type: "dot",
-          data: rows,
+          data,
           options: {
             x: "failing",
             y: "check",
@@ -188,8 +276,11 @@ export function topFailingChart(rows: readonly FailingCheck[]): Chart {
             fill: "var(--primary)",
             stroke: "var(--surface-alt)",
             strokeWidth: 2,
+            pointerEvents: "none",
           },
         },
+        labelAxis(marginLeft),
+        tipMark(data, "y", { x: "failing", y: "check", title: "tip" }),
       ],
     },
   };
@@ -206,7 +297,11 @@ export function lastDays(series: readonly SeriesPoint[], days: number): SeriesPo
 
 export function sparklineChart(series: readonly SeriesPoint[]): Chart | null {
   if (series.length < 2) return null;
-  const points = series.map(([date, value]) => ({ date: new Date(date), value }));
+  const points = series.map(([date, value]) => ({
+    date: new Date(date),
+    value,
+    tip: `${date}\nOrg average ${formatNumber(value, 1)}`,
+  }));
   const first = series[0];
   const last = series.at(-1);
   return {
@@ -219,7 +314,10 @@ export function sparklineChart(series: readonly SeriesPoint[]): Chart | null {
         x: { axis: null },
         y: { axis: null },
       },
-      marks: [{ type: "lineY", data: points, options: { x: "date", y: "value", stroke: "var(--accent)", strokeWidth: 2 } }],
+      marks: [
+        { type: "lineY", data: points, options: { x: "date", y: "value", stroke: "var(--accent)", strokeWidth: 2 } },
+        tipMark(points, "x", { x: "date", y: "value", title: "tip", maxRadius: SPARKLINE_POINTER_RADIUS }),
+      ],
     },
   };
 }

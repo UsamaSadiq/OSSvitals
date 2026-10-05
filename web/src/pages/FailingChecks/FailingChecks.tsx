@@ -1,11 +1,11 @@
 import { useMemo } from "react";
+import { ChartFigure } from "../../components/ChartFigure";
 import { topFailingChart } from "../../components/charts";
 import { DataTable, type Column, type SortState } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { Loading } from "../../components/Loading";
-import { PlotFigure } from "../../components/PlotFigure";
 import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
 import { RepoLink } from "../../components/RepoName";
 import { ShareLink } from "../../components/ShareLink";
@@ -67,10 +67,7 @@ function MostFailedChart({ checks }: { checks: readonly FailingCheckRow[] }) {
   return (
     <>
       <h2>Most-failed checks</h2>
-      <figure className="chart">
-        {chart.summary && <figcaption className="caption chart__summary">{chart.summary}</figcaption>}
-        <PlotFigure spec={chart.spec} ariaLabel={chart.ariaLabel} />
-      </figure>
+      <ChartFigure chart={chart} />
       {caption && <p className="caption">{caption}</p>}
     </>
   );
