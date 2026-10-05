@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import type { Chart, ChartLinkList } from "./charts";
 import { PlotFigure } from "./PlotFigure";
 
@@ -24,8 +24,16 @@ interface ChartFigureProps {
   children?: ReactNode;
 }
 
-export function ChartFigure({ chart, className = "chart", children }: ChartFigureProps) {
+// A click that only changes this page's query (e.g. Failing Checks' own chart) replaces the entry,
+// matching the page's selector, so Back leaves the page instead of stepping through bars.
+function useChartNavigate(): (to: string) => void {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  return (to) => navigate(to, { replace: new URL(to, window.location.origin).pathname === pathname });
+}
+
+export function ChartFigure({ chart, className = "chart", children }: ChartFigureProps) {
+  const navigate = useChartNavigate();
   return (
     <figure className={className}>
       {chart.summary && <figcaption className="caption chart__summary">{chart.summary}</figcaption>}
