@@ -7,6 +7,7 @@ import type { ViewState } from "../../data/useView";
 import { DEFAULT_SITE_META, type SiteMeta } from "../../layout/siteMeta";
 import { renderPlot } from "../../components/renderPlot";
 import { renderRoute } from "../../test/renderRoute";
+import { WATCHLIST_KEY, watchlistStore } from "../../watchlist/watchlist";
 import { categorySparkline, categoryTrend, datedRates, ratePoints, seriesVaries, trendText } from "./categorySparkline";
 import { meterWidth } from "./CategoryCards";
 import { humanizeMetric, wrapWords } from "./metricNames";
@@ -439,9 +440,11 @@ describe("Repo Detail page", () => {
     const checks = await screen.findByRole("region", { name: "Checks" });
     expect(within(checks).getByRole("radio", { name: "Failing" })).toBeChecked();
     expect(within(checks).getByText("1 of 3 checks shown.")).toBeInTheDocument();
+    const group = within(checks).getByRole("region", { name: "File Existence" });
+    expect(within(group).getByRole("heading", { level: 3 })).toHaveTextContent("File Existence (1)");
     const entry = within(checks).getByText("DEPENDABOT.EXISTS").closest("details") as HTMLElement;
-    expect(within(entry).getByText("FAIL", { selector: "summary code" })).toBeInTheDocument();
-    expect(within(entry).getByText("FAIL", { selector: ".status-chip" })).toHaveClass("status-chip--fail");
+    expect(within(entry).getByText("Fail", { selector: "summary .status-chip" })).toHaveClass("status-chip--fail");
+    expect(within(entry).getByText("Fix available", { selector: "summary .fix-badge" })).toBeInTheDocument();
     expect(within(entry).getByText(/About dependabot\.exists\./)).toBeInTheDocument();
     expect(within(entry).getByText("False", { selector: "code" })).toBeInTheDocument();
     expect(within(entry).getByText("Remediation")).toBeInTheDocument();
@@ -471,8 +474,8 @@ describe("Repo Detail page", () => {
     ]);
     expect(within(checks).getByText("1 of 3 checks shown.")).toBeInTheDocument();
     const entry = within(checks).getByText("DOCS.READTHEDOCS").closest("details") as HTMLElement;
-    expect(within(entry).getByText("—", { selector: "summary code" })).toBeInTheDocument();
-    expect(within(entry).getByText("UNKNOWN")).toHaveClass("status-chip--unknown");
+    expect(within(entry).getByText("Unknown", { selector: "summary .status-chip" })).toHaveClass("status-chip--unknown");
+    expect(within(entry).queryByText("Fix available")).toBeNull();
     expect(within(entry).getByText(/No description available\./)).toBeInTheDocument();
     expect(within(entry).getByText("not recorded").tagName).toBe("EM");
   });
@@ -484,15 +487,50 @@ describe("Repo Detail page", () => {
     await userEvent.click(within(checks).getByRole("radio", { name: "Passing" }));
     expect(within(checks).getByText("1 of 3 checks shown.")).toBeInTheDocument();
     const entry = within(checks).getByText("EXISTS.README.RST").closest("details") as HTMLElement;
-    expect(within(entry).getByText("PASS", { selector: "summary code" })).toBeInTheDocument();
+    expect(within(entry).getByText("Pass", { selector: "summary .status-chip" })).toHaveClass("status-chip--pass");
     expect(within(entry).queryByText("Remediation")).toBeNull();
+  });
+
+  it("puts the fix actions on the failing row, outside the disclosure", async () => {
+    renderRoute(PATH);
+    const checks = await screen.findByRole("region", { name: "Checks" });
+    const row = within(checks).getByText("DEPENDABOT.EXISTS").closest("li") as HTMLElement;
+    const issue = within(row).getByRole("link", { name: "File issue for DEPENDABOT.EXISTS" });
+    expect(issue).toHaveAttribute("href", githubIssueUrl(REPO, "dependabot.exists", REMEDIATION.issue_body));
+    expect(issue.closest("details")).toBeNull();
+    expect(within(row).getByRole("link", { name: "Open PR for DEPENDABOT.EXISTS" })).toHaveAttribute(
+      "href",
+      githubPrCompareUrl(REPO, PR_TEMPLATE),
+    );
+  });
+
+  it("searches checks by title or name within the current filter", async () => {
+    renderRoute(`${PATH}&filter=All`);
+    const checks = await screen.findByRole("region", { name: "Checks" });
+    expect(within(checks).getByText("3 of 3 checks shown.")).toBeInTheDocument();
+    expect(within(checks).getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent)).toEqual([
+      "File Existence (1)",
+      "README (1)",
+      "Documentation (1)",
+    ]);
+
+    await userEvent.type(within(checks).getByRole("searchbox", { name: "Search checks" }), "readme");
+    expect(within(checks).getByText("1 of 3 checks shown.")).toBeInTheDocument();
+    expect(within(checks).getByText("EXISTS.README.RST")).toBeInTheDocument();
+
+    await userEvent.clear(within(checks).getByRole("searchbox", { name: "Search checks" }));
+    await userEvent.type(within(checks).getByRole("searchbox", { name: "Search checks" }), "nothing-like-this");
+    expect(within(checks).getByText("No checks match this filter.")).toBeInTheDocument();
+    expect(within(checks).getByText(/Clear the search/)).toBeInTheDocument();
   });
 
   it("hides the PR link when the flag is off", async () => {
     renderRoute(PATH, withPrTemplates(false));
     const checks = await screen.findByRole("region", { name: "Checks" });
     expect(within(checks).getByRole("link", { name: "File issue on this repo" })).toBeInTheDocument();
+    expect(within(checks).getByRole("link", { name: "File issue for DEPENDABOT.EXISTS" })).toBeInTheDocument();
     expect(within(checks).queryByRole("link", { name: "Open PR with fix" })).toBeNull();
+    expect(within(checks).queryByRole("link", { name: /Open PR/ })).toBeNull();
   });
 
   it("reports a check data failure instead of loading forever", async () => {
@@ -505,9 +543,19 @@ describe("Repo Detail page", () => {
     setViews({ prTemplate: null });
     renderRoute(PATH);
     const checks = await screen.findByRole("region", { name: "Checks" });
-    expect(within(checks).queryByRole("link", { name: "Open PR with fix" })).toBeNull();
+    expect(within(checks).queryByRole("link", { name: /Open PR/ })).toBeNull();
   });
 
+  it("stars the repository from the header", async () => {
+    window.localStorage.clear();
+    watchlistStore.reload();
+    renderRoute(PATH);
+    const button = await screen.findByRole("button", { name: "Watch" });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(button);
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    expect(window.localStorage.getItem(WATCHLIST_KEY)).toBe(JSON.stringify([REPO]));
+  });
 });
 
 function markData(mark: { type: string } | undefined): Record<string, unknown>[] {

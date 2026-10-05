@@ -17,7 +17,7 @@ const STATE_FOR_FILTER: Record<FilterChoice, CheckState | null> = {
   All: null,
 };
 
-const MARKERS: Record<CheckState, string> = { pass: "PASS", fail: "FAIL", unknown: "—" };
+const STATE_LABELS: Record<CheckState, string> = { pass: "Pass", fail: "Fail", unknown: "Unknown" };
 
 export interface CheckRow {
   record: CheckRecord;
@@ -54,8 +54,34 @@ export function visibleRows(rows: readonly CheckRow[], filter: FilterChoice, cat
   return rows.filter((row) => (category === ALL || row.category === category) && (state === null || row.state === state));
 }
 
-export function stateMarker(state: CheckState): string {
-  return MARKERS[state];
+export function stateLabel(state: CheckState): string {
+  return STATE_LABELS[state];
+}
+
+export function hasFix(row: CheckRow): boolean {
+  return row.state === "fail" && row.record.remediation !== null;
+}
+
+function matchesQuery(row: CheckRow, needle: string): boolean {
+  return row.record.title.toLowerCase().includes(needle) || row.record.check.toLowerCase().includes(needle);
+}
+
+export function searchChecks(rows: readonly CheckRow[], query: string): CheckRow[] {
+  const needle = query.trim().toLowerCase();
+  return needle ? rows.filter((row) => matchesQuery(row, needle)) : [...rows];
+}
+
+export interface CheckGroup {
+  category: string;
+  rows: CheckRow[];
+}
+
+export function groupByCategory(rows: readonly CheckRow[], order: readonly string[]): CheckGroup[] {
+  const unlisted = rows.map((row) => row.category).filter((category) => !order.includes(category));
+  return [...new Set([...order, ...unlisted])]
+    .filter((category) => category !== ALL)
+    .map((category) => ({ category, rows: rows.filter((row) => row.category === category) }))
+    .filter((group) => group.rows.length > 0);
 }
 
 export function descriptionText(record: CheckRecord): string {
