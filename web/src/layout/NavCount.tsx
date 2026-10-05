@@ -1,8 +1,7 @@
 import type { ComponentType } from "react";
-import { useView } from "../data/useView";
-import { shownAtRiskCount } from "../pages/AtRisk/atRiskDefaults";
-import { attentionCount, countText, failingUpgradeCount, FAILING_JOBS, REPOSITORIES, type CountNoun } from "./navCounts";
+import { countText, FAILING_JOBS, REPOSITORIES, type CountNoun } from "./navCounts";
 import { useAfterFirstPaint } from "./useAfterFirstPaint";
+import { useAtRiskCount, useAttentionCount, useFailingUpgradeCount } from "./usePageCounts";
 
 export function CountBadge({ count, noun }: { count: number | null; noun: CountNoun }) {
   if (count === null || count === 0) return null;
@@ -17,18 +16,15 @@ export function CountBadge({ count, noun }: { count: number | null; noun: CountN
 }
 
 function AttentionCount() {
-  const attention = useView("attention");
-  return <CountBadge count={attention.data ? attentionCount(attention.data) : null} noun={REPOSITORIES} />;
+  return <CountBadge count={useAttentionCount()} noun={REPOSITORIES} />;
 }
 
 function AtRiskCount() {
-  const atRisk = useView("at_risk");
-  return <CountBadge count={atRisk.data ? shownAtRiskCount(atRisk.data) : null} noun={REPOSITORIES} />;
+  return <CountBadge count={useAtRiskCount()} noun={REPOSITORIES} />;
 }
 
 function UpgradesCount() {
-  const upgrades = useView("upgrades");
-  return <CountBadge count={upgrades.data ? failingUpgradeCount(upgrades.data) : null} noun={FAILING_JOBS} />;
+  return <CountBadge count={useFailingUpgradeCount()} noun={FAILING_JOBS} />;
 }
 
 const PAGE_COUNTS: Record<string, ComponentType> = {

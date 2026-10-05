@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { EmptyState } from "../../components/EmptyState";
 import { Tabs, type TabItem } from "../../components/Tabs";
-import { categoryPassRateChart, gradeDistributionChart, topFailingChart } from "../../components/charts";
+import { categoryPassRateChart, FAILING_CHECKS_PATH, gradeDistributionChart, topFailingChart } from "../../components/charts";
 import type { OverviewView } from "../../data/schemas";
 import { ChartPanel } from "./ChartPanel";
 
@@ -32,7 +32,7 @@ function TopFailingPanel({ rows }: { rows: OverviewView["top_failing"] }) {
     <>
       <ChartPanel input={rows} build={topFailingChart} />
       <p className="caption">
-        Drill down on individual checks in <Link to="/failing_checks">Failing Checks</Link>.
+        Every failing check is listed in <Link to={FAILING_CHECKS_PATH}>Failing Checks</Link>.
       </p>
     </>
   );

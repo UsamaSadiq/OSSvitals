@@ -110,11 +110,20 @@ describe("Overview page", () => {
     expect(screen.getByText("2/3 repos (67%) at grade B or better")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Repositories per grade: A 1, B 1, C 1, D 0, F 0" })).toBeInTheDocument();
 
+    expect(within(screen.getByRole("tabpanel")).queryByRole("link")).not.toBeInTheDocument();
+
     await userEvent.click(screen.getByRole("tab", { name: "Per-category pass rate" }));
     expect(screen.getByText("avg 47% pass · 1 categories")).toBeInTheDocument();
+    expect(within(screen.getByRole("tabpanel")).getByRole("link", { name: "Checks Catalog" })).toHaveAttribute(
+      "href",
+      "/glossary",
+    );
 
     await userEvent.click(screen.getByRole("tab", { name: "Top failing checks" }));
     expect(screen.getByText("3 failures across 1 checks")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("tabpanel")).getByRole("link", { name: "tox_ini.uses_whitelist_externals" }),
+    ).toHaveAttribute("href", "/failing_checks?category=tox_ini.uses_whitelist_externals");
     expect(within(screen.getByRole("tabpanel")).getByRole("link", { name: "Failing Checks" })).toHaveAttribute(
       "href",
       "/failing_checks",

@@ -1,13 +1,15 @@
+import { useMemo } from "react";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
+import { RepoLink, splitRepoName } from "../../components/RepoName";
 import type { ViewName } from "../../data/schemas";
 import { useView, type ViewState } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import { RepoBody } from "./RepoBody";
 import { RepoPicker, useSelectedRepo } from "./RepoPicker";
-import { rankRepos } from "./repoRanking";
+import { containingRepos, rankRepos } from "./repoRanking";
 import { findRecord } from "./repoDetailData";
 import "./repoDetail.css";
 
@@ -27,14 +29,41 @@ export function shownRepo(names: readonly string[], requested: string | null): s
   return rankRepos(names, requested ?? "")[0] ?? null;
 }
 
-function NotScored({ repo }: { repo: string }) {
+export const SUGGESTION_LIMIT = 3;
+
+export function suggestedRepos(names: readonly string[], requested: string): string[] {
+  const { short } = splitRepoName(requested);
+  return containingRepos(names, short, SUGGESTION_LIMIT).filter((name) => name !== requested);
+}
+
+function Suggestions({ repos }: { repos: readonly string[] }) {
+  if (repos.length === 0) return null;
   return (
-    <EmptyState
-      kind="info"
-      title={`${repo} is not scored in this snapshot.`}
-      body="The repo health checks have no row for it: it may be archived, excluded from the checks, or new. Pick another repository above."
-      action={{ label: "Open on GitHub", href: `https://github.com/${repo}` }}
-    />
+    <nav className="repo-suggestions" aria-label="Similar scored repositories">
+      <span className="repo-suggestions__lead">Did you mean</span>
+      <ul>
+        {repos.map((name) => (
+          <li key={name}>
+            <RepoLink name={name} />
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function NotScored({ repo, names }: { repo: string; names: readonly string[] }) {
+  const suggestions = useMemo(() => suggestedRepos(names, repo), [names, repo]);
+  return (
+    <>
+      <EmptyState
+        kind="info"
+        title={`${repo} is not scored in this snapshot.`}
+        body="The repo health checks have no row for it: it may be archived, renamed, excluded from the checks, or new. Pick another repository above."
+        action={{ label: "Open on GitHub", href: `https://github.com/${repo}` }}
+      />
+      <Suggestions repos={suggestions} />
+    </>
   );
 }
 
@@ -55,7 +84,7 @@ function RepoDetailContent() {
       {record && entry && shown ? (
         <RepoBody repo={shown} record={record} detail={entry} detailView={detail.data} />
       ) : selected !== null && isUnscoredFullName(names, selected) ? (
-        <NotScored repo={selected} />
+        <NotScored repo={selected} names={names} />
       ) : (
         <EmptyState
           kind="info"

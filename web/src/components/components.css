@@ -32,6 +32,31 @@
   margin: 0;
 }
 
+.plot-figure .plot-link > * {
+  cursor: pointer;
+  transition: opacity 120ms ease, fill 120ms ease;
+}
+
+.plot-figure .plot-link > *:hover {
+  opacity: 0.8;
+}
+
+.plot-figure .plot-link > rect[fill="transparent"]:hover {
+  opacity: 1;
+  fill: var(--row-hover);
+}
+
+.chart-links {
+  margin: 0.5rem 0 0;
+  font-size: var(--fs-small);
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.chart-links__lead {
+  font-weight: 600;
+}
+
 .gauge {
   margin: 0;
 }
