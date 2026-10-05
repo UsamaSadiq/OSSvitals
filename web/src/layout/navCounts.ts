@@ -1,4 +1,4 @@
-import type { AttentionView, UpgradesView } from "../data/schemas";
+import type { AttentionView, ComponentsView, UpgradesView } from "../data/schemas";
 
 export interface CountNoun {
   one: string;
@@ -14,6 +14,10 @@ export function attentionCount(attention: AttentionView): number {
 
 export function failingUpgradeCount(upgrades: UpgradesView): number | null {
   return upgrades.upgrade_jobs?.states.failing ?? null;
+}
+
+export function catalogProblemCount(components: ComponentsView): number | null {
+  return components.available ? (components.summary?.with_problem ?? null) : null;
 }
 
 export function countText(count: number, noun: CountNoun): string {

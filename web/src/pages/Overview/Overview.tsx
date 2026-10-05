@@ -12,6 +12,7 @@ import { GradeMix } from "./GradeMix";
 import { Highlights } from "./Highlights";
 import { KpiHero } from "./KpiHero";
 import { ShareExport } from "./ShareExport";
+import { TriageCards } from "./TriageCards";
 import { activityLine } from "./overviewText";
 import "./overview.css";
 
@@ -35,6 +36,7 @@ function OverviewSections({ overview, history, scoring }: OverviewSectionsProps)
         letterBands={scoring?.letter_bands}
       />
       {activity && <p className="caption overview-activity">{activity}</p>}
+      <TriageCards />
       <GradeMix mix={overview.grade_mix} />
       <ChartTabs overview={overview} />
       <Highlights overview={overview} />
