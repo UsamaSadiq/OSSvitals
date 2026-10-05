@@ -13,13 +13,148 @@
   margin-top: 1rem;
 }
 
-.components-finding {
+.finding-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding-grid > li:has(details[open]) {
+  grid-column: 1 / -1;
+}
+
+.finding-card {
+  --tone: var(--warn);
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--tone);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.finding-card--problem {
+  --tone: var(--fail);
+}
+
+.finding-card:hover {
+  box-shadow: var(--shadow-raised);
+}
+
+.finding-card__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  height: 100%;
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.finding-card__summary::-webkit-details-marker {
+  display: none;
+}
+
+.finding-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.finding-card__kind {
+  padding: 1px 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.finding-card__kind--problem {
+  color: var(--chip-text-fail);
+  background: color-mix(in srgb, var(--fail) 14%, transparent);
+}
+
+.finding-card__kind--note {
+  color: var(--chip-text-warn);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+
+.finding-card__count {
+  font-size: 1.6rem;
+  font-weight: 650;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.finding-card__label {
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.finding-card__hint {
+  margin-top: auto;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.finding-card__hint::after {
+  content: " ▸";
+}
+
+details[open] > .finding-card__summary .finding-card__hint::after {
+  content: " ▾";
+}
+
+.finding-card__body {
+  padding: 0 0.9rem 0.9rem;
+}
+
+.components-relations-summary {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+}
+
+.relation-groups {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.relation-group {
   border-bottom: 1px solid var(--border);
 }
 
-.components-finding summary {
-  cursor: pointer;
+.relation-group > summary {
   padding: 0.5rem 0;
+  cursor: pointer;
+}
+
+.relation-group__line {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.15rem 1rem;
+  width: calc(100% - 1.25rem);
+  vertical-align: middle;
+}
+
+.relation-group__counts {
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.relation-group__body {
+  padding: 0 0 0.75rem;
 }
 
 .components-filters {

@@ -2,7 +2,7 @@ import { DataTable, type Column } from "../../components/DataTable";
 import { GradePill, GRADE_ORDER, isGrade } from "../../components/GradePill";
 import { RepoLink, RepoName } from "../../components/RepoName";
 import { formatNumber } from "../../format";
-import { releaseLabel, type ComponentRow, type FindingRepo, type RelationRow } from "./componentRows";
+import { releaseLabel, type ComponentRow, type FindingRepo } from "./componentRows";
 
 interface RepoRow {
   repo_name: string;
@@ -62,13 +62,6 @@ const COMPONENT_COLUMNS: Column<ComponentRow>[] = [
   },
 ];
 
-const RELATION_COLUMNS: Column<RelationRow>[] = [
-  repoColumn(),
-  textColumn("relation", "Relation", (row) => row.relation),
-  textColumn("target", "Target", (row) => row.target),
-  textColumn("status", "Status", (row) => row.status),
-];
-
 export function FindingReposTable({ label, repos }: { label: string; repos: readonly FindingRepo[] }) {
   return (
     <DataTable
@@ -91,18 +84,6 @@ export function ComponentsTable({ rows }: { rows: readonly ComponentRow[] }) {
       rowKey={(row) => row.repo_name}
       emptyMessage="No components match these filters."
       maxHeight="460px"
-    />
-  );
-}
-
-export function RelationsTable({ rows }: { rows: readonly RelationRow[] }) {
-  return (
-    <DataTable
-      caption="Declared relations"
-      captionHidden
-      columns={RELATION_COLUMNS}
-      rows={rows}
-      rowKey={(row) => `${row.repo_name}|${row.relation}|${row.target}`}
     />
   );
 }

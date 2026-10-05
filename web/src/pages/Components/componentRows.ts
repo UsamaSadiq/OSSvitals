@@ -56,7 +56,45 @@ export function releaseLabel(release: string | null | undefined): string {
   return release || "no";
 }
 
-export function findingSuffix(finding: FindingRow): string {
-  const kind = finding.severity === "problem" ? "Problem" : "Note";
-  return ` · ${finding.repos.length} repos · ${kind}`;
+export type FindingKind = "problem" | "note";
+
+export function findingKind(finding: FindingRow): FindingKind {
+  return finding.severity === "problem" ? "problem" : "note";
+}
+
+export const FINDING_KIND_LABELS: Record<FindingKind, string> = { problem: "Problem", note: "Note" };
+
+export function repoNoun(count: number): string {
+  return count === 1 ? "repo" : "repos";
+}
+
+export interface RelationGroup {
+  repo: string;
+  relations: RelationRow[];
+}
+
+export function groupRelations(rows: readonly RelationRow[]): RelationGroup[] {
+  const repos = [...new Set(rows.map((row) => row.repo_name))].sort();
+  return repos.map((repo) => ({ repo, relations: rows.filter((row) => row.repo_name === repo) }));
+}
+
+export interface StatusCount {
+  status: string;
+  count: number;
+}
+
+export function statusCounts(rows: readonly RelationRow[]): StatusCount[] {
+  const statuses = [...new Set(rows.map((row) => row.status))].sort();
+  return statuses.map((status) => ({ status, count: rows.filter((row) => row.status === status).length }));
+}
+
+export function statusCountText(counts: readonly StatusCount[]): string {
+  return counts.map(({ status, count }) => `${count} ${status.toLowerCase()}`).join(" · ");
+}
+
+export function relationsSummary(rows: readonly RelationRow[]): string {
+  const repoCount = new Set(rows.map((row) => row.repo_name)).size;
+  const relationNoun = rows.length === 1 ? "relation" : "relations";
+  const repoNoun = repoCount === 1 ? "repository" : "repositories";
+  return `${rows.length} ${relationNoun} across ${repoCount} ${repoNoun}: ${statusCountText(statusCounts(rows))}`;
 }
