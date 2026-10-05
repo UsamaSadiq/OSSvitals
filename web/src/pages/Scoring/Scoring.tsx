@@ -8,6 +8,8 @@ import { usePageTitle } from "../../layout/pageTitle";
 import { Independence } from "./Independence";
 import { GradeBands, Intro, Limitations, Metrics, MissingData } from "./MethodSections";
 import { ProposedSection } from "./ProposedSection";
+import { ScoreBreakdownSection } from "./ScoreBreakdownSection";
+import { WeightsSection } from "./WeightsSection";
 import "./scoring.css";
 
 function NoScoringConfig() {
@@ -30,8 +32,10 @@ function ScoringSections({ scoring }: { scoring: ScoringView }) {
     <>
       <Intro version={scoring.version} />
       <GradeBands bands={scoring.letter_bands} />
+      <WeightsSection rows={scoring.metrics} />
       <Metrics rows={scoring.metrics} />
       <MissingData rows={scoring.metrics} />
+      <ScoreBreakdownSection metrics={scoring.metrics} />
       <Limitations rows={scoring.metrics} />
       {scoring.proposed && <ProposedSection proposed={scoring.proposed} />}
       <Independence />

@@ -21,3 +21,36 @@
 .scoring-migration th[scope="colgroup"] {
   text-align: center;
 }
+
+.weight-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.35rem 1.25rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-small);
+}
+
+.scoring-section .weight-legend li + li {
+  margin-top: 0;
+}
+
+.weight-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.weight-legend__swatch {
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+}
+
+.weight-legend__value {
+  margin-left: auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

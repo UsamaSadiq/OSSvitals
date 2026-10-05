@@ -64,6 +64,8 @@ function toMark(spec: MarkSpec, onLink: LinkHandler | undefined): Plot.Markish {
       return Plot.barY(spec.data, { ...linkOptions(spec, onLink), ariaHidden: HIDDEN });
     case "dot":
       return Plot.dot(spec.data, { ...linkOptions(spec, onLink), ariaHidden: HIDDEN });
+    case "areaY":
+      return Plot.areaY(spec.data, { ...spec.options, ariaHidden: HIDDEN });
     case "lineY":
       return Plot.lineY(spec.data, { ...spec.options, ariaHidden: HIDDEN });
     case "ruleY":

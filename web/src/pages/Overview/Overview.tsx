@@ -40,7 +40,7 @@ function OverviewSections({ overview, history, scoring }: OverviewSectionsProps)
       <TriageCards />
       <WatchlistStrip />
       <GradeMix mix={overview.grade_mix} />
-      <ChartTabs overview={overview} />
+      <ChartTabs overview={overview} history={history} />
       <Highlights overview={overview} />
       <FullTable repoCount={overview.kpis.repos} />
       <ShareExport />

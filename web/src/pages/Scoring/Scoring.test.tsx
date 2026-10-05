@@ -1,9 +1,14 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata } from "../../data/fixtures";
 import type { ScoringView, ViewName } from "../../data/schemas";
 import type { ViewState } from "../../data/useView";
 import { renderRoute } from "../../test/renderRoute";
+
+vi.mock("../../components/PlotFigure", () => ({
+  PlotFigure: ({ ariaLabel }: { ariaLabel: string }) => <div role="img" aria-label={ariaLabel} data-testid="plot" />,
+}));
 
 const views = vi.hoisted(() => ({ current: {} as Record<string, unknown> }));
 
@@ -129,9 +134,11 @@ describe("How Scoring Works page", () => {
     expect(headingNames()).toEqual([
       "How Scoring Works",
       "Grade bands",
+      "Weights",
       "Metrics",
       "How each metric is scored",
       "Missing data",
+      "How a score is built",
       "Known limitations",
       "Proposed changes",
       "How grades would move",
@@ -288,5 +295,88 @@ describe("How Scoring Works page", () => {
     renderRoute("/scoring");
 
     expect(await screen.findByRole("alert")).toHaveTextContent("scoring.json: schema_version 2, expected 1");
+  });
+});
+
+const BARS = [
+  { metric: "commit_recency", state: "measured", score: 100, weight: 0.15, letter: "A" },
+  { metric: "pr_response_time", state: "defaulted", score: 50, weight: 0.15, letter: "C" },
+  { metric: "ci_status", state: "unavailable", score: 0, weight: null, letter: "F" },
+] as const;
+
+function repoEntry(bars: readonly (typeof BARS)[number][]) {
+  return {
+    summary: { available: 2, total: 3, coverage_pct: 75, level: "warn" },
+    subscores: { structural: { value: null, help: "" }, activity: { value: 75, help: "" } },
+    metric_bars: bars,
+    category_cards: [],
+    catalog: null,
+  };
+}
+
+function repoRecord(repo_name: string, score_composite: number) {
+  return { repo_name, score_composite, score_letter: "B", checks: {}, category_stats: {}, owner_handles: [] };
+}
+
+function setRepos() {
+  views.current = {
+    ...views.current,
+    repos: ready({
+      metadata: metadata("repos"),
+      records: [repoRecord("openedx/zeta", 75), repoRecord("openedx/alpha", 100)],
+    }),
+    repo_detail: ready({
+      metadata: metadata("repo_detail"),
+      catalog_available: false,
+      catalog_collected_at: null,
+      repos: { "openedx/zeta": repoEntry(BARS), "openedx/alpha": repoEntry(BARS.slice(0, 1)) },
+    }),
+  };
+}
+
+describe("Scoring visuals", () => {
+  it("draws the configured weights with every metric named", async () => {
+    renderRoute("/scoring");
+    const legend = await screen.findByRole("list", { name: "Configured weight per metric" });
+    expect(within(legend).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "Commit recency15%",
+      "CI status10%",
+    ]);
+    expect(screen.getByText("Activity 15% · Structural 10% of the configured weight")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Configured weight per metric: Commit recency 15%, CI status 10%" })).toBeInTheDocument();
+    expect(screen.getByText(/Configured shares of the composite/)).toBeInTheDocument();
+  });
+
+  it("breaks the first repository by name into points that add up to its composite", async () => {
+    setRepos();
+    renderRoute("/scoring");
+    const section = (await screen.findByRole("heading", { name: "How a score is built" })).closest("section");
+    if (!section) throw new Error("missing section");
+    expect(within(section).getByRole("combobox", { name: "Repository" })).toHaveValue("openedx/alpha");
+    expect(within(section).getByText(/Points add up to 100\.00; the published composite is 100\.00\./)).toBeInTheDocument();
+  });
+
+  it("marks defaulted and not-collected metrics for the picked repository", async () => {
+    setRepos();
+    const { router } = renderRoute("/scoring?repo=openedx%2Fzeta");
+    const table = await screen.findByRole("table", { name: "Score contributions for openedx/zeta" });
+    const rows = within(table)
+      .getAllByRole("row")
+      .slice(1)
+      .map((row) => within(row).getAllByRole("cell").map((cell) => cell.textContent));
+    expect(rows).toEqual([
+      ["Commit recency", "100.0", "15%", "50.0%", "50.00"],
+      ["PR response time", "50.0 (default)", "15%", "50.0%", "25.00"],
+      ["CI status", "not collected", "—", "—", "0.00"],
+    ]);
+    expect(screen.getByText(/Points add up to 75\.00; the published composite is 75\.00\./)).toHaveTextContent(
+      /Metrics not collected are left out.*Grey segments are defaults/,
+    );
+
+    const combobox = screen.getByRole("combobox", { name: "Repository" });
+    await userEvent.clear(combobox);
+    await userEvent.type(combobox, "alpha{Enter}");
+    expect(router.state.location.search).toBe("?repo=openedx%2Falpha");
+    expect(await screen.findByRole("table", { name: "Score contributions for openedx/alpha" })).toBeInTheDocument();
   });
 });
