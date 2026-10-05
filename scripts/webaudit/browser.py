@@ -72,6 +72,8 @@ def open_page(browser_: Browser, spec: WebPage, base_url: str, viewport: tuple[i
     problems = PageProblems()
     _watch(page, problems)
     page.goto(spec.url(base_url), wait_until="networkidle", timeout=NAVIGATION_TIMEOUT_MS)
+    # Hover styles (table rows, cards) must not depend on where the pointer happens to rest.
+    page.mouse.move(0, 0)
     page.wait_for_function(NOT_LOADING, timeout=NAVIGATION_TIMEOUT_MS)
     page.evaluate("() => document.fonts.ready")
     page.wait_for_load_state("networkidle")
