@@ -157,6 +157,46 @@ h3 {
   height: 1.15rem;
 }
 
+.search-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.25rem;
+  padding: 0 0.5rem 0 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--on-primary) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--on-primary) 6%, transparent);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: var(--fs-small);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.search-button:hover {
+  background: color-mix(in srgb, var(--on-primary) 14%, transparent);
+}
+
+.search-button svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.search-button__label {
+  min-width: 4.5rem;
+  text-align: left;
+}
+
+.search-button__kbd {
+  padding: 0.05rem 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--on-primary) 35%, transparent);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
 .header-share {
   display: inline-flex;
 }
@@ -560,8 +600,17 @@ h3 {
     padding: 0.6rem 1rem;
   }
 
-  .freshness-chip--fresh .freshness-chip__detail {
+  .freshness-chip--fresh .freshness-chip__detail,
+  .search-button__label,
+  .search-button__kbd {
     display: none;
+  }
+
+  .search-button {
+    justify-content: center;
+    width: 2.25rem;
+    padding: 0;
+    background: transparent;
   }
 }
 

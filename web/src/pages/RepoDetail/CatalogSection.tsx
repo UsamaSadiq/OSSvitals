@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { CodeText } from "../../components/CodeText";
 import { EmptyState } from "../../components/EmptyState";
+import { ownerPath } from "../../components/ownerPath";
 import type { RepoDetail } from "./repoDetailData";
 import { StatusChip } from "./StatusChip";
 
@@ -10,10 +11,6 @@ export const OEP_55_URL =
   "https://open-edx-proposals.readthedocs.io/en/latest/processes/oep-0055-proc-project-maintainers.html";
 
 const SEVERITY_CHIP: Record<string, string> = { problem: "fail", note: "warn" };
-
-export function ownerPath(ownerKey: string): string {
-  return `/ownership_views?${new URLSearchParams({ owner: ownerKey }).toString()}`;
-}
 
 export function catalogCaption(collectedAt: string | null): string {
   return (

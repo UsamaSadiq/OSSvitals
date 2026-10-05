@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
-import { Link, Outlet } from "react-router";
+import { Link, Outlet, useNavigate } from "react-router";
 import { ErrorState } from "../components/ErrorState";
+import { CommandPalette } from "../search/CommandPalette";
+import { SearchButton } from "../search/SearchButton";
+import { useCommandPalette } from "../search/useCommandPalette";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { Footer } from "./Footer";
 import { FreshnessChip } from "./FreshnessChip";
@@ -15,9 +18,16 @@ export function Shell() {
   const { shortName, loadError } = useSiteMeta();
   const [menuOpen, setMenuOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+  const palette = useCommandPalette();
+  const navigate = useNavigate();
   const closeMenuAndFocusMain = () => {
     setMenuOpen(false);
     mainRef.current?.focus({ preventScroll: true });
+  };
+  const openFromPalette = (to: string) => {
+    palette.closeForNavigation();
+    navigate(to);
+    closeMenuAndFocusMain();
   };
 
   return (
@@ -41,6 +51,7 @@ export function Shell() {
         </Link>
         <FreshnessChip />
         <div className="header__actions">
+          <SearchButton onClick={palette.show} />
           <HeaderShare />
           <ThemeToggle />
         </div>
@@ -55,6 +66,7 @@ export function Shell() {
         </main>
         <Footer />
       </div>
+      {palette.open && <CommandPalette onClose={palette.dismiss} onNavigate={openFromPalette} />}
     </div>
   );
 }
