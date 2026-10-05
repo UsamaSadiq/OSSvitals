@@ -521,3 +521,14 @@ describe("rankRepos", () => {
     expect(rankRepos(many, "repo")).toHaveLength(30);
   });
 });
+
+describe("unscored repositories", () => {
+  beforeEach(() => setViews());
+
+  it("reports a full repo name that is not scored instead of showing another repo", async () => {
+    renderRoute("/repo_detail?repo=openedx%2Fwg-data");
+    expect(await screen.findByText("openedx/wg-data is not scored in this snapshot.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open on GitHub" })).toHaveAttribute("href", "https://github.com/openedx/wg-data");
+    expect(screen.queryByRole("heading", { level: 2, name: "openedx/alpha" })).not.toBeInTheDocument();
+  });
+});

@@ -15,10 +15,27 @@ function failed<Name extends ViewName>(state: ViewState<Name>): Error | undefine
   return state.status === "error" ? state.error : undefined;
 }
 
+// A full "org/name" that is not scored is reported as such; best-match is only for partial names.
+export function isUnscoredFullName(names: readonly string[], requested: string | null): boolean {
+  return requested !== null && requested.includes("/") && !names.includes(requested);
+}
+
 // Streamlit always shows a repository: the requested one, else the best match for it, else the first.
 export function shownRepo(names: readonly string[], requested: string | null): string | null {
   if (requested !== null && names.includes(requested)) return requested;
+  if (isUnscoredFullName(names, requested)) return null;
   return rankRepos(names, requested ?? "")[0] ?? null;
+}
+
+function NotScored({ repo }: { repo: string }) {
+  return (
+    <EmptyState
+      kind="info"
+      title={`${repo} is not scored in this snapshot.`}
+      body="The repo health checks have no row for it: it may be archived, excluded from the checks, or new. Pick another repository above."
+      action={{ label: "Open on GitHub", href: `https://github.com/${repo}` }}
+    />
+  );
 }
 
 function RepoDetailContent() {
@@ -37,6 +54,8 @@ function RepoDetailContent() {
       <RepoPicker repos={names} selected={shown} initialQuery={selected ?? ""} onSelect={select} />
       {record && entry && shown ? (
         <RepoBody repo={shown} record={record} detail={entry} detailView={detail.data} />
+      ) : selected !== null && isUnscoredFullName(names, selected) ? (
+        <NotScored repo={selected} />
       ) : (
         <EmptyState
           kind="info"
