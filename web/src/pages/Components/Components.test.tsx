@@ -91,8 +91,8 @@ describe("Components page", () => {
     renderRoute("/components");
 
     const title = await screen.findByText("No catalog snapshot yet.");
-    const banner = title.closest(".banner");
-    expect(banner).toHaveClass("banner--info");
+    const banner = title.closest(".empty-state");
+    expect(banner).toHaveClass("empty-state--info");
     expect(banner).toHaveTextContent(
       "It is published daily by the collect-maintenance workflow; check back after its next run.",
     );
@@ -146,7 +146,7 @@ describe("Components page", () => {
     renderRoute("/components");
 
     const title = await screen.findByText("Every repository's catalog entry is complete.");
-    expect(title.closest(".banner")).toHaveClass("banner--good");
+    expect(title.closest(".empty-state")).toHaveClass("empty-state--good");
   });
 
   it("lists only declared components with their columns", async () => {

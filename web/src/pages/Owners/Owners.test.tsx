@@ -203,7 +203,7 @@ describe("Owners page", () => {
     renderRoute("/ownership_views?owner=Gone-Team");
 
     const state = await screen.findByText("No owner named “gone-team” in this snapshot.");
-    expect(state.closest(".banner")).toHaveTextContent("It may have been renamed or removed.");
+    expect(state.closest(".empty-state")).toHaveTextContent("It may have been renamed or removed.");
   });
 
   it("closes the owner panel", async () => {
@@ -219,7 +219,7 @@ describe("Owners page", () => {
     renderRoute("/ownership_views");
 
     const state = await screen.findByText("No owner data in this snapshot.");
-    expect(state.closest(".banner")).toHaveTextContent(
+    expect(state.closest(".empty-state")).toHaveTextContent(
       "A repository appears here once its catalog-info.yaml sets spec.owner (OEP-55). None currently do.",
     );
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -278,7 +278,7 @@ describe("Owners page", () => {
 
     await userEvent.type(screen.getByRole("textbox", { name: "GitHub handle" }), "nobody");
     const state = screen.getByText("No repositories matched that handle.");
-    expect(state.closest(".banner")).toHaveTextContent(
+    expect(state.closest(".empty-state")).toHaveTextContent(
       "Ownership fields are largely unpopulated, so most repositories cannot be matched to anyone yet.",
     );
   });
@@ -287,7 +287,7 @@ describe("Owners page", () => {
     await openMyRepos(withMyRepos(false));
 
     const state = screen.getByText("This view is switched off for this deployment.");
-    expect(state.closest(".banner")).toHaveTextContent(
+    expect(state.closest(".empty-state")).toHaveTextContent(
       "Enable enable_my_repos_filter in dashboard/config/feature_flags.yaml.",
     );
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();

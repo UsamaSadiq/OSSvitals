@@ -1,7 +1,6 @@
-import { Link } from "react-router";
 import { DataTable, type Column } from "../../components/DataTable";
 import { GradePill, GRADE_ORDER, isGrade } from "../../components/GradePill";
-import { repoDetailPath } from "../../components/repoDetailPath";
+import { RepoLink, RepoName } from "../../components/RepoName";
 import { formatNumber } from "../../format";
 import { releaseLabel, type ComponentRow, type FindingRepo, type RelationRow } from "./componentRows";
 
@@ -14,7 +13,7 @@ function repoColumn<Row extends RepoRow>(): Column<Row> {
   return {
     key: "repo_name",
     header: "Repository",
-    cell: (row) => <Link to={repoDetailPath(row.repo_name)}>{row.repo_name}</Link>,
+    cell: (row) => (row.score_letter ? <RepoLink name={row.repo_name} /> : <RepoName name={row.repo_name} />),
     sortValue: (row) => row.repo_name,
   };
 }

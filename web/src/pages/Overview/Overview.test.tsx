@@ -142,7 +142,7 @@ describe("Overview page", () => {
     const top = screen.getByRole("list", { name: "Top 5" });
     expect(within(top).getByRole("link", { name: "openedx/x" })).toHaveAttribute("href", "/repo_detail?repo=openedx%2Fx");
     expect(within(top).getByText("93.3")).toBeInTheDocument();
-    expect(within(screen.getByRole("list", { name: "Bottom 5" })).getByText("openedx/y")).toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: "Bottom 5" })).getByRole("link", { name: "openedx/y" })).toBeInTheDocument();
 
     const gainers = screen.getByRole("table", { name: "Biggest gainers" });
     expect(within(gainers).getByText("+10.0")).toBeInTheDocument();

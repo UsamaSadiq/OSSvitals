@@ -52,7 +52,15 @@
   --cat-6: #f87171;
   --cat-7: #94a3b8;
 
-  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --shadow-card: 0 1px 0 color-mix(in srgb, #ffffff 4%, transparent) inset;
+  --shadow-raised: 0 6px 16px rgb(0 0 0 / 0.35);
+  --row-hover: color-mix(in srgb, var(--primary) 8%, transparent);
+
+  --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fs-h1: 1.9rem;
+  --fs-h2: 1.35rem;
+  --fs-h3: 1.05rem;
+  --fs-small: 0.875rem;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -110,4 +118,8 @@
   --cat-5: #d97706;
   --cat-6: #b91c1c;
   --cat-7: #475569;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 1px 3px rgb(15 23 42 / 0.07);
+  --shadow-raised: 0 4px 12px rgb(15 23 42 / 0.1), 0 2px 4px rgb(15 23 42 / 0.06);
+  --row-hover: color-mix(in srgb, var(--primary) 6%, transparent);
 }

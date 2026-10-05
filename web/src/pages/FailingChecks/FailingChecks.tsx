@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Link } from "react-router";
 import { topFailingChart } from "../../components/charts";
 import { DataTable, type Column, type SortState } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
@@ -8,7 +7,7 @@ import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { Loading } from "../../components/Loading";
 import { PlotFigure } from "../../components/PlotFigure";
 import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
-import { repoDetailPath } from "../../components/repoDetailPath";
+import { RepoLink } from "../../components/RepoName";
 import { ShareLink } from "../../components/ShareLink";
 import { useView } from "../../data/useView";
 import { formatScore } from "../../format";
@@ -34,7 +33,7 @@ const COLUMNS: Column<RepoRow>[] = [
   {
     key: "repo",
     header: "Repository",
-    cell: (row) => <Link to={repoDetailPath(row.repo_name)}>{row.repo_name}</Link>,
+    cell: (row) => <RepoLink name={row.repo_name} />,
     sortValue: (row) => row.repo_name,
   },
   {

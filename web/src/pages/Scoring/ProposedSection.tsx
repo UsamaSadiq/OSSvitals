@@ -1,9 +1,8 @@
 import { Fragment } from "react";
-import { Link } from "react-router";
 import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { GradePill, GRADE_ORDER } from "../../components/GradePill";
-import { repoDetailPath } from "../../components/repoDetailPath";
+import { RepoLink } from "../../components/RepoName";
 import { CodeText } from "../../components/CodeText";
 import {
   formatSignedChange,
@@ -34,7 +33,7 @@ const CHANGE_COLUMNS: Column<ChangeRow>[] = [
   {
     key: "repo",
     header: "Repository",
-    cell: (row) => <Link to={repoDetailPath(row.repo_name)}>{row.repo_name}</Link>,
+    cell: (row) => <RepoLink name={row.repo_name} />,
     sortValue: (row) => row.repo_name,
   },
   {

@@ -80,11 +80,11 @@ describe("What Changed page", () => {
     renderRoute("/what_changed");
 
     const regressed = await screen.findByText("No newly failing checks.");
-    expect(regressed.closest(".banner")).toHaveClass("banner--good");
+    expect(regressed.closest(".empty-state")).toHaveClass("empty-state--good");
     expect(screen.getByText("Nothing regressed between these two snapshots.")).toBeInTheDocument();
 
     const fixed = screen.getByText("No newly passing checks.");
-    expect(fixed.closest(".banner")).toHaveClass("banner--info");
+    expect(fixed.closest(".empty-state")).toHaveClass("empty-state--info");
     expect(screen.getByText("Nothing was fixed between these two snapshots either.")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
@@ -96,7 +96,7 @@ describe("What Changed page", () => {
     renderRoute("/what_changed");
 
     const title = await screen.findByText("Not enough history to compare.");
-    expect(title.closest(".banner")).toHaveClass("banner--warn");
+    expect(title.closest(".empty-state")).toHaveClass("empty-state--warn");
     expect(
       screen.getByText(
         "At least two snapshots are needed. The accumulated history file is published by the upstream pipeline; if this persists, that file is missing or holds only one entry.",

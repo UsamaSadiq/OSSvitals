@@ -9,16 +9,21 @@ afterEach(() => {
 });
 
 describe("ThemeToggle", () => {
-  it("switches the theme and persists the choice", () => {
+  it("switches the theme, persists the choice and relabels itself", () => {
     document.documentElement.setAttribute("data-theme", "dark");
     render(<ThemeToggle />);
-    const toggle = screen.getByRole("button", { name: "Dark mode" });
-    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    const toggle = screen.getByRole("button", { name: "Switch to light theme" });
 
     fireEvent.click(toggle);
 
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
-    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(toggle).toHaveAccessibleName("Switch to dark theme");
+  });
+
+  it("starts in the light state when the page loaded light", () => {
+    document.documentElement.setAttribute("data-theme", "light");
+    render(<ThemeToggle />);
+    expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
   });
 });

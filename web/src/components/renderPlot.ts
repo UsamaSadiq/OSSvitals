@@ -1,7 +1,13 @@
 import * as Plot from "@observablehq/plot";
 import type { ChartSpec, MarkSpec } from "./chartSpec";
 
-const TRANSPARENT_STYLE = { background: "transparent", overflow: "visible" };
+const CHART_STYLE = {
+  background: "transparent",
+  overflow: "visible",
+  fontSize: "12px",
+  fontFamily: "inherit",
+  fontVariantNumeric: "tabular-nums",
+};
 
 // The figure carries its own text alternative; Plot's per-mark aria-labels sit on role-less <g> elements.
 const HIDDEN = "true";
@@ -25,7 +31,7 @@ function toMark(spec: MarkSpec): Plot.Markish {
 
 export function renderPlot(spec: ChartSpec, width: number, ariaLabel: string): SVGSVGElement | HTMLElement {
   return Plot.plot({
-    style: TRANSPARENT_STYLE,
+    style: CHART_STYLE,
     ...spec.options,
     width,
     ariaLabel,

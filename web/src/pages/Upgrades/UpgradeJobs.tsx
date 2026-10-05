@@ -6,6 +6,7 @@ import type { UpgradesView } from "../../data/schemas";
 import { formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
 import { JOB_STATES, JOB_STATES_CAPTION, STATE_LABELS, runsText, upgradeJobsCaption } from "./upgradesText";
+import { RepoName } from "../../components/RepoName";
 
 type UpgradeJobs = NonNullable<UpgradesView["upgrade_jobs"]>;
 type JobRow = UpgradeJobs["records"][number];
@@ -19,7 +20,7 @@ function lastMerged(row: JobRow): string {
 }
 
 const COLUMNS: Column<JobRow>[] = [
-  { key: "repo_name", header: "Repository", cell: (row) => row.repo_name, sortValue: (row) => row.repo_name },
+  { key: "repo_name", header: "Repository", cell: (row) => <RepoName name={row.repo_name} />, sortValue: (row) => row.repo_name },
   { key: "state", header: "State", cell: stateLabel, sortValue: stateLabel },
   { key: "reason", header: "Why", cell: (row) => row.reason ?? "", sortValue: (row) => row.reason ?? "" },
   {

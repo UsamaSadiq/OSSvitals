@@ -68,7 +68,10 @@ if [ "$(uname -s)" = "Linux" ]; then
   PIP_TARGET_FLAG="--user"
 fi
 
-exec docker run --rm "${TTY_FLAG[@]}" "${USER_FLAG[@]}" \
+# CI runners are amd64. On an arm64 host (Apple Silicon) the same image digest
+# resolves to its arm64 variant, which rounds text layout differently by a
+# sub-pixel, so baselines captured natively there fail CI on single rows.
+exec docker run --rm --platform linux/amd64 "${TTY_FLAG[@]}" "${USER_FLAG[@]}" \
   -v "$REPO_ROOT":/work \
   -v "$PIP_CACHE_VOLUME":/pip-cache \
   -w /work \

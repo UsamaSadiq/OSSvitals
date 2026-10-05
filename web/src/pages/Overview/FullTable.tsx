@@ -1,9 +1,8 @@
-import { Link } from "react-router";
 import { DataTable, type Column, type SortState } from "../../components/DataTable";
 import { ErrorState } from "../../components/ErrorState";
 import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { Loading } from "../../components/Loading";
-import { repoDetailPath } from "../../components/repoDetailPath";
+import { RepoLink } from "../../components/RepoName";
 import type { ReposView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { formatScore } from "../../format";
@@ -22,7 +21,7 @@ const COLUMNS: Column<RepoRow>[] = [
   {
     key: "repo",
     header: "Repository",
-    cell: (row) => <Link to={repoDetailPath(row.repo_name)}>{row.repo_name}</Link>,
+    cell: (row) => <RepoLink name={row.repo_name} />,
     sortValue: (row) => row.repo_name,
   },
   {

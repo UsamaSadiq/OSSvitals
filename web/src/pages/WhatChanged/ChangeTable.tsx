@@ -1,6 +1,5 @@
-import { Link } from "react-router";
 import { DataTable, type Column } from "../../components/DataTable";
-import { repoDetailPath } from "../../components/repoDetailPath";
+import { RepoLink } from "../../components/RepoName";
 import type { WhatChangedView } from "../../data/schemas";
 
 type ChangeRow = WhatChangedView["new_failures"][number];
@@ -9,7 +8,7 @@ const COLUMNS: Column<ChangeRow>[] = [
   {
     key: "repo_name",
     header: "Repository",
-    cell: (row) => <Link to={repoDetailPath(row.repo_name)}>{row.repo_name}</Link>,
+    cell: (row) => <RepoLink name={row.repo_name} />,
     sortValue: (row) => row.repo_name,
   },
   { key: "check", header: "Check", cell: (row) => row.check, sortValue: (row) => row.check },

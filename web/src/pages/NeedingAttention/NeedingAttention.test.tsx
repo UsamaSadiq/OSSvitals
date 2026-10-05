@@ -83,8 +83,8 @@ describe("Needing Attention page", () => {
     renderRoute("/needing_attention?tier=standard");
 
     const status = await screen.findByText("No repositories currently match the attention rules.");
-    const banner = status.closest(".banner");
-    expect(banner).toHaveClass("banner--good");
+    const banner = status.closest(".empty-state");
+    expect(banner).toHaveClass("empty-state--good");
     expect(banner).toHaveTextContent("Nothing is flagged by the rules in attention_rules.yaml for this tier.");
     expect(within(banner as HTMLElement).getByText("attention_rules.yaml").tagName).toBe("CODE");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();

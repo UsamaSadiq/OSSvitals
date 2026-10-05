@@ -7,6 +7,7 @@ import { formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
 import { PullLink } from "./PullLink";
 import { waveCaption, waveProgressText } from "./upgradesText";
+import { RepoName } from "../../components/RepoName";
 
 type Wave = UpgradesView["waves"][number];
 type WaveRow = NonNullable<Wave["records"]>[number];
@@ -19,7 +20,7 @@ const WAVE_TILES = [
 ] as const;
 
 const OPEN_PR_COLUMNS: Column<WaveRow>[] = [
-  { key: "repo_name", header: "Repository", cell: (row) => row.repo_name, sortValue: (row) => row.repo_name },
+  { key: "repo_name", header: "Repository", cell: (row) => <RepoName name={row.repo_name} />, sortValue: (row) => row.repo_name },
   {
     key: "pr_age_days",
     header: "Open for (days)",
@@ -32,7 +33,7 @@ const OPEN_PR_COLUMNS: Column<WaveRow>[] = [
 ];
 
 const NOT_STARTED_COLUMNS: Column<WaveRow>[] = [
-  { key: "repo_name", header: "Repository", cell: (row) => row.repo_name, sortValue: (row) => row.repo_name },
+  { key: "repo_name", header: "Repository", cell: (row) => <RepoName name={row.repo_name} />, sortValue: (row) => row.repo_name },
   { key: "gaps", header: "Still to do", cell: (row) => row.gaps },
 ];
 
