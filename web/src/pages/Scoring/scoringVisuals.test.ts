@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { renderPlot } from "../../components/renderPlot";
 import type { MetricRow } from "./scoringText";
 import {
   categoryShares,
@@ -116,5 +117,17 @@ describe("score breakdown", () => {
     expect(chart.ariaLabel).toBe(
       "openedx/alpha composite 77.08 built from: Commit recency 37.50, PR response time 18.75, README quality 20.83, Dependency freshness 0.00",
     );
+  });
+
+  it("renders both bars with Observable Plot", () => {
+    const weights = renderPlot(weightsChart(METRICS).spec, 640, "Weights");
+    expect(weights.querySelectorAll("rect")).toHaveLength(4);
+    expect(weights.textContent).toContain("20%");
+    const contributions = renderPlot(
+      contributionChart("openedx/alpha", scoreBreakdown(BARS, 77.08), metricFills(METRICS)).spec,
+      640,
+      "Contributions",
+    );
+    expect(contributions.querySelectorAll("rect")).toHaveLength(4);
   });
 });

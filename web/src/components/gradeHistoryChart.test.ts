@@ -8,6 +8,7 @@ import {
   monthDay,
   stackStyle,
 } from "./gradeHistoryChart";
+import { renderPlot } from "./renderPlot";
 
 const FIRST = { A: 59, B: 70, C: 30, D: 8, F: 3 };
 const LAST = { A: 62, B: 68, C: 29, D: 9, F: 2 };
@@ -84,5 +85,13 @@ describe("grades over time", () => {
       "Repositories per grade over 2 snapshots from 2026-08-16 to 2026-08-31: A 59 to 62, B 70 to 68, C 30 to 29, D 8 to 9, F 3 to 2",
     );
     expect(chart.links).toBeUndefined();
+  });
+
+  it("renders both stack styles with Observable Plot", () => {
+    const area = renderPlot(gradeHistoryChart(dailyHistory(AREA_MIN_SNAPSHOTS)).spec, 640, "Grades");
+    expect(area.querySelectorAll("path").length).toBeGreaterThanOrEqual(5);
+    const bars = renderPlot(gradeHistoryChart(HISTORY).spec, 640, "Grades");
+    expect(bars.querySelectorAll("rect").length).toBeGreaterThanOrEqual(10);
+    expect(bars.textContent).toContain("08-16");
   });
 });
