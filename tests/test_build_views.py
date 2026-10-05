@@ -77,6 +77,20 @@ def test_history_is_compact(built):
     assert stamp in history["dates"] and isinstance(composite, float) and letter in "ABCDF"
 
 
+def test_history_grade_counts_align_to_dates(built):
+    data, files = built
+    history = files["history.json"]
+    counts = history["grade_counts"]
+    assert len(counts) == len(history["dates"])
+    assert all(set(entry) == set("ABCDF") for entry in counts)
+    assert [sum(entry.values()) for entry in counts] == [len(snapshot.df) for snapshot in data.history]
+
+
+def test_history_latest_grade_counts_match_overview_grade_mix(built):
+    _, files = built
+    assert files["history.json"]["grade_counts"][-1] == files["overview.json"]["grade_mix"]
+
+
 def test_overview_and_what_changed_use_history_windows(built):
     _, files = built
     overview, changed = files["overview.json"], files["what_changed.json"]

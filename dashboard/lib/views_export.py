@@ -144,6 +144,7 @@ def build_history(ctx: BuildContext) -> dict[str, Any]:
         "scored snapshot history",
         dates=[snapshot.timestamp.isoformat() for snapshot in ctx.data.history],
         org_average=[[stamp.isoformat(), average] for stamp, average in org_average_series(ctx.data.history)],
+        grade_counts=[grade_mix(snapshot.df) for snapshot in ctx.data.history],
         repos=dict(sorted(per_repo.items())),
     )
 
