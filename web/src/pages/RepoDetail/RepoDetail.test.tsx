@@ -11,6 +11,7 @@ import { categorySparkline, ratePoints } from "./categorySparkline";
 import { githubIssueUrl, githubPrCompareUrl } from "./checkLinks";
 import { metricBarsChart, type MetricBar } from "./metricBarsChart";
 import { rankRepos } from "./repoRanking";
+import { firstVisible } from "./SectionNav";
 import { formatSignal } from "./signalFormat";
 
 vi.mock("../../components/PlotFigure", () => ({
@@ -540,6 +541,72 @@ describe("formatSignal", () => {
     ["state", "FAILURE", "Failure"],
   ] as const)("formats %s %s as %s", (kind, value, expected) => {
     expect(formatSignal(kind, value)).toBe(expected);
+  });
+});
+
+describe("section nav", () => {
+  function sectionLinks() {
+    return within(screen.getByRole("navigation", { name: "Repository sections" })).getAllByRole("link");
+  }
+
+  it("links every section to an anchor on the page", async () => {
+    renderRoute(PATH);
+    await screen.findByRole("heading", { level: 2, name: REPO });
+    const links = sectionLinks();
+    expect(links.map((link) => link.textContent)).toEqual(["Scores", "Activity", "Catalog", "Categories", "Checks"]);
+    for (const link of links) {
+      const target = document.getElementById((link.getAttribute("href") ?? "").slice(1));
+      expect(target).not.toBeNull();
+    }
+    expect(document.getElementById("repo-activity")).toContainElement(screen.getByRole("region", { name: "Activity" }));
+    expect(document.getElementById("repo-checks")).toContainElement(screen.getByRole("region", { name: "Checks" }));
+    expect(links[0]).toHaveAttribute("aria-current", "location");
+  });
+
+  it("jumps to a section, marks it current and moves focus there", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const { router } = renderRoute(PATH);
+    await screen.findByRole("heading", { level: 2, name: REPO });
+
+    await userEvent.click(screen.getByRole("link", { name: "Catalog" }));
+
+    expect(screen.getByRole("link", { name: "Catalog" })).toHaveAttribute("aria-current", "location");
+    expect(screen.getByRole("link", { name: "Scores" })).not.toHaveAttribute("aria-current");
+    expect(document.getElementById("repo-catalog")).toHaveFocus();
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    expect(router.state.location.search).toBe(`?repo=${encodeURIComponent(REPO)}`);
+    Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  });
+
+  it("highlights the section scrolled into the top band", async () => {
+    const observers: { callback: IntersectionObserverCallback }[] = [];
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          observers.push({ callback });
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    renderRoute(PATH);
+    await screen.findByRole("heading", { level: 2, name: REPO });
+    const entry = (id: string, isIntersecting: boolean) =>
+      ({ target: document.getElementById(id), isIntersecting }) as unknown as IntersectionObserverEntry;
+
+    act(() =>
+      observers.at(-1)?.callback([entry("repo-scores", false), entry("repo-categories", true)], {} as IntersectionObserver),
+    );
+
+    expect(screen.getByRole("link", { name: "Categories" })).toHaveAttribute("aria-current", "location");
+    vi.unstubAllGlobals();
+  });
+
+  it("picks the first visible section in page order", () => {
+    expect(firstVisible(["a", "b", "c"], new Set(["c", "b"]))).toBe("b");
+    expect(firstVisible(["a"], new Set())).toBeNull();
   });
 });
 

@@ -6,6 +6,66 @@
   margin: 0 0 0.75rem;
 }
 
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin-inline: -2rem;
+  padding-inline: 2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--page);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.section-nav ul {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.section-nav a {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.section-nav a:hover {
+  color: var(--text);
+}
+
+.section-nav a[aria-current="location"] {
+  border-bottom-color: var(--primary);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.section-nav a:focus-visible {
+  outline-offset: -3px;
+}
+
+.repo-anchor {
+  scroll-margin-top: 3.25rem;
+}
+
+.repo-anchor:focus {
+  outline: none;
+}
+
+@media (max-width: 899px) {
+  .section-nav {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+  }
+}
+
 .repo-picker {
   display: flex;
   flex-direction: column;
