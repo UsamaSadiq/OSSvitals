@@ -1,5 +1,7 @@
 import { NavLink } from "react-router";
 import { NAV_SECTIONS, visibleSections, type NavSection } from "../pages/catalog";
+import { NavCount } from "./NavCount";
+import { PageIcon } from "./navIcons";
 import { useSiteMeta } from "./siteMeta";
 
 function sectionHeadingId(section: NavSection): string {
@@ -25,7 +27,9 @@ export function Nav({ id, onNavigate }: { id: string; onNavigate?: () => void })
             {section.pages.map((page) => (
               <li key={page.path}>
                 <NavLink to={page.path} end className={linkClassName} onClick={onNavigate}>
-                  {page.title}
+                  <PageIcon path={page.path} className="nav__icon" />
+                  <span className="nav__label">{page.title}</span>
+                  <NavCount path={page.path} />
                 </NavLink>
               </li>
             ))}

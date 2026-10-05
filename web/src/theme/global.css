@@ -257,7 +257,9 @@ h3 {
 }
 
 .nav__link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   padding: 0.4rem 0.5rem;
   border-radius: var(--radius-sm);
   color: var(--on-primary);
@@ -271,6 +273,42 @@ h3 {
 .nav__link--active {
   background: color-mix(in srgb, var(--on-primary) 18%, transparent);
   font-weight: 600;
+}
+
+.nav__icon {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  opacity: 0.85;
+}
+
+.nav__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Fixed metrics so a count arriving after first paint never changes the row height. */
+.nav__count {
+  flex: none;
+  min-width: 1.6rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--on-primary) 16%, transparent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  animation: fade-in 200ms ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .content {

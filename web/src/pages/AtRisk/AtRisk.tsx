@@ -8,6 +8,7 @@ import type { AtRiskView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
+import { lifecycleFilterable, PRODUCTION_ONLY_BY_DEFAULT } from "./atRiskDefaults";
 import { AtRiskTable } from "./AtRiskTable";
 import { AT_RISK_CAPTION, atRiskCsv, baselineCaption, visibleRows, type AtRiskRow } from "./atRiskText";
 import { CodeText } from "../../components/CodeText";
@@ -49,8 +50,8 @@ function AtRiskResults({ rows }: { rows: readonly AtRiskRow[] }) {
 }
 
 function LifecycleFilter({ atRisk }: { atRisk: AtRiskView }) {
-  const [productionOnly, setProductionOnly] = useState(true);
-  const filterable = atRisk.has_lifecycle_data && atRisk.records.length > 0;
+  const [productionOnly, setProductionOnly] = useState(PRODUCTION_ONLY_BY_DEFAULT);
+  const filterable = lifecycleFilterable(atRisk);
   return (
     <>
       {filterable && <ProductionToggle checked={productionOnly} onChange={setProductionOnly} />}
