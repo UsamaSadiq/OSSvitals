@@ -556,6 +556,52 @@ describe("Repo Detail page", () => {
     expect(button).toHaveAttribute("aria-pressed", "true");
     expect(window.localStorage.getItem(WATCHLIST_KEY)).toBe(JSON.stringify([REPO]));
   });
+
+  it("shows facts, a GitHub link and the composite trend in the header", async () => {
+    setViews({
+      signals: {
+        ...SIGNAL_VALUES,
+        repo_tier: "critical",
+        "ownership.owner_name": "group:RG-Mobile",
+        "ownership.lifecycle": "production",
+        "github.last_push": "2026-09-30 21:36:36",
+      },
+    });
+    views.current = {
+      ...views.current,
+      history: ready({
+        metadata: metadata("history"),
+        dates: ["2026-09-01", "2026-09-20", "2026-10-02"],
+        org_average: [],
+        repos: { [REPO]: [["2026-08-01", 30, "D"], ["2026-09-20", 38, "D"], ["2026-10-02", 41.25, "C"]] },
+      }),
+    };
+    renderRoute(PATH);
+
+    const facts = await screen.findByRole("list", { name: "Repository facts" });
+    expect(within(facts).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "Tier critical",
+      "Owner group:RG-Mobile",
+      "Lifecycle production",
+      "Last push 2026-09-30",
+    ]);
+    expect(within(facts).getByRole("link", { name: "group:RG-Mobile" })).toHaveAttribute(
+      "href",
+      "/ownership_views?owner=group%3Arg-mobile",
+    );
+    expect(screen.getByRole("link", { name: "Open on GitHub" })).toHaveAttribute("href", `https://github.com/${REPO}`);
+    expect(screen.getByRole("img", { name: "Composite score over 2 snapshots, from 38.0 to 41.3" })).toBeInTheDocument();
+    expect(screen.getByText("+3.3 since 2026-09-20")).toHaveClass("kpi-tile__delta--good");
+    expect(screen.getByRole("button", { name: "Watch" })).toBeInTheDocument();
+  });
+
+  it("leaves out facts and the trend the data does not have", async () => {
+    renderRoute("/repo_detail?repo=openedx%2Fbeta");
+    expect(await screen.findByRole("heading", { level: 2, name: "openedx/beta" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Repository facts" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /Composite score over/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open on GitHub" })).toHaveAttribute("href", "https://github.com/openedx/beta");
+  });
 });
 
 function markData(mark: { type: string } | undefined): Record<string, unknown>[] {

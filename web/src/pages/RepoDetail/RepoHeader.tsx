@@ -4,7 +4,10 @@ import { RepoName } from "../../components/RepoName";
 import { ShareLink } from "../../components/ShareLink";
 import { toFixedHalfEven } from "../../format";
 import { WatchButton } from "../../watchlist/WatchButton";
+import { githubUrl, headerChips } from "./repoFacts";
+import { HeaderChips } from "./HeaderChips";
 import type { RepoDetail, RepoRecord } from "./repoDetailData";
+import { RepoTrendChip } from "./RepoTrendChip";
 import { StatusChip } from "./StatusChip";
 
 type Subscore = RepoDetail["subscores"]["structural"];
@@ -30,8 +33,15 @@ export function RepoHeader({ repo, record, detail }: { repo: string; record: Rep
         <GradePill grade={record.score_letter} />
         <StatusChip status={detail.summary.level} label={coverageLabel(detail.summary)} />
         <span className="repo-header__actions">
+          <a className="repo-header__github" href={githubUrl(repo)}>
+            Open on GitHub
+          </a>
           <WatchButton repo={repo} />
         </span>
+      </div>
+      <div className="repo-facts">
+        <HeaderChips chips={headerChips(record)} />
+        <RepoTrendChip repo={repo} />
       </div>
       <div className="repo-kpis">
         <KpiTile label="Composite" value={toFixedHalfEven(record.score_composite, 1)} />
