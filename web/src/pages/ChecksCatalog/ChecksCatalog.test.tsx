@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata } from "../../data/fixtures";
 import type { ChecksView, ViewName } from "../../data/schemas";
@@ -296,3 +297,77 @@ describe("Checks Catalog page", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("checks.json: schema_version 2, expected 1");
   });
 });
+
+function groupNames(): string[] {
+  return within(screen.getByRole("region", { name: "Checks Catalog" }))
+    .getAllByRole("heading", { level: 2 })
+    .map((heading) => heading.textContent ?? "")
+    .filter((name) => !["Up for review", "Suggested candidate checks"].includes(name));
+}
+
+describe("Checks Catalog search and filters", () => {
+  it("shows the pass rate as a mini bar in each collapsed summary", async () => {
+    renderRoute("/glossary");
+    await screen.findByRole("heading", { level: 2, name: "Dependencies" });
+    const summary = entry("openedx.yaml").querySelector("summary") as HTMLElement;
+    expect(summary).toHaveTextContent("Pass rate 42.6%");
+    expect(summary.querySelector(".mini-bar__fill--low")).toHaveStyle({ width: "42.6%" });
+    expect(entry("ownership.owner").querySelector("summary")).toHaveTextContent("Pass rate —");
+  });
+
+  it("counts each chip and keeps the groups", async () => {
+    renderRoute("/glossary");
+    await screen.findByText("3 of 3 checks");
+    expect(screen.getByRole("button", { name: "Feeds the score 2" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Pass rate under 50% 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Missing description 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Up for review 0" })).toBeInTheDocument();
+  });
+
+  it("filters by search text from the URL and by typing", async () => {
+    const { router } = renderRoute("/glossary?q=dependabot");
+    await screen.findByText("1 of 3 checks");
+    expect(groupNames()).toEqual(["Dependencies", "Other checks"]);
+
+    const search = screen.getByRole("searchbox", { name: "Search checks" });
+    await userEvent.clear(search);
+    await userEvent.type(search, "owner");
+    expect(router.state.location.search).toBe("?q=owner");
+    expect(groupNames()).toEqual(["Ownership"]);
+  });
+
+  it("combines chips through the URL", async () => {
+    const { router } = renderRoute("/glossary?scored=1");
+    await screen.findByText("2 of 3 checks");
+    expect(groupNames()).toEqual(["File Existence", "Ownership"]);
+
+    await userEvent.click(screen.getByRole("button", { name: /Pass rate under 50%/ }));
+
+    expect(router.state.location.search).toBe("?scored=1&low_pass=1");
+    expect(groupNames()).toEqual(["File Existence"]);
+  });
+
+  it("filters to checks with a missing description or up for review", async () => {
+    setChecks({ up_for_review: [{ check: "dependabot.exists", kind: "saturated" }] });
+    renderRoute("/glossary?review=1");
+    await screen.findByText("1 of 3 checks");
+    expect(groupNames()).toEqual(["Dependencies", "Other checks"]);
+
+    await userEvent.click(screen.getByRole("button", { name: /Up for review/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Missing description/ }));
+    expect(groupNames()).toEqual(["Ownership"]);
+  });
+
+  it("shows an empty state that clears every filter", async () => {
+    const { router } = renderRoute("/glossary?q=zzz&scored=1");
+    expect(await screen.findByText("No checks match these filters.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Up for review" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+
+    expect(router.state.location.search).toBe("");
+    expect(screen.getByText("3 of 3 checks")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Search checks" })).toHaveValue("");
+  });
+});
+
