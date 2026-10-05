@@ -1,0 +1,111 @@
+.repos-facets {
+  display: grid;
+  gap: 0.75rem;
+  margin-block: 1rem 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.repos-facets__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+}
+
+.repos-facets__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.repos-facet {
+  flex: 1 1 9rem;
+  min-width: 0;
+}
+
+.repos-facet.query-select {
+  margin: 0;
+  max-width: 14rem;
+}
+
+.repos-facet--wide {
+  flex: 2 1 16rem;
+}
+
+.repos-facet input[type="search"] {
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--page);
+  color: var(--text);
+  font: inherit;
+}
+
+.repos-facet .search-field input {
+  padding-left: 2rem;
+}
+
+.repos-facets .query-select select {
+  background: var(--page);
+}
+
+.grade-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+}
+
+.grade-dot--a { background: var(--grade-a); }
+.grade-dot--b { background: var(--grade-b); }
+.grade-dot--c { background: var(--grade-c); }
+.grade-dot--d { background: var(--grade-d); }
+.grade-dot--f { background: var(--grade-f); }
+
+.filter-chip__icon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.filter-chip[aria-pressed="true"] .filter-chip__icon {
+  color: var(--warn);
+  fill: currentColor;
+}
+
+.repos-results-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-block: 0.75rem;
+}
+
+.repos-count {
+  margin: 0;
+  margin-right: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.repos-clear {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+.repos .data-table td:first-child,
+.repos .data-table th:first-child {
+  width: 2.5rem;
+  padding-right: 0;
+}

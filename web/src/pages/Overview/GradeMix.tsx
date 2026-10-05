@@ -1,10 +1,14 @@
+import { useNavigate } from "react-router";
+import { ChartLinks } from "../../components/ChartFigure";
 import {
+  gradeLinks,
   gradeRibbonSegments,
   gradeFill,
   gradeTextFill,
   type GradeMix as GradeMixCounts,
   type RibbonSegment,
 } from "../../components/charts";
+import { reposGradePath } from "../../components/reposPath";
 import { formatNumber } from "../../format";
 
 function ribbonDescription(mix: GradeMixCounts): string {
@@ -24,7 +28,9 @@ function SegmentLabel({ segment }: { segment: RibbonSegment }) {
   );
 }
 
+// The ribbon is a picture for pointer users; the link row below it carries the same targets for keyboards and screen readers.
 export function GradeMix({ mix }: { mix: GradeMixCounts }) {
+  const navigate = useNavigate();
   const segments = gradeRibbonSegments(mix);
   return (
     <section className="overview-section" aria-labelledby="grade-mix-heading">
@@ -33,14 +39,16 @@ export function GradeMix({ mix }: { mix: GradeMixCounts }) {
         {segments.map((segment) => (
           <span
             key={segment.grade}
-            className="grade-ribbon__segment"
-            title={`Grade ${segment.grade}: ${segment.count} repos (${formatNumber(segment.percent, 1)}%)`}
+            className="grade-ribbon__segment grade-ribbon__segment--link"
+            title={`Grade ${segment.grade}: ${segment.count} repos (${formatNumber(segment.percent, 1)}%). Click to browse them.`}
             style={{ flexGrow: segment.count, background: gradeFill(segment.grade), color: gradeTextFill(segment.grade) }}
+            onClick={() => navigate(reposGradePath(segment.grade))}
           >
             <SegmentLabel segment={segment} />
           </span>
         ))}
       </div>
+      <ChartLinks links={gradeLinks(mix)} />
     </section>
   );
 }

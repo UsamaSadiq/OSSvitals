@@ -26,7 +26,7 @@ function tipTexts(marks: readonly MarkSpec[]): string[] {
 
 describe("grade distribution", () => {
   it("builds one bar per grade in A to F order with count and percent labels", () => {
-    expect(gradeBars(MIX).map(({ tip: _tip, ...bar }) => bar)).toEqual([
+    expect(gradeBars(MIX).map(({ tip: _tip, to: _to, ...bar }) => bar)).toEqual([
       { grade: "A", count: 62, label: "62  37%", fill: "var(--grade-a)" },
       { grade: "B", count: 68, label: "68  40%", fill: "var(--grade-b)" },
       { grade: "C", count: 30, label: "30  18%", fill: "var(--grade-c)" },
@@ -55,7 +55,7 @@ describe("grade distribution", () => {
     expect(ariaLabel).toBe("Repositories per grade: A 62, B 68, C 30, D 8, F 0");
   });
 
-  it("adds a tooltip per grade with count and share, and no drill-down", () => {
+  it("adds a tooltip per grade with count and share", () => {
     const chart = gradeDistributionChart(MIX);
     expect(tipTexts(chart.spec.marks)).toEqual([
       "Grade A\n62 repositories · 37% of scored",
@@ -65,8 +65,27 @@ describe("grade distribution", () => {
       "Grade F\n0 repositories · 0% of scored",
     ]);
     expect(markOf(chart.spec.marks, "tip")).toMatchObject({ pointer: "x", options: { title: "tip", fill: "var(--surface)" } });
-    expect(chart.links).toBeUndefined();
-    expect(chart.spec.marks.some((mark) => "link" in mark)).toBe(false);
+  });
+
+  it("links each bar and each non-empty grade to the explorer filtered by it", () => {
+    const chart = gradeDistributionChart(MIX);
+    expect(gradeBars(MIX).map((bar) => bar.to)).toEqual([
+      "/repos?grade=A",
+      "/repos?grade=B",
+      "/repos?grade=C",
+      "/repos?grade=D",
+      "/repos?grade=F",
+    ]);
+    expect(markOf(chart.spec.marks, "barY")).toMatchObject({ link: "to" });
+    expect(chart.links).toEqual({
+      lead: "Browse repositories:",
+      items: [
+        { label: "Grade A", to: "/repos?grade=A" },
+        { label: "Grade B", to: "/repos?grade=B" },
+        { label: "Grade C", to: "/repos?grade=C" },
+        { label: "Grade D", to: "/repos?grade=D" },
+      ],
+    });
   });
 });
 

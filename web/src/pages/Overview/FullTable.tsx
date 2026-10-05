@@ -1,9 +1,11 @@
+import { Link } from "react-router";
 import { DataTable, type Column, type SortState } from "../../components/DataTable";
 import { ErrorState } from "../../components/ErrorState";
 import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { Loading } from "../../components/Loading";
 import { RepoLink } from "../../components/RepoName";
 import type { ReposView } from "../../data/schemas";
+import { REPOS_PATH } from "../../components/reposPath";
 import { useView } from "../../data/useView";
 import { formatScore } from "../../format";
 import { fullTableTitle } from "./overviewText";
@@ -67,9 +69,14 @@ function RepoTable({ title }: { title: string }) {
 export function FullTable({ repoCount }: { repoCount: number }) {
   const title = fullTableTitle(repoCount);
   return (
-    <details className="overview-section full-table">
-      <summary>{title}</summary>
-      <RepoTable title={title} />
-    </details>
+    <div className="overview-section">
+      <details className="full-table">
+        <summary>{title}</summary>
+        <RepoTable title={title} />
+      </details>
+      <p className="full-table-browse">
+        <Link to={REPOS_PATH}>Browse all repositories →</Link>
+      </p>
+    </div>
   );
 }

@@ -22,6 +22,8 @@ class WebPage:
 PAGES: list[WebPage] = [
     WebPage("overview", "/"),
     WebPage("overview_light", "/", color_scheme="light"),
+    WebPage("repos", "/repos"),
+    WebPage("repos_grade_a", "/repos", {"grade": "A"}),
     WebPage("repo_detail", "/repo_detail", {"repo": FIXTURE_REPO}),
     WebPage("failing_checks", "/failing_checks"),
     WebPage("failing_checks_selected", "/failing_checks", {"category": "dependabot.exists"}),

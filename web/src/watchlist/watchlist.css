@@ -1,0 +1,49 @@
+.watch-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.watch-button:hover {
+  border-color: var(--primary);
+}
+
+.watch-button__icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+
+.watch-button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--warn) 60%, var(--border));
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+}
+
+.watch-button[aria-pressed="true"] .watch-button__icon {
+  color: var(--warn);
+  fill: currentColor;
+}
+
+.watch-button--compact {
+  padding: 0.25rem;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.watch-button--compact[aria-pressed="true"] {
+  background: transparent;
+  border-color: transparent;
+}
+
+.watch-button--compact:hover {
+  color: var(--text);
+}

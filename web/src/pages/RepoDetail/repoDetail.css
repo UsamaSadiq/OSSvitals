@@ -140,6 +140,12 @@
   overflow-wrap: anywhere;
 }
 
+.repo-header__actions {
+  margin-left: auto;
+  font-size: 1rem;
+  letter-spacing: normal;
+}
+
 .repo-header h2 {
   margin: 0;
   font-size: inherit;
