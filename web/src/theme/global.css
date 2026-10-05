@@ -157,6 +157,46 @@ h3 {
   height: 1.15rem;
 }
 
+.search-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.25rem;
+  padding: 0 0.5rem 0 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--on-primary) 40%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--on-primary) 6%, transparent);
+  color: var(--on-primary);
+  font: inherit;
+  font-size: var(--fs-small);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.search-button:hover {
+  background: color-mix(in srgb, var(--on-primary) 14%, transparent);
+}
+
+.search-button svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.search-button__label {
+  min-width: 4.5rem;
+  text-align: left;
+}
+
+.search-button__kbd {
+  padding: 0.05rem 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--on-primary) 35%, transparent);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
 .header-share {
   display: inline-flex;
 }
@@ -196,6 +236,39 @@ h3 {
   font-size: var(--fs-small);
 }
 
+/* The header keeps a dark ground in both themes, so its tones use the dark palette. */
+.freshness-chip {
+  --tone: #4ade80;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--on-primary) 30%, transparent);
+  border-radius: 999px;
+  color: var(--on-primary);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.freshness-chip--warn {
+  --tone: #fbbf24;
+  border-color: var(--tone);
+}
+
+.freshness-chip--fail {
+  --tone: #f87171;
+  border-color: var(--tone);
+}
+
+.freshness-chip__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
 .sidebar {
   grid-area: sidebar;
   background: linear-gradient(180deg, var(--sidebar-from), var(--sidebar-to));
@@ -224,7 +297,9 @@ h3 {
 }
 
 .nav__link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   padding: 0.4rem 0.5rem;
   border-radius: var(--radius-sm);
   color: var(--on-primary);
@@ -238,6 +313,42 @@ h3 {
 .nav__link--active {
   background: color-mix(in srgb, var(--on-primary) 18%, transparent);
   font-weight: 600;
+}
+
+.nav__icon {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  opacity: 0.85;
+}
+
+.nav__label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Fixed metrics so a count arriving after first paint never changes the row height. */
+.nav__count {
+  flex: none;
+  min-width: 1.6rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--on-primary) 16%, transparent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  animation: fade-in 200ms ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .content {
@@ -487,6 +598,19 @@ h3 {
   .header {
     gap: 0.6rem;
     padding: 0.6rem 1rem;
+  }
+
+  .freshness-chip,
+  .search-button__label,
+  .search-button__kbd {
+    display: none;
+  }
+
+  .search-button {
+    justify-content: center;
+    width: 2.25rem;
+    padding: 0;
+    background: transparent;
   }
 }
 

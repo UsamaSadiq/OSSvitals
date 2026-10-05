@@ -46,9 +46,7 @@ export function formatSignedDelta(value: number | null | undefined): string {
   return fixed.startsWith("-") ? fixed : `+${fixed}`;
 }
 
-export function visibleRows(rows: readonly AtRiskRow[], productionOnly: boolean): readonly AtRiskRow[] {
-  return productionOnly ? rows.filter((row) => row.production_or_release) : rows;
-}
+export { visibleRows } from "./atRiskDefaults";
 
 export function atRiskCsv(rows: readonly AtRiskRow[]): string {
   return toCsv(fieldColumns<AtRiskRow>(CSV_FIELDS), rows);

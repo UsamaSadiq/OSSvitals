@@ -214,6 +214,12 @@ re-render when their container resizes. A flaky diff almost always means some
 value is still unpinned: find it and fix it at the source rather than adding a
 mask.
 
+On Apple Silicon the container runs amd64 under emulation and can be flaky
+(timeouts, partial captures). When it is, take the baselines from CI instead:
+download the `web-visual-diff` artifact from the failing run, review every image
+in its `web-current/` folder, and copy only the expected ones into
+`tests/baseline-web/` before committing.
+
 ### Licence note
 
 axe-core 4.10.2 is vendored at `scripts/uxaudit/vendor/axe.min.js` under the

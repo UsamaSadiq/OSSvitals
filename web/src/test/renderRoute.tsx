@@ -5,11 +5,12 @@ import { routes } from "../routes";
 
 export function renderRoute(path: string, meta: SiteMeta = DEFAULT_SITE_META) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
-  return render(
+  const rendered = render(
     <SiteMetaProvider value={meta}>
       <RouterProvider router={router} />
     </SiteMetaProvider>,
   );
+  return { ...rendered, router };
 }
 
 export function withMaintainerViews(enabled: boolean, meta: SiteMeta = DEFAULT_SITE_META): SiteMeta {

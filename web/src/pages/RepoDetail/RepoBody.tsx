@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
 import type { RepoDetailView } from "../../data/schemas";
@@ -11,6 +11,7 @@ import { ChecksSection } from "./ChecksSection";
 import { MetricBars } from "./MetricBars";
 import { rawField, type RepoDetail, type RepoRecord } from "./repoDetailData";
 import { RepoHeader } from "./RepoHeader";
+import { REPO_SECTIONS, SECTION_IDS, SectionNav } from "./SectionNav";
 
 interface RepoBodyProps {
   repo: string;
@@ -54,20 +55,39 @@ function Checks({ repo, record, cardNames }: { repo: string; record: RepoRecord;
   return <ChecksSection repo={repo} rows={rows} categories={categoryOptions(cardNames, rows)} />;
 }
 
+function Anchor({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <div id={id} className="repo-anchor" tabIndex={-1}>
+      {children}
+    </div>
+  );
+}
+
 export function RepoBody({ repo, record, detail, detailView }: RepoBodyProps) {
   const rates = useRepoRates(repo);
   return (
     <>
-      <RepoHeader repo={repo} record={record} detail={detail} />
-      <MetricBars bars={detail.metric_bars} version={rawField(record, "score_config_version")} />
-      <Activity record={record} />
-      <CatalogSection
-        available={detailView.catalog_available}
-        entry={detail.catalog}
-        collectedAt={detailView.catalog_collected_at}
-      />
-      <CategoryCards cards={detail.category_cards} rates={rates} />
-      <Checks repo={repo} record={record} cardNames={detail.category_cards.map((card) => card.name)} />
+      <SectionNav sections={REPO_SECTIONS} />
+      <Anchor id={SECTION_IDS.scores}>
+        <RepoHeader repo={repo} record={record} detail={detail} />
+        <MetricBars bars={detail.metric_bars} version={rawField(record, "score_config_version")} />
+      </Anchor>
+      <Anchor id={SECTION_IDS.activity}>
+        <Activity record={record} />
+      </Anchor>
+      <Anchor id={SECTION_IDS.catalog}>
+        <CatalogSection
+          available={detailView.catalog_available}
+          entry={detail.catalog}
+          collectedAt={detailView.catalog_collected_at}
+        />
+      </Anchor>
+      <Anchor id={SECTION_IDS.categories}>
+        <CategoryCards cards={detail.category_cards} rates={rates} />
+      </Anchor>
+      <Anchor id={SECTION_IDS.checks}>
+        <Checks repo={repo} record={record} cardNames={detail.category_cards.map((card) => card.name)} />
+      </Anchor>
     </>
   );
 }

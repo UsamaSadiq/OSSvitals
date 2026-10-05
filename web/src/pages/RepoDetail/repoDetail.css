@@ -6,29 +6,127 @@
   margin: 0 0 0.75rem;
 }
 
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin-inline: -2rem;
+  padding-inline: 2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--page);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.section-nav ul {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.section-nav a {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.section-nav a:hover {
+  color: var(--text);
+}
+
+.section-nav a[aria-current="location"] {
+  border-bottom-color: var(--primary);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.section-nav a:focus-visible {
+  outline-offset: -3px;
+}
+
+.repo-anchor {
+  scroll-margin-top: 3.25rem;
+}
+
+.repo-anchor:focus {
+  outline: none;
+}
+
+@media (max-width: 899px) {
+  .section-nav {
+    margin-inline: -1rem;
+    padding-inline: 1rem;
+  }
+}
+
 .repo-picker {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0 1rem;
-}
-
-.repo-picker__field {
-  display: flex;
-  flex: 1 1 16rem;
   flex-direction: column;
   gap: 0.3rem;
+  max-width: 36rem;
   margin-block: 0.5rem 1rem;
-  min-width: 0;
 }
 
-.repo-picker__field input,
-.repo-picker__field select {
-  padding: 0.4rem 0.6rem;
+.repo-combobox {
+  position: relative;
+}
+
+.repo-combobox input {
+  width: 100%;
+  padding: 0.45rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
+}
+
+.repo-combobox__list {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 18rem;
+  margin: 0;
+  padding: 0.25rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+  box-shadow: var(--shadow-raised);
+}
+
+.repo-combobox__option {
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.repo-combobox__option--current {
+  box-shadow: inset 3px 0 0 var(--muted);
+}
+
+.repo-combobox__option[aria-selected="true"] {
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.repo-combobox__option[aria-selected="true"] .repo-name__org {
+  color: var(--text);
+}
+
+.repo-combobox__empty {
+  padding: 0.35rem 0.6rem;
+  color: var(--muted);
 }
 
 .repo-header {
