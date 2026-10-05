@@ -1,4 +1,5 @@
 import type {
+  AreaYOptions,
   AxisYOptions,
   BarXOptions,
   BarYOptions,
@@ -22,6 +23,7 @@ export type MarkSpec =
   | ({ type: "barX"; data: Data; options: BarXOptions } & Linkable)
   | ({ type: "barY"; data: Data; options: BarYOptions } & Linkable)
   | ({ type: "dot"; data: Data; options: DotOptions } & Linkable)
+  | { type: "areaY"; data: Data; options: AreaYOptions }
   | { type: "lineY"; data: Data; options: LineYOptions }
   | { type: "ruleY"; data: Data; options: RuleYOptions }
   | { type: "text"; data: Data; options: TextOptions }

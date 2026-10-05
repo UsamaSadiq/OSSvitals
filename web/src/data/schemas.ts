@@ -85,9 +85,12 @@ export const reposSchema = view({
 
 const historyPointSchema = z.tuple([isoString, nullableNumber, grade.nullable()]);
 
+const gradeMixSchema = z.object({ A: int, B: int, C: int, D: int, F: int });
+
 export const historySchema = view({
   dates: z.array(isoString),
   org_average: z.array(z.tuple([isoString, z.number()])),
+  grade_counts: z.array(gradeMixSchema).optional(),
   repos: z.record(z.string(), z.array(historyPointSchema)),
 });
 
@@ -108,8 +111,6 @@ const kpiDeltasSchema = z.object({
   grade_f: int,
   stale: int,
 });
-
-const gradeMixSchema = z.object({ A: int, B: int, C: int, D: int, F: int });
 
 const scoredRepoSchema = z.object({
   repo_name: z.string(),

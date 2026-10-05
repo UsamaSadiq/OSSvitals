@@ -1,9 +1,12 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { EmptyState } from "../../components/EmptyState";
 import { Tabs, type TabItem } from "../../components/Tabs";
 import { categoryPassRateChart, FAILING_CHECKS_PATH, gradeDistributionChart, topFailingChart } from "../../components/charts";
-import type { OverviewView } from "../../data/schemas";
+import { gradeHistoryChart, type GradeHistory } from "../../components/gradeHistoryChart";
+import type { HistoryView, OverviewView } from "../../data/schemas";
 import { ChartPanel } from "./ChartPanel";
+import { GradeLegend } from "./GradeLegend";
 
 function CategoryPassRatePanel({ rows }: { rows: OverviewView["category_pass_rates"] }) {
   if (rows.length === 0) {
@@ -38,8 +41,29 @@ function TopFailingPanel({ rows }: { rows: OverviewView["top_failing"] }) {
   );
 }
 
-function chartTabs(overview: OverviewView): TabItem[] {
+export function gradeHistoryOf(history: HistoryView | undefined): GradeHistory | null {
+  const counts = history?.grade_counts;
+  if (!history || !counts || counts.length === 0) return null;
+  return { dates: history.dates, counts };
+}
+
+function GradesOverTimePanel({ history }: { history: GradeHistory }) {
+  return (
+    <>
+      <ChartPanel input={history} build={gradeHistoryChart} />
+      <GradeLegend />
+    </>
+  );
+}
+
+function gradesOverTimeTab(history: GradeHistory | null): TabItem[] {
+  if (!history) return [];
+  return [{ id: "trend", label: "Grades over time", content: () => <GradesOverTimePanel history={history} /> }];
+}
+
+function chartTabs(overview: OverviewView, history: GradeHistory | null): TabItem[] {
   return [
+    ...gradesOverTimeTab(history),
     {
       id: "grades",
       label: "Grade distribution",
@@ -58,10 +82,11 @@ function chartTabs(overview: OverviewView): TabItem[] {
   ];
 }
 
-export function ChartTabs({ overview }: { overview: OverviewView }) {
+export function ChartTabs({ overview, history }: { overview: OverviewView; history: HistoryView | undefined }) {
+  const gradeHistory = useMemo(() => gradeHistoryOf(history), [history]);
   return (
     <section className="overview-section" aria-label="Charts">
-      <Tabs label="Overview charts" tabs={chartTabs(overview)} />
+      <Tabs label="Overview charts" tabs={chartTabs(overview, gradeHistory)} />
     </section>
   );
 }

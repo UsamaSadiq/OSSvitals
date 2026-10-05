@@ -297,3 +297,46 @@
 .watch-card__missing {
   margin: 0;
 }
+
+.grade-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.grade-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.grade-legend__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+}
+
+.grade-legend__swatch--a {
+  background: var(--grade-a);
+}
+
+.grade-legend__swatch--b {
+  background: var(--grade-b);
+}
+
+.grade-legend__swatch--c {
+  background: var(--grade-c);
+}
+
+.grade-legend__swatch--d {
+  background: var(--grade-d);
+}
+
+.grade-legend__swatch--f {
+  background: var(--grade-f);
+}

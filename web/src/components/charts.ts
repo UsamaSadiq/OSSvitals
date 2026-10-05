@@ -306,18 +306,24 @@ export function lastDays(series: readonly SeriesPoint[], days: number): SeriesPo
   return series.filter(([date]) => Date.parse(date) >= cutoff);
 }
 
-export function sparklineChart(series: readonly SeriesPoint[]): Chart | null {
-  if (series.length < 2) return null;
+export interface SparklineLabels {
+  subject: string;
+  tipLabel: string;
+  summary: string | null;
+}
+
+export function trendSparkline(series: readonly SeriesPoint[], labels: SparklineLabels): Chart | null {
+  const first = series[0];
+  const last = series.at(-1);
+  if (!first || !last || series.length < 2) return null;
   const points = series.map(([date, value]) => ({
     date: new Date(date),
     value,
-    tip: `${date}\nOrg average ${formatNumber(value, 1)}`,
+    tip: `${date}\n${labels.tipLabel} ${formatNumber(value, 1)}`,
   }));
-  const first = series[0];
-  const last = series.at(-1);
   return {
-    ariaLabel: `Org-average composite over ${series.length} snapshots, from ${formatNumber(first?.[1] ?? 0, 1)} to ${formatNumber(last?.[1] ?? 0, 1)}`,
-    summary: `Org-average composite · last ${series.length} snapshots`,
+    ariaLabel: `${labels.subject} over ${series.length} snapshots, from ${formatNumber(first[1], 1)} to ${formatNumber(last[1], 1)}`,
+    summary: labels.summary,
     spec: {
       options: {
         height: 40,
@@ -331,4 +337,12 @@ export function sparklineChart(series: readonly SeriesPoint[]): Chart | null {
       ],
     },
   };
+}
+
+export function sparklineChart(series: readonly SeriesPoint[]): Chart | null {
+  return trendSparkline(series, {
+    subject: "Org-average composite",
+    tipLabel: "Org average",
+    summary: `Org-average composite · last ${series.length} snapshots`,
+  });
 }

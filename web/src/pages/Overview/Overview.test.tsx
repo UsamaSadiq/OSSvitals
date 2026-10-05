@@ -21,7 +21,7 @@ function ready<Name extends ViewName>(data: unknown): ViewState<Name> {
   return { status: "ready", data, error: undefined } as ViewState<Name>;
 }
 
-function historyFixture(): HistoryView {
+function historyFixture(overrides: Partial<HistoryView> = {}): HistoryView {
   return {
     metadata: metadata("history"),
     dates: ["2026-08-01", "2026-09-25", "2026-10-02"],
@@ -30,7 +30,13 @@ function historyFixture(): HistoryView {
       ["2026-09-25", 70.35],
       ["2026-10-02", 70.04],
     ],
+    grade_counts: [
+      { A: 0, B: 1, C: 1, D: 1, F: 0 },
+      { A: 1, B: 1, C: 1, D: 0, F: 0 },
+      { A: 1, B: 1, C: 1, D: 0, F: 0 },
+    ],
     repos: {},
+    ...overrides,
   };
 }
 
@@ -116,7 +122,21 @@ describe("Overview page", () => {
     expect(ribbon.firstElementChild).toHaveTextContent("A · 1");
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((tab) => tab.textContent)).toEqual(["Grade distribution", "Per-category pass rate", "Top failing checks"]);
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      "Grades over time",
+      "Grade distribution",
+      "Per-category pass rate",
+      "Top failing checks",
+    ]);
+    expect(screen.getByText("A grew from 0 to 1 and F held at 0 since 2026-08-01.")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: "Repositories per grade over 3 snapshots from 2026-08-01 to 2026-10-02: A 0 to 1, B 1 to 1, C 1 to 1, D 1 to 0, F 0 to 0",
+      }),
+    ).toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: "Grade colours" })).getAllByRole("listitem")).toHaveLength(5);
+
+    await userEvent.click(screen.getByRole("tab", { name: "Grade distribution" }));
     expect(screen.getByText("2/3 repos (67%) at grade B or better")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Repositories per grade: A 1, B 1, C 1, D 0, F 0" })).toBeInTheDocument();
 
@@ -145,13 +165,22 @@ describe("Overview page", () => {
     );
   });
 
+  it("hides Grades over time when the history carries no grade counts", async () => {
+    views.current = { ...views.current, history: ready(historyFixture({ grade_counts: undefined })) };
+    renderRoute("/");
+
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["Grade distribution", "Per-category pass rate", "Top failing checks"]);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+  });
+
   it("moves between tabs with the arrow keys", async () => {
     renderRoute("/");
-    const first = await screen.findByRole("tab", { name: "Grade distribution" });
+    const first = await screen.findByRole("tab", { name: "Grades over time" });
     first.focus();
 
     await userEvent.keyboard("{ArrowRight}");
-    const second = screen.getByRole("tab", { name: "Per-category pass rate" });
+    const second = screen.getByRole("tab", { name: "Grade distribution" });
     expect(second).toHaveFocus();
     expect(second).toHaveAttribute("aria-selected", "true");
 

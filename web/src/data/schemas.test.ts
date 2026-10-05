@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { overviewFixture } from "./fixtures";
+import { metadata, overviewFixture } from "./fixtures";
 import { parseView } from "./parse";
 
 function withoutKey(record: object, key: string): object {
@@ -21,6 +21,28 @@ describe("overview schema", () => {
     expect(() => parseView("overview", withoutKey(overviewFixture(), field))).toThrow(
       new RegExp(`^overview\\.json: .*${field}`),
     );
+  });
+});
+
+describe("history schema", () => {
+  const history = {
+    metadata: metadata("history"),
+    dates: ["2026-08-31"],
+    org_average: [["2026-08-31", 70]],
+    repos: { "openedx/a": [["2026-08-31", 70, "B"]] },
+  };
+
+  it("accepts history written before grade counts existed", () => {
+    expect(parseView("history", history).grade_counts).toBeUndefined();
+  });
+
+  it("accepts per-snapshot grade counts", () => {
+    const counts = [{ A: 0, B: 1, C: 0, D: 0, F: 0 }];
+    expect(parseView("history", { ...history, grade_counts: counts }).grade_counts).toEqual(counts);
+  });
+
+  it("rejects a grade count missing a letter", () => {
+    expect(() => parseView("history", { ...history, grade_counts: [{ A: 0, B: 1, C: 0, D: 0 }] })).toThrow(/F/);
   });
 });
 

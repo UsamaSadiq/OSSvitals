@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { fieldColumns, toCsv } from "../format/csv";
 import { QuerySelect, useQueryValue } from "./QuerySelect";
 import { shareUrl } from "./ShareLink";
+import { Tabs } from "./Tabs";
 
 describe("toCsv", () => {
   it("quotes cells with commas, quotes and newlines and leaves nulls empty", () => {
@@ -60,5 +61,24 @@ describe("QuerySelect", () => {
     expect(screen.getByTestId("search").textContent).toBe("?tier=critical");
     fireEvent.change(screen.getByLabelText("Tier filter"), { target: { value: "all" } });
     expect(screen.getByTestId("search").textContent).toBe("");
+  });
+});
+
+describe("Tabs", () => {
+  const tab = (id: string) => ({ id, label: id, content: () => `panel ${id}` });
+
+  it("keeps the chosen tab when another tab is added before it", () => {
+    const { rerender } = render(<Tabs label="Charts" tabs={[tab("one"), tab("two")]} />);
+    fireEvent.click(screen.getByRole("tab", { name: "two" }));
+    rerender(<Tabs label="Charts" tabs={[tab("new"), tab("one"), tab("two")]} />);
+    expect(screen.getByRole("tab", { name: "two" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("panel two");
+  });
+
+  it("falls back to the first tab when the chosen one goes away", () => {
+    const { rerender } = render(<Tabs label="Charts" tabs={[tab("one"), tab("two")]} />);
+    fireEvent.click(screen.getByRole("tab", { name: "two" }));
+    rerender(<Tabs label="Charts" tabs={[tab("one")]} />);
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("panel one");
   });
 });

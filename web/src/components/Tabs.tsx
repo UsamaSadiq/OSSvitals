@@ -16,9 +16,11 @@ const KEY_STEPS: Record<string, (index: number, count: number) => number> = {
 
 export function Tabs({ label, tabs }: { label: string; tabs: TabItem[] }) {
   const baseId = useId();
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const active = tabs[activeIndex] ?? tabs[0];
+  const found = tabs.findIndex((tab) => tab.id === activeId);
+  const activeIndex = found >= 0 ? found : 0;
+  const active = tabs[activeIndex];
   const tabId = (tab: TabItem) => `${baseId}-tab-${tab.id}`;
   const panelId = (tab: TabItem) => `${baseId}-panel-${tab.id}`;
 
@@ -27,7 +29,7 @@ export function Tabs({ label, tabs }: { label: string; tabs: TabItem[] }) {
     if (!step) return;
     event.preventDefault();
     const next = step(activeIndex, tabs.length);
-    setActiveIndex(next);
+    setActiveId(tabs[next]?.id ?? null);
     tabRefs.current[next]?.focus();
   };
 
@@ -51,7 +53,7 @@ export function Tabs({ label, tabs }: { label: string; tabs: TabItem[] }) {
               aria-controls={panelId(tab)}
               tabIndex={selected ? 0 : -1}
               className="tabs__tab"
-              onClick={() => setActiveIndex(index)}
+              onClick={() => setActiveId(tab.id)}
             >
               {tab.label}
             </button>
