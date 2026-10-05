@@ -35,8 +35,3 @@ export function rankRepos(repos: readonly string[], query: string, limit = MAX_O
     .slice(0, limit)
     .map((entry) => entry.name);
 }
-
-export function pickerOptions(ranked: readonly string[], selected: string | null): string[] {
-  if (!selected || ranked.includes(selected)) return [...ranked];
-  return [selected, ...ranked];
-}

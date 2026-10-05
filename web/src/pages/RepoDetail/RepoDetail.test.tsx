@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata, metaFixture, overviewFixture } from "../../data/fixtures";
@@ -204,7 +204,7 @@ describe("Repo Detail page", () => {
     renderRoute("/repo_detail");
     expect(await screen.findByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
     await waitFor(() => expect(document.title).toBe("Repo Detail · Open edX Repo Health"));
-    expect(screen.getByPlaceholderText("fuzzy match…")).toHaveValue("");
+    expect(screen.getByRole("combobox", { name: "Repository" })).toHaveValue("");
   });
 
   it("shows the best match for an unknown ?repo=", async () => {
@@ -218,19 +218,82 @@ describe("Repo Detail page", () => {
     expect(await screen.findByText("Pick a repository to see its detail.")).toBeInTheDocument();
   });
 
-  it("selects a repository from the picker", async () => {
-    renderRoute("/repo_detail");
-    await userEvent.type(screen.getByLabelText("Find repository"), "bet");
-    const select = screen.getByLabelText("Repository");
-    expect(within(select).getAllByRole("option").map((option) => option.textContent)).toEqual(["openedx/alpha", "openedx/beta"]);
-    await userEvent.selectOptions(select, "openedx/beta");
+  it("filters the repository combobox as you type and selects with Enter", async () => {
+    const { router } = renderRoute(PATH);
+    const combobox = await screen.findByRole("combobox", { name: "Repository" });
+    expect(combobox).toHaveAttribute("aria-expanded", "false");
+
+    await userEvent.clear(combobox);
+    await userEvent.type(combobox, "bet");
+    expect(combobox).toHaveAttribute("aria-expanded", "true");
+    const listbox = screen.getByRole("listbox", { name: "Repositories" });
+    expect(combobox).toHaveAttribute("aria-controls", listbox.id);
+    expect(within(listbox).getAllByRole("option").map((option) => option.textContent)).toEqual(["openedx/beta"]);
+    expect(combobox).toHaveAttribute("aria-activedescendant", within(listbox).getByRole("option").id);
+
+    await userEvent.keyboard("{Enter}");
     expect(await screen.findByRole("heading", { level: 2, name: "openedx/beta" })).toBeInTheDocument();
+    expect(combobox).toHaveValue("openedx/beta");
+    expect(combobox).toHaveAttribute("aria-expanded", "false");
+    expect(router.state.location.search).toBe("?repo=openedx%2Fbeta");
+    expect(router.state.historyAction).toBe("REPLACE");
+  });
+
+  it("opens the full list with the arrow keys from the current repository", async () => {
+    renderRoute(PATH);
+    const combobox = await screen.findByRole("combobox", { name: "Repository" });
+    combobox.focus();
+
+    await userEvent.keyboard("{ArrowDown}");
+    const options = within(screen.getByRole("listbox")).getAllByRole("option");
+    expect(options.map((option) => option.textContent)).toEqual(["openedx/alpha", "openedx/beta"]);
+    expect(options[0]).toHaveAttribute("aria-selected", "true");
+
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    expect(await screen.findByRole("heading", { level: 2, name: "openedx/beta" })).toBeInTheDocument();
+  });
+
+  it("closes the list with Escape without changing the repository", async () => {
+    renderRoute(PATH);
+    const combobox = await screen.findByRole("combobox", { name: "Repository" });
+    await userEvent.type(combobox, "x");
+    expect(combobox).toHaveAttribute("aria-expanded", "true");
+    await userEvent.keyboard("{Escape}");
+    expect(combobox).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
+  });
+
+  it("selects a repository with a click", async () => {
+    renderRoute(PATH);
+    const combobox = await screen.findByRole("combobox", { name: "Repository" });
+    await userEvent.click(combobox);
+    await userEvent.click(within(screen.getByRole("listbox")).getByRole("option", { name: "openedx/beta" }));
+    expect(await screen.findByRole("heading", { level: 2, name: "openedx/beta" })).toBeInTheDocument();
+  });
+
+  it("says when nothing matches", async () => {
+    renderRoute(PATH);
+    const combobox = await screen.findByRole("combobox", { name: "Repository" });
+    await userEvent.clear(combobox);
+    await userEvent.type(combobox, "zzz");
+    expect(screen.getByText("No repository matches.")).toBeInTheDocument();
+    expect(combobox).not.toHaveAttribute("aria-activedescendant");
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
+  });
+
+  it("follows ?repo= when it changes from outside the picker", async () => {
+    const { router } = renderRoute(PATH);
+    const combobox = await screen.findByRole("combobox", { name: "Repository" });
+    await act(() => router.navigate("/repo_detail?repo=openedx%2Fbeta"));
+    expect(await screen.findByRole("heading", { level: 2, name: "openedx/beta" })).toBeInTheDocument();
+    expect(combobox).toHaveValue("openedx/beta");
   });
 
   it("renders the header chip, KPI tiles and a withheld sub-score", async () => {
     renderRoute(PATH);
     expect(await screen.findByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
-    expect(screen.getByLabelText("Find repository")).toHaveValue(REPO);
+    expect(screen.getByRole("combobox", { name: "Repository" })).toHaveValue(REPO);
     expect(screen.getByRole("img", { name: "Grade C" })).toBeInTheDocument();
     expect(screen.getByText("8/9 metrics (72% weight)")).toHaveClass("status-chip--warn");
     expect(within(screen.getByRole("group", { name: "Composite" })).getByText("41.2")).toBeInTheDocument();
@@ -530,5 +593,21 @@ describe("unscored repositories", () => {
     expect(await screen.findByText("openedx/wg-data is not scored in this snapshot.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open on GitHub" })).toHaveAttribute("href", "https://github.com/openedx/wg-data");
     expect(screen.queryByRole("heading", { level: 2, name: "openedx/alpha" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Repository" })).toHaveValue("openedx/wg-data");
+  });
+
+  it("can pick a scored repository from the unscored state", async () => {
+    renderRoute("/repo_detail?repo=openedx%2Fwg-data");
+    const combobox = await screen.findByRole("combobox", { name: "Repository" });
+    await userEvent.clear(combobox);
+    await userEvent.type(combobox, "alpha{Enter}");
+    expect(await screen.findByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
+    expect(screen.queryByText("openedx/wg-data is not scored in this snapshot.")).not.toBeInTheDocument();
+  });
+
+  it("shows the best match for a partial name and keeps the typed text", async () => {
+    renderRoute("/repo_detail?repo=alp");
+    expect(await screen.findByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Repository" })).toHaveValue("alp");
   });
 });
