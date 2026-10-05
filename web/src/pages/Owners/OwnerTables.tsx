@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { DataTable, type Column } from "../../components/DataTable";
 import { GradePill, GRADE_ORDER, type Grade } from "../../components/GradePill";
-import { repoDetailPath } from "../../components/repoDetailPath";
+import { RepoLink } from "../../components/RepoName";
 import { formatNumber, formatScore } from "../../format";
 import {
   groupLabel,
@@ -50,7 +50,7 @@ function scoredRepoColumns<Row extends ScoredRepo>(): Column<Row>[] {
     {
       key: "repo_name",
       header: "Repository",
-      cell: (row) => <Link to={repoDetailPath(row.repo_name)}>{row.repo_name}</Link>,
+      cell: (row) => <RepoLink name={row.repo_name} />,
       sortValue: (row) => row.repo_name,
     },
     {

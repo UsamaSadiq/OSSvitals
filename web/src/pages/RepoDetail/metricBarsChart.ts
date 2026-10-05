@@ -15,7 +15,7 @@ export interface MetricBarDatum {
 const MUTED_FILL = "color-mix(in srgb, var(--muted) 35%, transparent)";
 const TRANSPARENT = "transparent";
 const ROW_HEIGHT = 34;
-const CHAR_WIDTH_PX = 7;
+const CHAR_WIDTH_PX = 8;
 
 export const SCORE_CAPTION_SUFFIX = "bars show each metric's contribution; unmeasured metrics are marked.";
 

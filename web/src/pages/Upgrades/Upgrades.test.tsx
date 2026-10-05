@@ -177,8 +177,8 @@ describe("Upgrades page", () => {
     renderRoute("/maintenance");
 
     const title = await screen.findByText("No upgrade-job data yet.");
-    expect(title.closest(".banner")).toHaveClass("banner--info");
-    expect(title.closest(".banner")).toHaveTextContent(MISSING_BODY);
+    expect(title.closest(".empty-state")).toHaveClass("empty-state--info");
+    expect(title.closest(".empty-state")).toHaveTextContent(MISSING_BODY);
   });
 
   it("shows the wave progress, tiles, caption and both tables", async () => {
@@ -224,7 +224,7 @@ describe("Upgrades page", () => {
     await openTab("Wave: Node 24");
 
     const title = screen.getByText("No Node 24 wave data yet.");
-    expect(title.closest(".banner")).toHaveTextContent(MISSING_BODY);
+    expect(title.closest(".empty-state")).toHaveTextContent(MISSING_BODY);
   });
 
   it("shows the redundant PR caption, tiles and table", async () => {
@@ -255,7 +255,7 @@ describe("Upgrades page", () => {
     renderRoute("/maintenance");
     await openTab("Redundant PRs");
 
-    expect(screen.getByText("No redundant bot PRs found.").closest(".banner")).toHaveClass("banner--good");
+    expect(screen.getByText("No redundant bot PRs found.").closest(".empty-state")).toHaveClass("empty-state--good");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
@@ -264,7 +264,7 @@ describe("Upgrades page", () => {
     renderRoute("/maintenance");
     await openTab("Redundant PRs");
 
-    expect(screen.getByText("No redundant-PR data yet.").closest(".banner")).toHaveTextContent(MISSING_BODY);
+    expect(screen.getByText("No redundant-PR data yet.").closest(".empty-state")).toHaveTextContent(MISSING_BODY);
   });
 
   it("switches panels between tabs", async () => {

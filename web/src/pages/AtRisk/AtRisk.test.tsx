@@ -74,9 +74,9 @@ describe("At Risk page", () => {
     renderRoute("/at_risk");
 
     const state = await screen.findByText("No owner data in this snapshot.");
-    expect(state.closest(".banner")).toHaveClass("banner--info");
-    expect(within(state.closest(".banner") as HTMLElement).getByText("catalog-info.yaml", { selector: "code" })).toBeInTheDocument();
-    expect(state.closest(".banner")).toHaveTextContent(
+    expect(state.closest(".empty-state")).toHaveClass("empty-state--info");
+    expect(within(state.closest(".empty-state") as HTMLElement).getByText("catalog-info.yaml", { selector: "code" })).toBeInTheDocument();
+    expect(state.closest(".empty-state")).toHaveTextContent(
       "A repository is assessed here once its catalog-info.yaml sets spec.owner (OEP-55).",
     );
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -89,7 +89,7 @@ describe("At Risk page", () => {
     renderRoute("/at_risk");
 
     const state = await screen.findByText("The at-risk view is switched off for this deployment.");
-    expect(state.closest(".banner")).toHaveTextContent("Enable stewardship_risk in attention_rules.yaml.");
+    expect(state.closest(".empty-state")).toHaveTextContent("Enable stewardship_risk in attention_rules.yaml.");
     expect(screen.getByText("stewardship_risk", { selector: "code" })).toBeInTheDocument();
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
@@ -171,8 +171,8 @@ describe("At Risk page", () => {
     renderRoute("/at_risk");
 
     const state = await screen.findByText("No repositories match.");
-    expect(state.closest(".banner")).toHaveClass("banner--good");
-    expect(state.closest(".banner")).toHaveTextContent(
+    expect(state.closest(".empty-state")).toHaveClass("empty-state--good");
+    expect(state.closest(".empty-state")).toHaveTextContent(
       "Nothing with thin ownership shows an activity warning under the stewardship_risk rule in attention_rules.yaml.",
     );
     expect(screen.queryByRole("button", { name: "Download At-Risk List" })).not.toBeInTheDocument();

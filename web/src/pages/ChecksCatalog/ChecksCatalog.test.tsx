@@ -239,7 +239,7 @@ describe("Checks Catalog page", () => {
     const section = await screen.findByRole("region", { name: "Up for review" });
     expect(section).toHaveTextContent("Checks that no longer tell repositories apart");
     const status = within(section).getByText("No check is saturated or sparse across the retained history.");
-    expect(status.closest(".banner")).toHaveClass("banner--good");
+    expect(status.closest(".empty-state")).toHaveClass("empty-state--good");
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
@@ -280,8 +280,8 @@ describe("Checks Catalog page", () => {
     renderRoute("/glossary");
 
     const status = await screen.findByText("No check columns detected in this snapshot.");
-    const banner = status.closest(".banner");
-    expect(banner).toHaveClass("banner--warn");
+    const banner = status.closest(".empty-state");
+    expect(banner).toHaveClass("empty-state--warn");
     expect(banner).toHaveTextContent("The catalogue below still lists proposed checks.");
     expect(screen.getByRole("heading", { level: 2, name: "Suggested candidate checks" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Up for review" })).not.toBeInTheDocument();

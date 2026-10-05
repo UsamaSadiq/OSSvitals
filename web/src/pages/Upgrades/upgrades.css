@@ -29,3 +29,9 @@
 .upgrades-section-title {
   margin-top: 1.5rem;
 }
+
+@media (max-width: 600px) {
+  .upgrades-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

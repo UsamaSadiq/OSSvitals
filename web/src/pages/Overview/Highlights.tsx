@@ -1,14 +1,13 @@
-import { Link } from "react-router";
 import { DataTable, type Column } from "../../components/DataTable";
 import { RepoPillList } from "../../components/RepoPillList";
-import { repoDetailPath } from "../../components/repoDetailPath";
+import { RepoLink } from "../../components/RepoName";
 import type { OverviewView } from "../../data/schemas";
 import { formatScoreChange, moversCaption } from "./overviewText";
 
 type Mover = OverviewView["gainers"][number];
 
 const MOVER_COLUMNS: Column<Mover>[] = [
-  { key: "repo", header: "Repository", cell: (row) => <Link to={repoDetailPath(row.repo_name)}>{row.repo_name}</Link> },
+  { key: "repo", header: "Repository", cell: (row) => <RepoLink name={row.repo_name} /> },
   { key: "delta", header: "Change", cell: (row) => formatScoreChange(row.delta), numeric: true },
 ];
 

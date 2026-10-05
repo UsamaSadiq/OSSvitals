@@ -3,6 +3,7 @@ import { Link, Outlet } from "react-router";
 import { ErrorState } from "../components/ErrorState";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { Footer } from "./Footer";
+import { HeaderShare } from "./HeaderShare";
 import { Nav } from "./Nav";
 import { NoindexMeta } from "./noindex";
 import { useSiteMeta } from "./siteMeta";
@@ -37,7 +38,10 @@ export function Shell() {
         <Link to="/" className="header__wordmark">
           {shortName}
         </Link>
-        <ThemeToggle />
+        <div className="header__actions">
+          <HeaderShare />
+          <ThemeToggle />
+        </div>
       </header>
       <aside className="sidebar">
         <Nav id={NAV_ID} onNavigate={closeMenuAndFocusMain} />

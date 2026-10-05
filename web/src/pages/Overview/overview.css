@@ -8,12 +8,10 @@
 }
 
 .overview-section h2 {
-  font-size: 1.3rem;
   margin: 0 0 0.75rem;
 }
 
 .overview-section h3 {
-  font-size: 1rem;
   margin: 0 0 0.5rem;
 }
 
@@ -26,6 +24,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 .kpi-hero__eyebrow {

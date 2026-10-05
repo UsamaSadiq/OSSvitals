@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MoonIcon, SunIcon } from "../components/icons";
 import { applyTheme, currentTheme, type Theme } from "./theme";
 
 function opposite(theme: Theme): Theme {
@@ -7,9 +8,9 @@ function opposite(theme: Theme): Theme {
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(currentTheme);
+  const next = opposite(theme);
 
   function toggle() {
-    const next = opposite(theme);
     applyTheme(next);
     setTheme(next);
   }
@@ -17,15 +18,12 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="theme-toggle"
-      aria-pressed={theme === "dark"}
-      title="Switches the whole dashboard between the dark and light palettes."
+      className="icon-button theme-toggle"
+      aria-label={`Switch to ${next} theme`}
+      title={`Switch to the ${next} palette`}
       onClick={toggle}
     >
-      <span className="theme-toggle__track" aria-hidden="true">
-        <span className="theme-toggle__thumb" />
-      </span>
-      Dark mode
+      {theme === "dark" ? <SunIcon /> : <MoonIcon />}
     </button>
   );
 }

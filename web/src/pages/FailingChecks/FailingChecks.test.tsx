@@ -62,7 +62,7 @@ describe("Failing Checks page", () => {
     renderRoute("/failing_checks");
 
     const status = await screen.findByText("No failing checks detected.");
-    expect(status.closest(".banner")).toHaveClass("banner--good");
+    expect(status.closest(".empty-state")).toHaveClass("empty-state--good");
     expect(screen.getByText("Every collected check passes across the whole organisation.")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Most-failed checks" })).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();

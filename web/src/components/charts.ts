@@ -11,7 +11,7 @@ export interface Chart {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const CHAR_WIDTH_PX = 7;
+const CHAR_WIDTH_PX = 8;
 
 export function gradeFill(grade: Grade): string {
   return `var(--grade-${grade.toLowerCase()})`;

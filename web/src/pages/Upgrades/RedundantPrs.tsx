@@ -6,12 +6,13 @@ import { formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
 import { PullLink } from "./PullLink";
 import { mergedText, redundantCaption } from "./upgradesText";
+import { RepoName } from "../../components/RepoName";
 
 type Redundant = NonNullable<UpgradesView["redundant_prs"]>;
 type RedundantRow = Redundant["records"][number];
 
 const COLUMNS: Column<RedundantRow>[] = [
-  { key: "repo_name", header: "Repository", cell: (row) => row.repo_name, sortValue: (row) => row.repo_name },
+  { key: "repo_name", header: "Repository", cell: (row) => <RepoName name={row.repo_name} />, sortValue: (row) => row.repo_name },
   { key: "bot_pr_url", header: "Bot PR", cell: (row) => <PullLink url={row.bot_pr_url} /> },
   { key: "superseded_by_url", header: "Superseded by", cell: (row) => <PullLink url={row.superseded_by_url} /> },
   {

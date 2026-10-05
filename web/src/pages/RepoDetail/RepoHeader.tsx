@@ -1,5 +1,6 @@
 import { GradePill } from "../../components/GradePill";
 import { KpiTile } from "../../components/KpiTile";
+import { RepoName } from "../../components/RepoName";
 import { ShareLink } from "../../components/ShareLink";
 import { toFixedHalfEven } from "../../format";
 import type { RepoDetail, RepoRecord } from "./repoDetailData";
@@ -22,7 +23,9 @@ export function RepoHeader({ repo, record, detail }: { repo: string; record: Rep
   return (
     <>
       <div className="repo-header">
-        <h2>{repo}</h2>
+        <h2>
+          <RepoName name={repo} />
+        </h2>
         <GradePill grade={record.score_letter} />
         <StatusChip status={detail.summary.level} label={coverageLabel(detail.summary)} />
       </div>

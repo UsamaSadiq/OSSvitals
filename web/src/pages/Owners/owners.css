@@ -33,3 +33,9 @@
   color: var(--text);
   font: inherit;
 }
+
+@media (max-width: 600px) {
+  .owners-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
