@@ -52,7 +52,9 @@
 }
 
 .repos-facets .query-select select {
+  padding-block: 0.45rem;
   background: var(--page);
+  line-height: inherit;
 }
 
 .grade-dot {
