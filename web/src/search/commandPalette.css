@@ -126,6 +126,12 @@
   box-shadow: inset 3px 0 0 var(--primary);
 }
 
+.palette__option[aria-selected="true"] .repo-name__org,
+.palette__option[aria-selected="true"] .palette__meta,
+.palette__option[aria-selected="true"] .palette__detail {
+  color: var(--text);
+}
+
 .palette__label,
 .palette__option .repo-name {
   min-width: 0;

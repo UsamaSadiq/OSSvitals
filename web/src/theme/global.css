@@ -600,7 +600,7 @@ h3 {
     padding: 0.6rem 1rem;
   }
 
-  .freshness-chip--fresh .freshness-chip__detail,
+  .freshness-chip,
   .search-button__label,
   .search-button__kbd {
     display: none;

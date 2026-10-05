@@ -120,6 +120,10 @@
   box-shadow: inset 3px 0 0 var(--primary);
 }
 
+.repo-combobox__option[aria-selected="true"] .repo-name__org {
+  color: var(--text);
+}
+
 .repo-combobox__empty {
   padding: 0.35rem 0.6rem;
   color: var(--muted);

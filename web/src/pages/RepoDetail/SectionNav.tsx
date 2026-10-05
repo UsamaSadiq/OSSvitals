@@ -83,15 +83,29 @@ function jumpTo(id: string): void {
   target.focus({ preventScroll: true });
 }
 
+// Scrolling the strip itself, not scrollIntoView, so a smooth page scroll in progress is not interrupted.
+function useCurrentLinkInView(current: string | null) {
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const link = nav?.querySelector<HTMLElement>('[aria-current="location"]');
+    if (!nav || !link) return;
+    const hidden = link.offsetLeft < nav.scrollLeft || link.offsetLeft + link.offsetWidth > nav.scrollLeft + nav.clientWidth;
+    if (hidden) nav.scrollLeft = link.offsetLeft - (nav.clientWidth - link.offsetWidth) / 2;
+  }, [current]);
+  return navRef;
+}
+
 export function SectionNav({ sections }: { sections: readonly PageSection[] }) {
   const [current, pin] = useCurrentSection(sections.map((section) => section.id));
+  const navRef = useCurrentLinkInView(current);
   const onClick = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
     pin(id);
     jumpTo(id);
   };
   return (
-    <nav className="section-nav" aria-label="Repository sections">
+    <nav ref={navRef} className="section-nav" aria-label="Repository sections">
       <ul>
         {sections.map((section) => (
           <li key={section.id}>
