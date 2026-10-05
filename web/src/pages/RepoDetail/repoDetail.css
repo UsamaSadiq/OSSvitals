@@ -231,6 +231,56 @@
   gap: 0.5rem;
 }
 
+.repo-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.repo-suggestions__lead {
+  font-weight: 600;
+}
+
+.repo-suggestions ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.category-meter {
+  height: 0.5rem;
+  margin: 0.6rem 0 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 18%, transparent);
+  overflow: hidden;
+}
+
+.category-meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--muted);
+}
+
+.category-meter__fill--pass { background: var(--success); }
+.category-meter__fill--warn { background: var(--warn); }
+.category-meter__fill--fail { background: var(--fail); }
+
+.category-trend {
+  margin: 0;
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.category-trend--up { color: var(--chip-text-pass); }
+.category-trend--down { color: var(--chip-text-fail); }
+
 .check-controls {
   display: flex;
   flex-wrap: wrap;

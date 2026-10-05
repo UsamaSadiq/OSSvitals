@@ -7,9 +7,12 @@ import type { ViewState } from "../../data/useView";
 import { DEFAULT_SITE_META, type SiteMeta } from "../../layout/siteMeta";
 import { renderPlot } from "../../components/renderPlot";
 import { renderRoute } from "../../test/renderRoute";
-import { categorySparkline, ratePoints } from "./categorySparkline";
+import { categorySparkline, categoryTrend, datedRates, ratePoints, seriesVaries, trendText } from "./categorySparkline";
+import { meterWidth } from "./CategoryCards";
+import { humanizeMetric, wrapWords } from "./metricNames";
 import { githubIssueUrl, githubPrCompareUrl } from "./checkLinks";
-import { metricBarsChart, type MetricBar } from "./metricBarsChart";
+import { metricBarsChart, metricRules, type MetricBar } from "./metricBarsChart";
+import { suggestedRepos } from "./RepoDetail";
 import { rankRepos } from "./repoRanking";
 import { firstVisible } from "./SectionNav";
 import { formatSignal } from "./signalFormat";
@@ -39,6 +42,11 @@ const BARS: MetricBar[] = [
   { metric: "commit_recency", state: "measured", score: 42.5, weight: 0.15, letter: "C" },
   { metric: "pr_response_time", state: "defaulted", score: 50, weight: 0.15, letter: "C" },
   { metric: "release_frequency", state: "unavailable", score: 0, weight: null, letter: "F" },
+];
+
+const RULES = [
+  { metric: "ci status", rule: "100 if the check passes, 0 if it fails" },
+  { metric: "commit recency", rule: "≤ 7 days → 100; ≤ 30 days → 80; ≤ 90 days → 50; ≤ 365 days → 20; older → 0" },
 ];
 
 const CATALOG: NonNullable<RepoEntry["catalog"]> = {
@@ -191,6 +199,7 @@ function setViews({ detail = detailView(), signals = SIGNAL_VALUES, unmeasured =
       dates: ["2026-10-01", "2026-10-02", "2026-10-03"],
       repos: { [REPO]: { "File Existence": [10, null, 16.67], README: [null, null, 100] } },
     }),
+    scoring: ready({ metadata: metadata("scoring"), version: "2.0", metrics: RULES, letter_bands: [], proposed: null }),
   };
 }
 
@@ -309,9 +318,11 @@ describe("Repo Detail page", () => {
   it("renders the metric bar chart summary and caption", async () => {
     renderRoute(PATH);
     expect(await screen.findByText("2 of 4 metrics measured")).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: /^Metric scores: ci_status 100, commit_recency 42/ })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /^Metric scores: CI status 100, Commit recency 42/ })).toBeInTheDocument();
     expect(
-      screen.getByText("Scoring config 2.0 · bars show each metric's contribution; unmeasured metrics are marked."),
+      screen.getByText(
+        "Scoring config 2.0 · bars show each metric's score; the percentage beside each name is its weight in the composite.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -406,16 +417,19 @@ describe("Repo Detail page", () => {
     );
   });
 
-  it("renders category cards with level chips and sparklines", async () => {
+  it("renders category cards with level chips, meters, change and varying sparklines", async () => {
     renderRoute(PATH);
     const cards = await screen.findByRole("region", { name: "Category overview" });
     const files = within(cards).getByRole("group", { name: "File Existence" });
     expect(within(files).getByText("17% pass")).toHaveClass("status-chip--fail");
     expect(within(files).getByText("Pass 3 · Fail 15 · N/A 0")).toBeInTheDocument();
+    expect(files.querySelector(".category-meter__fill--fail")).toHaveStyle({ width: "16.666666666666664%" });
+    expect(within(files).getByText(/7 pts since 2026-10-01/)).toHaveTextContent("▲ Up 7 pts since 2026-10-01");
     expect(within(files).getByRole("img", { name: "File Existence pass rate over 2 snapshots" })).toBeInTheDocument();
     const readme = within(cards).getByRole("group", { name: "README" });
     expect(within(readme).getByText("100% pass")).toHaveClass("status-chip--pass");
     expect(within(readme).queryByRole("img")).toBeNull();
+    expect(within(readme).queryByText(/since/)).toBeNull();
     const docs = within(cards).getByRole("group", { name: "Documentation" });
     expect(within(docs).getByText("no data")).toHaveClass("status-chip--unknown");
   });
@@ -496,23 +510,103 @@ describe("Repo Detail page", () => {
 
 });
 
+function markData(mark: { type: string } | undefined): Record<string, unknown>[] {
+  return mark && "data" in mark ? (mark.data as Record<string, unknown>[]) : [];
+}
+
 describe("metricBarsChart", () => {
   it("keeps the payload order top to bottom and marks each state", () => {
-    const chart = metricBarsChart(BARS);
+    const chart = metricBarsChart(BARS, metricRules(RULES));
     expect(chart.summary).toBe("2 of 4 metrics measured");
-    expect(chart.spec.options.y).toMatchObject({ domain: ["ci_status", "commit_recency", "pr_response_time", "release_frequency"] });
+    expect(chart.spec.options.y).toMatchObject({
+      domain: ["CI status · 10%", "Commit recency · 15%", "PR response time · 15%", "Release frequency"],
+    });
     const [bars, labels] = chart.spec.marks;
-    expect(bars && "data" in bars && bars.data).toEqual([
-      { metric: "ci_status", state: "measured", value: 100, label: "100", fill: "var(--grade-a)" },
-      { metric: "commit_recency", state: "measured", value: 42.5, label: "42", fill: "var(--grade-c)" },
+    expect(markData(bars)).toEqual([
+      expect.objectContaining({ metric: "ci_status", name: "CI status", value: 100, label: "100", fill: "var(--grade-a)" }),
+      expect.objectContaining({ metric: "commit_recency", state: "measured", value: 42.5, label: "42", fill: "var(--grade-c)" }),
       expect.objectContaining({ metric: "pr_response_time", state: "defaulted", value: 50, label: "default (50)" }),
     ]);
-    expect(((labels && "data" in labels ? labels.data : []) as { label: string }[]).map((entry) => entry.label)).toEqual([
-      "100",
-      "42",
-      "default (50)",
-      "not collected",
+    expect(markData(labels).map((entry) => entry.label)).toEqual(["100", "42", "default (50)", "not collected"]);
+  });
+
+  it("tooltips each metric with its score, weight and scoring rule", () => {
+    const chart = metricBarsChart(BARS, metricRules(RULES));
+    const tip = chart.spec.marks.find((mark) => mark.type === "tip");
+    expect(tip).toMatchObject({ pointer: "y", options: { title: "tip", y: "axisLabel" } });
+    expect(markData(tip).map((entry) => entry.tip)).toEqual([
+      "CI status\nScore 100 · measured\nWeight 10%\nRule: 100 if the check passes, 0\nif it fails",
+      "Commit recency\nScore 42 · measured\nWeight 15%\nRule: ≤ 7 days → 100; ≤ 30 days →\n80; ≤ 90 days → 50; ≤ 365 days →\n20; older → 0",
+      "PR response time\nDefault score 50 (not measured)\nWeight 15%",
+      "Release frequency\nNot collected in this snapshot",
     ]);
+  });
+
+  it("wraps labels at 12px and gives phones a narrower label column", () => {
+    const chart = metricBarsChart(BARS);
+    const axis = chart.spec.marks.find((mark) => mark.type === "axisY");
+    expect(axis?.options).toMatchObject({ fontSize: 12 });
+    expect(axis?.options).not.toHaveProperty("textOverflow");
+    expect(chart.spec.narrow).toMatchObject({ below: 560, marginRight: 84 });
+    expect(chart.spec.narrow?.marginLeft).toBeLessThanOrEqual(132);
+  });
+});
+
+describe("humanizeMetric", () => {
+  it.each([
+    ["ci_status", "CI status"],
+    ["ci status", "CI status"],
+    ["pr_closure_ratio", "PR closure ratio"],
+    ["readme quality", "README quality"],
+    ["openedx yaml compliance", "openedx.yaml compliance"],
+    ["openedx_yaml_compliance", "openedx.yaml compliance"],
+    ["contributor absence factor", "Contributor absence factor"],
+  ])("%s → %s", (metric, expected) => {
+    expect(humanizeMetric(metric)).toBe(expected);
+  });
+
+  it("wraps words without splitting them", () => {
+    expect(wrapWords("one two three four", 9)).toEqual(["one two", "three", "four"]);
+    expect(wrapWords("", 9)).toEqual([]);
+  });
+});
+
+describe("category trend", () => {
+  const dates = ["2026-09-23", "2026-09-30", "2026-10-03"];
+
+  it("compares the latest point with the earliest one in the history", () => {
+    const up = categoryTrend(datedRates(dates, [40, null, 45.4]));
+    expect(up).toEqual({ direction: "up", points: 5, since: "2026-09-23" });
+    expect(up && trendText(up)).toBe("5 pts since 2026-09-23");
+    const down = categoryTrend(datedRates(dates, [null, 51, 50]));
+    expect(down && trendText(down)).toBe("1 pt since 2026-09-30");
+    expect(down?.direction).toBe("down");
+  });
+
+  it("reports no change when the rounded difference is zero, and nothing without two points", () => {
+    const flat = categoryTrend(datedRates(dates, [50, 50.2, 49.8]));
+    expect(flat).toEqual({ direction: "flat", points: 0, since: "2026-09-23" });
+    expect(flat && trendText(flat)).toBe("no change since 2026-09-23");
+    expect(categoryTrend(datedRates(dates, [null, null, 10]))).toBeNull();
+    expect(categoryTrend(datedRates(dates, undefined))).toBeNull();
+  });
+
+  it("draws a sparkline only when the series varies", () => {
+    expect(seriesVaries(ratePoints(dates, [66.67, 66.67, 66.67]))).toBe(false);
+    expect(categorySparkline("README", ratePoints(dates, [66.67, 66.67, 66.67]))).toBeNull();
+    const chart = categorySparkline("README", ratePoints(dates, [60, 66.67, 66.67]));
+    expect(chart?.spec.marks.map((mark) => mark.type)).toEqual(["lineY", "tip"]);
+    expect(markData(chart?.spec.marks[1]).map((entry) => entry.tip)).toEqual([
+      "2026-09-23\n60% pass",
+      "2026-09-30\n67% pass",
+      "2026-10-03\n67% pass",
+    ]);
+  });
+
+  it("clamps the pass-rate meter to 0–100", () => {
+    expect(meterWidth(null)).toBe(0);
+    expect(meterWidth(42.5)).toBe(42.5);
+    expect(meterWidth(120)).toBe(100);
   });
 });
 
@@ -652,6 +746,21 @@ describe("rankRepos", () => {
   });
 });
 
+describe("suggestedRepos", () => {
+  const names = ["openedx/openedx-platform", "openedx/frontend-platform", "openedx/edx-ora2", "openedx/xblock", "openedx/platform-x"];
+
+  it("ranks scored repos by the requested short name, at most three", () => {
+    expect(suggestedRepos(names, "openedx/edx-platform")).toEqual(["openedx/openedx-platform"]);
+    expect(suggestedRepos(names, "openedx/xblk")).toEqual([]);
+    expect(suggestedRepos(names, "openedx/platform")).toEqual([
+      "openedx/platform-x",
+      "openedx/openedx-platform",
+      "openedx/frontend-platform",
+    ]);
+    expect(suggestedRepos(names, "openedx/zzz")).toEqual([]);
+  });
+});
+
 describe("unscored repositories", () => {
   beforeEach(() => setViews());
 
@@ -670,6 +779,22 @@ describe("unscored repositories", () => {
     await userEvent.type(combobox, "alpha{Enter}");
     expect(await screen.findByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
     expect(screen.queryByText("openedx/wg-data is not scored in this snapshot.")).not.toBeInTheDocument();
+  });
+
+  it("suggests scored repositories with a similar short name", async () => {
+    renderRoute("/repo_detail?repo=openedx%2Falp");
+    const suggestions = await screen.findByRole("navigation", { name: "Similar scored repositories" });
+    expect(within(suggestions).getByText("Did you mean")).toBeInTheDocument();
+    expect(within(suggestions).getByRole("link", { name: "openedx/alpha" })).toHaveAttribute(
+      "href",
+      "/repo_detail?repo=openedx%2Falpha",
+    );
+  });
+
+  it("omits suggestions when nothing is similar", async () => {
+    renderRoute("/repo_detail?repo=openedx%2Fwg-data");
+    expect(await screen.findByText("openedx/wg-data is not scored in this snapshot.")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Similar scored repositories" })).not.toBeInTheDocument();
   });
 
   it("shows the best match for a partial name and keeps the typed text", async () => {

@@ -25,13 +25,28 @@ export function sortedRepos(repos: readonly string[]): string[] {
   return [...repos].sort(codepointOrder);
 }
 
-export function rankRepos(repos: readonly string[], query: string, limit = MAX_OPTIONS): string[] {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return sortedRepos(repos);
+const SUBSEQUENCE_TIER = 2;
+
+function ranked(repos: readonly string[], needle: string): Ranked[] {
   return repos
     .map((name) => rank(name, needle))
     .filter((entry): entry is Ranked => entry !== null)
-    .sort(compareRanked)
+    .sort(compareRanked);
+}
+
+export function rankRepos(repos: readonly string[], query: string, limit = MAX_OPTIONS): string[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return sortedRepos(repos);
+  return ranked(repos, needle)
+    .slice(0, limit)
+    .map((entry) => entry.name);
+}
+
+export function containingRepos(repos: readonly string[], query: string, limit: number): string[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+  return ranked(repos, needle)
+    .filter((entry) => entry.tier < SUBSEQUENCE_TIER)
     .slice(0, limit)
     .map((entry) => entry.name);
 }
