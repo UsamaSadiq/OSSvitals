@@ -17,6 +17,7 @@ describe("toSiteMeta", () => {
       },
       featureFlags: { enableMaintainerViews: false, enableWeeklyBulletinExport: true, enableMyReposFilter: true, enablePrTemplateGenerator: true },
       freshness: { level: "fresh" },
+      snapshotDate: "2026-10-02",
     });
   });
 });

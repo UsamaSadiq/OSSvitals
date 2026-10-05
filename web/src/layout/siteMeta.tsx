@@ -19,6 +19,7 @@ export interface SiteMeta {
     enablePrTemplateGenerator: boolean;
   };
   freshness?: FreshnessBannerProps;
+  snapshotDate?: string;
   loadError?: string;
 }
 

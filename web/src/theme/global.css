@@ -196,6 +196,39 @@ h3 {
   font-size: var(--fs-small);
 }
 
+/* The header keeps a dark ground in both themes, so its tones use the dark palette. */
+.freshness-chip {
+  --tone: #4ade80;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--on-primary) 30%, transparent);
+  border-radius: 999px;
+  color: var(--on-primary);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.freshness-chip--warn {
+  --tone: #fbbf24;
+  border-color: var(--tone);
+}
+
+.freshness-chip--fail {
+  --tone: #f87171;
+  border-color: var(--tone);
+}
+
+.freshness-chip__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
 .sidebar {
   grid-area: sidebar;
   background: linear-gradient(180deg, var(--sidebar-from), var(--sidebar-to));
@@ -487,6 +520,10 @@ h3 {
   .header {
     gap: 0.6rem;
     padding: 0.6rem 1rem;
+  }
+
+  .freshness-chip--fresh .freshness-chip__detail {
+    display: none;
   }
 }
 

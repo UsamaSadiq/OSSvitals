@@ -1,5 +1,5 @@
 import type { SiteMeta } from "../layout/siteMeta";
-import { freshnessOf } from "./freshness";
+import { freshnessOf, snapshotDateOf } from "./freshness";
 import type { MetaView } from "./schemas";
 
 export function toSiteMeta(meta: MetaView, now: Date = new Date()): SiteMeta {
@@ -21,5 +21,6 @@ export function toSiteMeta(meta: MetaView, now: Date = new Date()): SiteMeta {
       enablePrTemplateGenerator: flags.enable_pr_template_generator ?? true,
     },
     freshness: freshnessOf(meta, now),
+    snapshotDate: snapshotDateOf(meta.metadata.snapshot_timestamp) ?? undefined,
   };
 }

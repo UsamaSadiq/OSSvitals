@@ -3,6 +3,7 @@ import { Link, Outlet } from "react-router";
 import { ErrorState } from "../components/ErrorState";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { Footer } from "./Footer";
+import { FreshnessChip } from "./FreshnessChip";
 import { HeaderShare } from "./HeaderShare";
 import { Nav } from "./Nav";
 import { NoindexMeta } from "./noindex";
@@ -38,6 +39,7 @@ export function Shell() {
         <Link to="/" className="header__wordmark">
           {shortName}
         </Link>
+        <FreshnessChip />
         <div className="header__actions">
           <HeaderShare />
           <ThemeToggle />
