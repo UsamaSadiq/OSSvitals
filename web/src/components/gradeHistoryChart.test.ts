@@ -5,6 +5,7 @@ import {
   gradeHistoryChart,
   gradeHistorySummary,
   gradeSnapshots,
+  monthDay,
   stackStyle,
 } from "./gradeHistoryChart";
 
@@ -56,7 +57,8 @@ describe("grades over time", () => {
     expect(stackStyle(gradeSnapshots(HISTORY))).toBe("bars");
     expect(stackStyle(gradeSnapshots(dailyHistory(AREA_MIN_SNAPSHOTS)))).toBe("area");
     expect(gradeHistoryChart(HISTORY).spec.marks.map((mark) => mark.type)).toEqual(["barY", "tip"]);
-    expect(gradeHistoryChart(HISTORY).spec.options.x).toMatchObject({ domain: ["2026-08-16", "2026-08-31"] });
+    expect(gradeHistoryChart(HISTORY).spec.options.x).toMatchObject({ domain: ["2026-08-16", "2026-08-31"], tickFormat: monthDay });
+    expect(monthDay("2026-08-16")).toBe("08-16");
     const area = gradeHistoryChart(dailyHistory(AREA_MIN_SNAPSHOTS));
     expect(area.spec.marks[0]).toMatchObject({ type: "areaY", options: { x: "date", z: "grade", fill: "fill" } });
     expect(area.spec.options.x).toMatchObject({ type: "utc" });
@@ -76,17 +78,11 @@ describe("grades over time", () => {
     expect(gradeHistorySummary([])).toBeNull();
   });
 
-  it("describes every grade's change for screen readers and links the latest grades", () => {
+  it("describes every grade's change for screen readers", () => {
     const chart = gradeHistoryChart(HISTORY);
     expect(chart.ariaLabel).toBe(
       "Repositories per grade over 2 snapshots from 2026-08-16 to 2026-08-31: A 59 to 62, B 70 to 68, C 30 to 29, D 8 to 9, F 3 to 2",
     );
-    expect(chart.links?.items.map((item) => item.to)).toEqual([
-      "/repos?grade=A",
-      "/repos?grade=B",
-      "/repos?grade=C",
-      "/repos?grade=D",
-      "/repos?grade=F",
-    ]);
+    expect(chart.links).toBeUndefined();
   });
 });

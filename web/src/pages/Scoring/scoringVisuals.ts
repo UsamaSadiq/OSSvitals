@@ -199,7 +199,7 @@ export function contributionChart(repo: string, breakdown: ScoreBreakdown, fills
     ariaLabel: `${repo} composite ${toFixedHalfEven(breakdown.composite, 2)} built from: ${breakdown.rows
       .map((row) => `${row.name} ${toFixedHalfEven(row.points, 2)}`)
       .join(", ")}`,
-    summary: null,
+    summary: `${repo}: ${toFixedHalfEven(breakdown.composite, 2)} of 100 points`,
     spec: {
       options: {
         height: BAR_HEIGHT,

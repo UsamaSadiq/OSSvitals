@@ -112,6 +112,7 @@ describe("score breakdown", () => {
   it("scales the contribution bar to 100 points", () => {
     const chart = contributionChart("openedx/alpha", scoreBreakdown(BARS, 77.08), metricFills(METRICS));
     expect(chart.spec.options.x).toMatchObject({ domain: [0, 100] });
+    expect(chart.summary).toBe("openedx/alpha: 77.08 of 100 points");
     expect(chart.ariaLabel).toBe(
       "openedx/alpha composite 77.08 built from: Commit recency 37.50, PR response time 18.75, README quality 20.83, Dependency freshness 0.00",
     );

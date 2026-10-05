@@ -1,5 +1,5 @@
 import { formatNumber } from "../format";
-import { gradeFill, gradeLinks, gradeTotal, tipMark, type Chart, type GradeMix } from "./charts";
+import { gradeFill, gradeTotal, tipMark, type Chart, type GradeMix } from "./charts";
 import type { MarkSpec } from "./chartSpec";
 import { GRADE_ORDER, type Grade } from "./GradePill";
 
@@ -90,20 +90,26 @@ function gradeHistoryAriaLabel(snapshots: readonly GradeSnapshot[]): string {
   return `Repositories per grade over ${snapshots.length} snapshots from ${first.day} to ${last.day}: ${changes.join(", ")}`;
 }
 
+const BAND_EDGE = { stroke: "var(--page)", strokeWidth: 1 };
+
 function bandMark(bands: readonly GradeBand[], stacked: "area" | "bars"): MarkSpec {
   if (stacked === "area") {
-    return { type: "areaY", data: bands, options: { x: "date", y1: "y1", y2: "y2", z: "grade", fill: "fill" } };
+    return { type: "areaY", data: bands, options: { x: "date", y1: "y1", y2: "y2", z: "grade", fill: "fill", ...BAND_EDGE } };
   }
-  return { type: "barY", data: bands, options: { x: "day", y1: "y1", y2: "y2", fill: "fill", insetLeft: 0, insetRight: 0 } };
+  return { type: "barY", data: bands, options: { x: "day", y1: "y1", y2: "y2", fill: "fill", ...BAND_EDGE } };
 }
 
 export function stackStyle(snapshots: readonly GradeSnapshot[]): "area" | "bars" {
   return snapshots.length >= AREA_MIN_SNAPSHOTS ? "area" : "bars";
 }
 
+export function monthDay(day: string): string {
+  return day.slice(5, 10);
+}
+
 function xScale(snapshots: readonly GradeSnapshot[], stacked: "area" | "bars") {
   if (stacked === "area") return { label: null, type: "utc" as const };
-  return { label: null, domain: snapshots.map((snapshot) => snapshot.day), padding: 0.3 };
+  return { label: null, domain: snapshots.map((snapshot) => snapshot.day), padding: 0.3, tickFormat: monthDay };
 }
 
 export function gradeHistoryChart(history: GradeHistory): Chart {
@@ -111,12 +117,10 @@ export function gradeHistoryChart(history: GradeHistory): Chart {
   const bands = gradeBands(snapshots);
   const stacked = stackStyle(snapshots);
   const ymax = Math.max(1, ...snapshots.map((snapshot) => gradeTotal(snapshot.mix)));
-  const latest = snapshots.at(-1);
   const tipX = stacked === "area" ? "date" : "day";
   return {
     ariaLabel: gradeHistoryAriaLabel(snapshots),
     summary: gradeHistorySummary(snapshots),
-    links: latest ? gradeLinks(latest.mix) : undefined,
     spec: {
       options: {
         height: 320,

@@ -592,6 +592,7 @@ describe("Repo Detail page", () => {
     expect(screen.getByRole("link", { name: "Open on GitHub" })).toHaveAttribute("href", `https://github.com/${REPO}`);
     expect(screen.getByRole("img", { name: "Composite score over 2 snapshots, from 38.0 to 41.3" })).toBeInTheDocument();
     expect(screen.getByText("+3.3 since 2026-09-20")).toHaveClass("kpi-tile__delta--good");
+    expect(screen.getByText("Composite, 30 days")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Watch" })).toBeInTheDocument();
   });
 

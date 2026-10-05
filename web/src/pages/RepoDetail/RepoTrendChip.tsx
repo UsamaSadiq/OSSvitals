@@ -10,6 +10,7 @@ export function RepoTrendChip({ repo }: { repo: string }) {
   if (!trend) return null;
   return (
     <div className="repo-trend">
+      <span className="header-chip__label">Composite, 30 days</span>
       <div className="repo-trend__chart">
         <PlotFigure spec={trend.chart.spec} ariaLabel={trend.chart.ariaLabel} />
       </div>
