@@ -8,6 +8,7 @@
     "github_org": {"type": "string"},
     "site_url": {"type": "string"},
     "moved_to_url": {"type": "string"},
+    "badge_base_url": {"type": "string"},
     "history_repo": {"type": "string"},
     "history_path": {"type": "string"},
     "history_file": {"type": "string"},

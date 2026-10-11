@@ -30,7 +30,7 @@ def owner_key(name: object) -> str:
 
 
 def owner_type(name: str, kind: str, *, unmaintained_group: str) -> str:
-    if owner_key(name) == owner_key(unmaintained_group):
+    if unmaintained_group and owner_key(name) == owner_key(unmaintained_group):
         return NEEDS_MAINTAINER
     if kind == "user":
         return SINGLE_PERSON

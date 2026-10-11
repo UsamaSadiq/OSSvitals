@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from dashboard.lib.config import DEFAULT_ORG, get_config
-from dashboard.lib.data import DEFAULT_CSV_URL, load_snapshot
+from dashboard.lib.data import load_snapshot
 from dashboard.lib.proposed_scoring import applicable_config
 from dashboard.lib.scoring import calculate_scores
 from dashboard.lib.tiers import annotate_tiers
@@ -29,7 +29,7 @@ class ScoredOrg:
 
 
 def _source_urls(data_source: dict) -> tuple[str, str]:
-    snapshot_url = data_source.get("csv_url", DEFAULT_CSV_URL)
+    snapshot_url = data_source["csv_url"]
     history_url = data_source.get("history_csv_url") or snapshot_url.replace(
         "dashboard_main.csv", "dashboard_history.csv"
     )

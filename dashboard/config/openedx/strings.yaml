@@ -6,6 +6,8 @@ overview:
   kpi_grade_f: "Grade F"
 repo_detail:
   title: "Repository Detail"
+subscore_help:
+  structural: "Baseline compliance: README, CI, openedx.yaml, deps."
 failing_checks:
   title: "Failing Checks"
 needing_attention:

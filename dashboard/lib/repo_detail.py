@@ -18,7 +18,7 @@ CARD_PASS_AT = 80
 CARD_WARN_AT = 50
 STATE_ORDER = {"measured": 0, "defaulted": 1, "unavailable": 2}
 SUBSCORE_HELP = {
-    "structural": "Baseline compliance: README, CI, openedx.yaml, deps.",
+    "structural": "Baseline compliance: README, CI, repository metadata, deps.",
     "activity": "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals.",
 }
 RELATION_STATUS_SUFFIX = {"not_in_catalog": " (not in catalog)", "placeholder": " (template placeholder)"}
@@ -60,11 +60,13 @@ def subscore(value: object, fraction: float, base_help: str) -> dict[str, Any]:
     return {"value": float(value), "help": base_help + suffix}
 
 
-def subscores(row: pd.Series) -> dict[str, dict[str, Any]]:
+def subscores(row: pd.Series, help_overrides: dict[str, str] | None = None) -> dict[str, dict[str, Any]]:
     measured = _mapping(row.get("score_category_measured_weight"))
+    help_texts = {**SUBSCORE_HELP, **(help_overrides or {})}
     return {
         category: subscore(row.get(f"score_{category}"), float(measured.get(category, 1.0) or 0.0), base_help)
-        for category, base_help in SUBSCORE_HELP.items()
+        for category, base_help in help_texts.items()
+        if category in SUBSCORE_HELP
     }
 
 
