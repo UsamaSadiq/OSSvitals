@@ -5,6 +5,30 @@
     "name": {"type": "string"},
     "short_name": {"type": "string"},
     "tagline": {"type": "string"},
+    "site_title": {"type": "string"},
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "checks_name": {"type": "string"},
+        "checks_repo_label": {"type": "string"},
+        "checks_repo_url": {"type": "string"},
+        "data_repo_label": {"type": "string"},
+        "data_repo_url": {"type": "string"},
+        "governance_body": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "browse_url": {"type": "string"},
+        "membership_scope": {"type": "string"},
+        "spec_name": {"type": "string"},
+        "spec_url": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
     "colors": {"type": "object"},
     "footer": {"type": "object"}
   },

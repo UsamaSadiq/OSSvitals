@@ -3,6 +3,7 @@ import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { RepoLink } from "../../components/RepoName";
+import { useSiteMeta } from "../../layout/siteMeta";
 import { CodeText } from "../../components/CodeText";
 import {
   formatSignedChange,
@@ -138,13 +139,14 @@ function GradeChanges({ changes }: { changes: readonly ChangeRow[] }) {
 }
 
 export function ProposedSection({ proposed }: { proposed: Proposed }) {
+  const governanceBody = useSiteMeta().provenance.governanceBody ?? "the maintainers";
   return (
     <section className="scoring-section" aria-labelledby="proposed-heading">
       <h2 id="proposed-heading">Proposed changes</h2>
       <p>
         Scoring version {versionText(proposed.version)} replaces metrics that reward a file or a tool being set up
         with ones that measure the outcome. It is <strong>not live</strong>: every grade on this dashboard still uses
-        the method above until the Open edX Maintenance Working Group agrees the change.
+        the method above until {governanceBody} agrees the change.
       </p>
       <DataTable
         caption="Proposed metric swaps"

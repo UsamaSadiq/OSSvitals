@@ -2,21 +2,17 @@ import { Link } from "react-router";
 import { CodeText } from "../../components/CodeText";
 import { EmptyState } from "../../components/EmptyState";
 import { ownerPath } from "../../components/ownerPath";
+import { membershipNote, missingFileNote } from "../../layout/catalogCopy";
+import { useCatalogName, useSiteMeta, type CatalogMeta } from "../../layout/siteMeta";
 import type { RepoDetail } from "./repoDetailData";
 import { StatusChip } from "./StatusChip";
 
 type CatalogDetail = NonNullable<RepoDetail["catalog"]>;
 
-export const OEP_55_URL =
-  "https://open-edx-proposals.readthedocs.io/en/latest/processes/oep-0055-proc-project-maintainers.html";
-
 const SEVERITY_CHIP: Record<string, string> = { problem: "fail", note: "warn" };
 
-export function catalogCaption(collectedAt: string | null): string {
-  return (
-    `From catalog-info.yaml on the default branch, collected ${(collectedAt ?? "").slice(0, 10)}. ` +
-    "User owners are checked against GitHub; group owners are not, since that needs openedx org membership."
-  );
+export function catalogCaption(collectedAt: string | null, catalog: CatalogMeta): string {
+  return `From catalog-info.yaml on the default branch, collected ${(collectedAt ?? "").slice(0, 10)}. ${membershipNote(catalog)}`;
 }
 
 function Owner({ entry }: { entry: CatalogDetail }) {
@@ -45,6 +41,7 @@ function Facts({ entry }: { entry: CatalogDetail }) {
 }
 
 function About({ entry }: { entry: CatalogDetail }) {
+  const catalogName = useCatalogName();
   const hasList = entry.links.length > 0 || entry.relations.length > 0;
   return (
     <div>
@@ -73,7 +70,7 @@ function About({ entry }: { entry: CatalogDetail }) {
       {entry.backstage_url && (
         <p>
           <a href={entry.backstage_url} target="_blank" rel="noreferrer">
-            Open in Backstage
+            Open in {catalogName}
           </a>
         </p>
       )}
@@ -93,6 +90,7 @@ function Findings({ entry }: { entry: CatalogDetail }) {
 }
 
 function CatalogBody({ entry, collectedAt }: { entry: CatalogDetail | null; collectedAt: string | null }) {
+  const { catalog } = useSiteMeta();
   if (entry === null) {
     return (
       <EmptyState
@@ -107,8 +105,8 @@ function CatalogBody({ entry, collectedAt }: { entry: CatalogDetail | null; coll
       <EmptyState
         kind="warn"
         title="This repository has no catalog-info.yaml."
-        body="Backstage does not list it and its owner is unknown. OEP-55 describes the file."
-        action={{ label: "OEP-55", href: OEP_55_URL }}
+        body={missingFileNote(catalog)}
+        action={catalog.specName && catalog.specUrl ? { label: catalog.specName, href: catalog.specUrl } : undefined}
       />
     );
   }
@@ -120,7 +118,7 @@ function CatalogBody({ entry, collectedAt }: { entry: CatalogDetail | null; coll
         <About entry={entry} />
       </div>
       <Findings entry={entry} />
-      <p className="caption">{catalogCaption(collectedAt)}</p>
+      <p className="caption">{catalogCaption(collectedAt, catalog)}</p>
     </>
   );
 }

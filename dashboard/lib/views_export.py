@@ -100,6 +100,8 @@ def build_meta(ctx: BuildContext) -> dict[str, Any]:
         "dashboard/config",
         config_version=str(scored["score_config_version"].iloc[0]) if "score_config_version" in scored.columns else None,
         branding=ctx.config("org_branding"),
+        github_org=data_source.get("github_org", ctx.org),
+        unmaintained_group=_stewardship_rule(ctx).get("unmaintained_group") or None,
         feature_flags=get_feature_flags(),
         stale_threshold_hours=int(data_source.get("stale_threshold_hours", 48)),
         critically_stale_threshold_hours=int(data_source.get("critically_stale_threshold_hours", 168)),

@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { DataTable, type Column } from "../../components/DataTable";
 import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { RepoLink } from "../../components/RepoName";
 import { formatNumber, formatScore } from "../../format";
+import { useCatalogName } from "../../layout/siteMeta";
 import { formatSignedDelta, type AtRiskRow } from "./atRiskText";
 
 function optionalScore(value: number | null | undefined): string {
@@ -23,7 +25,8 @@ function textColumn(key: TextField, header: string): Column<AtRiskRow> {
   return { key, header, cell: text, sortValue: text };
 }
 
-const COLUMNS: Column<AtRiskRow>[] = [
+function columnsFor(catalogName: string): Column<AtRiskRow>[] {
+  return [
   {
     key: "repo_name",
     header: "Repository",
@@ -71,17 +74,20 @@ const COLUMNS: Column<AtRiskRow>[] = [
   textColumn("reasons", "Why flagged"),
   {
     key: "catalog_link",
-    header: "Backstage",
+    header: catalogName,
     cell: (row) => (row.catalog_link ? <a href={row.catalog_link}>Catalog</a> : ""),
   },
 ];
+}
 
 export function AtRiskTable({ rows }: { rows: readonly AtRiskRow[] }) {
+  const catalogName = useCatalogName();
+  const columns = useMemo(() => columnsFor(catalogName), [catalogName]);
   return (
     <DataTable
       caption="Repositories at risk"
       captionHidden
-      columns={COLUMNS}
+      columns={columns}
       rows={rows}
       rowKey={(row) => row.repo_name}
     />

@@ -1,6 +1,20 @@
 name: "Open edX Repository Health Dashboard"
 short_name: "Open edX Health"
 tagline: "Visualization-first health insights for Open edX repositories"
+site_title: "Open edX Repo Health"
+provenance:
+  checks_name: "Open edX repo health"
+  checks_repo_label: "edx-repo-health"
+  checks_repo_url: "https://github.com/openedx/edx-repo-health"
+  data_repo_label: "openedx/wg-maintenance"
+  data_repo_url: "https://github.com/openedx/wg-maintenance/tree/main/dashboards"
+  governance_body: "the Open edX Maintenance Working Group"
+catalog:
+  name: "Backstage"
+  browse_url: "https://backstage.openedx.org/catalog"
+  membership_scope: "openedx org membership"
+  spec_name: "OEP-55"
+  spec_url: "https://open-edx-proposals.readthedocs.io/en/latest/processes/oep-0055-proc-project-maintainers.html"
 colors:
   primary: "#00262B"
   accent: "#00B2A9"

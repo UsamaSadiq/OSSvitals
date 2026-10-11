@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { DataTable, type Column } from "../../components/DataTable";
 import { GradePill, GRADE_ORDER, type Grade } from "../../components/GradePill";
 import { RepoLink } from "../../components/RepoName";
 import { formatNumber, formatScore } from "../../format";
+import { useCatalogName } from "../../layout/siteMeta";
 import {
   groupLabel,
   OWNER_PARAM,
@@ -83,7 +85,8 @@ const OWNER_COLUMNS: Column<OwnerRecord>[] = [
   countColumn("at_risk", "At risk", (row) => row.at_risk),
 ];
 
-const OWNER_REPO_COLUMNS: Column<OwnerRepo>[] = [
+function ownerRepoColumns(catalogName: string): Column<OwnerRepo>[] {
+  return [
   ...scoredRepoColumns<OwnerRepo>(),
   {
     key: "score_activity",
@@ -96,10 +99,11 @@ const OWNER_REPO_COLUMNS: Column<OwnerRepo>[] = [
   textColumn("release", "Release", (row) => row.release),
   {
     key: "catalog_link",
-    header: "Backstage",
+    header: catalogName,
     cell: (row) => (row.catalog_link ? <a href={row.catalog_link}>Catalog</a> : ""),
   },
 ];
+}
 
 const HANDLE_COLUMNS = scoredRepoColumns<HandleRepo>();
 
@@ -135,11 +139,13 @@ export function OwnerSummaryTable({ rows }: { rows: readonly OwnerRecord[] }) {
 }
 
 export function OwnerReposTable({ owner, rows }: { owner: string; rows: readonly OwnerRepo[] }) {
+  const catalogName = useCatalogName();
+  const columns = useMemo(() => ownerRepoColumns(catalogName), [catalogName]);
   return (
     <DataTable
       caption={`Repositories owned by ${owner}`}
       captionHidden
-      columns={OWNER_REPO_COLUMNS}
+      columns={columns}
       rows={rows}
       rowKey={(row) => row.repo_name}
     />

@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { DataTable, type Column } from "../../components/DataTable";
 import { GradePill, GRADE_ORDER, isGrade } from "../../components/GradePill";
 import { RepoLink, RepoName } from "../../components/RepoName";
 import { formatNumber } from "../../format";
+import { useCatalogName } from "../../layout/siteMeta";
 import { releaseLabel, type ComponentRow, type FindingRepo } from "./componentRows";
 
 interface RepoRow {
@@ -41,7 +43,8 @@ const FINDING_COLUMNS: Column<FindingRepo>[] = [
   textColumn("owner", "Owner", (row) => row.owner ?? ""),
 ];
 
-const COMPONENT_COLUMNS: Column<ComponentRow>[] = [
+function componentColumns(catalogName: string): Column<ComponentRow>[] {
+  return [
   repoColumn(),
   textColumn("type", "Type", (row) => row.type ?? ""),
   textColumn("lifecycle", "Lifecycle", (row) => row.lifecycle ?? ""),
@@ -57,10 +60,11 @@ const COMPONENT_COLUMNS: Column<ComponentRow>[] = [
   },
   {
     key: "backstage_url",
-    header: "Backstage",
-    cell: (row) => (row.backstage_url ? <a href={row.backstage_url}>Backstage</a> : ""),
+    header: catalogName,
+    cell: (row) => (row.backstage_url ? <a href={row.backstage_url}>{catalogName}</a> : ""),
   },
 ];
+}
 
 export function FindingReposTable({ label, repos }: { label: string; repos: readonly FindingRepo[] }) {
   return (
@@ -75,11 +79,13 @@ export function FindingReposTable({ label, repos }: { label: string; repos: read
 }
 
 export function ComponentsTable({ rows }: { rows: readonly ComponentRow[] }) {
+  const catalogName = useCatalogName();
+  const columns = useMemo(() => componentColumns(catalogName), [catalogName]);
   return (
     <DataTable
       caption="Declared components"
       captionHidden
-      columns={COMPONENT_COLUMNS}
+      columns={columns}
       rows={rows}
       rowKey={(row) => row.repo_name}
       emptyMessage="No components match these filters."

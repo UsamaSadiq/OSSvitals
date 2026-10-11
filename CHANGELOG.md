@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `DASHBOARD_ORG` selects the active org config folder.
+- Wording the web app shows (page title, scoring provenance, catalog names, governance body) comes from the org's `org_branding.yaml` and is exported in `meta.json`; leaving it out gives neutral wording.
+- `parse_rule: boolean` scores any metric, replacing a check on two metric names.
+
+### Changed
+- `deploy-web.yml` bundles every org folder on the `data` branch.
 
 ## [1.0.0] - 2026-05-19
 Initial release of Phase 1 implementation
