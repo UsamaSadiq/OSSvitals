@@ -16,9 +16,6 @@ from dashboard.lib.trends import Snapshot, load_history as load_trend_history
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CSV_URL = (
-    "https://raw.githubusercontent.com/openedx/wg-maintenance/main/dashboards/dashboard_main.csv"
-)
 CACHE_DIR = DASHBOARD_DIR.parent / ".cache" / "dashboard_data"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -56,7 +53,7 @@ def _validate_snapshot(df: pd.DataFrame, cfg: dict[str, Any]) -> tuple[bool, lis
 def _fetch_snapshot_dataframe(cfg: dict[str, Any]) -> pd.DataFrame:
     # Fixture handling lives in load_snapshot, above the try/except that would
     # otherwise swallow a misconfiguration. See the comment there.
-    csv_url = cfg.get("csv_url", DEFAULT_CSV_URL)
+    csv_url = cfg["csv_url"]
     response = requests.get(csv_url, timeout=30)
     response.raise_for_status()
     return pd.read_csv(pd.io.common.StringIO(response.text))

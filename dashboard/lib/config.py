@@ -15,7 +15,7 @@ LIB_DIR = Path(__file__).resolve().parent
 DASHBOARD_DIR = LIB_DIR.parent
 CONFIG_DIR = DASHBOARD_DIR / "config"
 DEFAULT_ORG = "openedx"
-ORG_CONFIG_DIR = CONFIG_DIR / DEFAULT_ORG
+ORG_ENV_VAR = "DASHBOARD_ORG"
 
 
 def read_config_file(path: str | Path) -> dict:
@@ -31,9 +31,20 @@ def read_config_file(path: str | Path) -> dict:
         return {}
 
 
+def active_org() -> str:
+    return os.environ.get(ORG_ENV_VAR, "").strip() or DEFAULT_ORG
+
+
+def get_config(section: str, org: str | None = None) -> dict:
+    """Get configuration by section name from org config directory.
+
+    Without an explicit org, the org named by DASHBOARD_ORG is used.
+    """
+    return _load_config(section, org or active_org())
+
+
 @lru_cache(maxsize=32)
-def get_config(section: str, org: str = DEFAULT_ORG) -> dict:
-    """Get configuration by section name from org config directory."""
+def _load_config(section: str, org: str) -> dict:
     path = CONFIG_DIR / org / f"{section}.yaml"
     if path.exists():
         payload = read_config_file(path)

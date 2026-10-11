@@ -30,7 +30,7 @@ def _history_url(cfg: dict[str, Any]) -> str:
     explicit = cfg.get("history_csv_url")
     if explicit:
         return str(explicit)
-    history_repo = cfg.get("history_repo", "openedx/wg-maintenance")
+    history_repo = cfg["history_repo"]
     history_file = cfg.get("history_file", "dashboards/dashboard_history.csv")
     return f"https://raw.githubusercontent.com/{history_repo}/main/{history_file}"
 

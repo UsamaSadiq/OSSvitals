@@ -19,10 +19,15 @@ def _catalog_by_repo(payload: dict[str, Any] | None) -> dict[str, dict[str, Any]
     return {entry[REPO_COL]: catalog_detail(entry, findings_legend) for entry in payload["records"]}
 
 
-def _repo_entry(row: pd.Series, categories: dict[str, list[str]], catalog_entry: dict[str, Any] | None) -> dict[str, Any]:
+def _repo_entry(
+    row: pd.Series,
+    categories: dict[str, list[str]],
+    catalog_entry: dict[str, Any] | None,
+    subscore_help: dict[str, str],
+) -> dict[str, Any]:
     return {
         "summary": metric_summary(row),
-        "subscores": subscores(row),
+        "subscores": subscores(row, subscore_help),
         "metric_bars": metric_bars(row),
         "category_cards": [{"name": name, **category_card(row, cols)} for name, cols in categories.items()],
         "catalog": catalog_entry,
@@ -34,13 +39,14 @@ def build_repo_detail(ctx: BuildContext) -> dict[str, Any]:
     payload = ctx.maintenance.get(catalog.CATALOG_FILE)
     entries = _catalog_by_repo(payload)
     categories = {name: cols for name, cols in category_columns(scored.columns).items() if cols}
+    subscore_help = ctx.config("strings").get("subscore_help", {})
     return envelope(
         ctx,
         "scores, checks and catalog-info.yaml snapshot",
         catalog_available=payload is not None,
         catalog_collected_at=payload["metadata"].get("generated_at") if payload else None,
         repos={
-            str(row[REPO_COL]): _repo_entry(row, categories, entries.get(str(row[REPO_COL])))
+            str(row[REPO_COL]): _repo_entry(row, categories, entries.get(str(row[REPO_COL])), subscore_help)
             for _, row in scored.iterrows()
         },
     )

@@ -9,6 +9,14 @@ import pytest
 from dashboard.lib import stewardship
 
 NOW = datetime(2026, 9, 24, tzinfo=timezone.utc)
+OPENEDX_RULE = {
+    "unmaintained_group": "openedx-unmaintained",
+    "catalog_url_template": "https://backstage.openedx.org/catalog/default/component/{name}",
+}
+
+
+def _at_risk(scored, baseline, *, rule=None, **kwargs):
+    return stewardship.at_risk_repos(scored, baseline, rule={**OPENEDX_RULE, **(rule or {})}, **kwargs)
 RECENT_PUSH = "2026-09-20 10:00:00"
 OLD_PUSH = "2025-01-01 10:00:00"
 
@@ -49,20 +57,20 @@ def test_owner_status(row, expected):
 def test_team_owned_repos_are_never_at_risk():
     scored = pd.DataFrame([_row("openedx/x", "group:team", "group", "team", activity=5.0, push=OLD_PUSH)])
 
-    assert stewardship.at_risk_repos(scored, None, now=NOW).empty
+    assert _at_risk(scored, None, now=NOW).empty
 
 
 def test_thin_ownership_without_warnings_is_not_listed():
     scored = pd.DataFrame([_needs_maintainer("openedx/healthy")])
 
-    assert stewardship.at_risk_repos(scored, None, now=NOW).empty
+    assert _at_risk(scored, None, now=NOW).empty
 
 
 def test_each_warning_is_reported():
     scored = pd.DataFrame([_needs_maintainer("openedx/ora", activity=10.0, push=OLD_PUSH, score=40.0)])
     baseline = pd.DataFrame([{"repo_name": "openedx/ora", "score_composite": 50.0}])
 
-    result = stewardship.at_risk_repos(scored, baseline, now=NOW)
+    result = _at_risk(scored, baseline, now=NOW)
 
     reasons = result.loc[0, "reasons"]
     assert "activity score below 40" in reasons
@@ -74,7 +82,7 @@ def test_each_warning_is_reported():
 def test_rule_thresholds_come_from_config():
     scored = pd.DataFrame([_row("openedx/y", "user:bob", "user", "bob", activity=55.0)])
 
-    listed = stewardship.at_risk_repos(scored, None, now=NOW, rule={"weak_activity_below": 60})
+    listed = _at_risk(scored, None, now=NOW, rule={"weak_activity_below": 60})
 
     assert list(listed["repo_name"]) == ["openedx/y"]
 
@@ -83,7 +91,7 @@ def test_repo_missing_from_baseline_has_no_delta():
     scored = pd.DataFrame([_needs_maintainer("openedx/new", activity=10.0)])
     baseline = pd.DataFrame([{"repo_name": "openedx/other", "score_composite": 50.0}])
 
-    result = stewardship.at_risk_repos(scored, baseline, now=NOW)
+    result = _at_risk(scored, baseline, now=NOW)
 
     assert pd.isna(result.loc[0, "delta"])
 
@@ -91,7 +99,7 @@ def test_repo_missing_from_baseline_has_no_delta():
 def test_catalog_link_uses_repo_basename():
     scored = pd.DataFrame([_needs_maintainer("openedx/edx-ora2", activity=10.0)])
 
-    link = stewardship.at_risk_repos(scored, None, now=NOW).loc[0, "catalog_link"]
+    link = _at_risk(scored, None, now=NOW).loc[0, "catalog_link"]
 
     assert link == "https://backstage.openedx.org/catalog/default/component/edx-ora2"
 
@@ -107,7 +115,7 @@ def test_production_or_release_filter():
 def test_repo_without_ownership_columns_counts_as_no_owner():
     scored = pd.DataFrame([{"repo_name": "openedx/z", "score_composite": 50.0, "score_activity": 10.0}])
 
-    result = stewardship.at_risk_repos(scored, None, now=NOW)
+    result = _at_risk(scored, None, now=NOW)
 
     assert list(result["owner_status"]) == [stewardship.NO_OWNER]
 
@@ -120,7 +128,7 @@ def test_repo_without_ownership_columns_counts_as_no_owner():
 def test_retired_repos_are_left_out(extra):
     scored = pd.DataFrame([_needs_maintainer("openedx/old", activity=5.0, push=OLD_PUSH, **extra)])
 
-    assert stewardship.at_risk_repos(scored, None, now=NOW).empty
+    assert _at_risk(scored, None, now=NOW).empty
 
 
 def test_production_repo_waiting_for_maintainer_is_listed():
@@ -128,7 +136,7 @@ def test_production_repo_waiting_for_maintainer_is_listed():
         [_needs_maintainer("openedx/edx-ora2", activity=10.0, **{"ownership.lifecycle": "production"})]
     )
 
-    result = stewardship.at_risk_repos(scored, None, now=NOW)
+    result = _at_risk(scored, None, now=NOW)
 
     assert list(result["owner_status"]) == [stewardship.NEEDS_MAINTAINER]
 
@@ -143,7 +151,7 @@ def test_rows_are_ordered_by_status_then_score():
         ]
     )
 
-    result = stewardship.at_risk_repos(scored, None, now=NOW)
+    result = _at_risk(scored, None, now=NOW)
 
     assert list(result["repo_name"]) == ["openedx/a1", "openedx/a2", "openedx/b", "openedx/c"]
 
@@ -152,7 +160,7 @@ def test_owner_override_counts_team_owned_repo_as_needing_maintainer():
     scored = pd.DataFrame([_row("openedx/ccx-keys", "group:2u-arch-bom", "group", "2u-arch-bom", activity=10.0)])
     rule = {"owner_overrides": {"openedx/ccx-keys": "owner team 2u-arch-bom has no access to the repo"}}
 
-    result = stewardship.at_risk_repos(scored, None, now=NOW, rule=rule)
+    result = _at_risk(scored, None, now=NOW, rule=rule)
 
     assert list(result["owner_status"]) == [stewardship.NEEDS_MAINTAINER]
     assert result.loc[0, "owner"] == "2u-arch-bom (owner team 2u-arch-bom has no access to the repo)"
@@ -162,7 +170,7 @@ def test_overridden_repo_without_activity_warning_is_not_listed():
     scored = pd.DataFrame([_row("openedx/ccx-keys", "group:2u-arch-bom", "group", "2u-arch-bom")])
     rule = {"owner_overrides": {"openedx/ccx-keys": "no access"}}
 
-    assert stewardship.at_risk_repos(scored, None, now=NOW, rule=rule).empty
+    assert _at_risk(scored, None, now=NOW, rule=rule).empty
 
 
 def test_changed_metrics_are_those_changed_after_the_baseline():
@@ -183,5 +191,14 @@ def test_method_change_does_not_read_as_a_score_drop():
         score_per_metric={"response": 100.0, "recency": 80.0}, score_per_metric_weight=weights,
     )])
 
-    assert not stewardship.at_risk_repos(scored, baseline, now=NOW).empty
-    assert stewardship.at_risk_repos(scored, baseline, now=NOW, skip_metrics=frozenset({"response"})).empty
+    assert not _at_risk(scored, baseline, now=NOW).empty
+    assert _at_risk(scored, baseline, now=NOW, skip_metrics=frozenset({"response"})).empty
+
+
+def test_blank_unmaintained_group_matches_no_owner():
+    row = pd.Series({"repo_name": "o/x", "ownership.owner": "group:a", "ownership.owner_name": ""})
+    assert stewardship.owner_status(row, unmaintained_group="") != stewardship.NEEDS_MAINTAINER
+
+
+def test_catalog_url_is_blank_without_template():
+    assert stewardship.catalog_url("o/x", "") == ""

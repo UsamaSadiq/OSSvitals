@@ -5,9 +5,9 @@ score history: the view Backstage's catalog cannot produce, because Backstage
 has owners but no health data. Thresholds come from ``attention_rules.yaml``
 (``stewardship_risk``) so they can be reviewed without touching code.
 
-``openedx-unmaintained`` means "no maintainer assigned yet", not retired: it
-holds production repos such as edx-ora2 and xqueue. Retired repos are the ones
-marked ``lifecycle: deprecated`` or archived, and those are left out.
+The configured unmaintained group means "no maintainer assigned yet", not
+retired. Retired repos are the ones marked ``lifecycle: deprecated`` or
+archived, and those are left out.
 """
 from __future__ import annotations
 
@@ -33,13 +33,13 @@ TEAM = "team"
 AT_RISK_STATUSES = (NEEDS_MAINTAINER, SINGLE_PERSON, NO_OWNER)
 
 DEFAULT_RULE: dict[str, Any] = {
-    "unmaintained_group": "openedx-unmaintained",
+    "unmaintained_group": "",
     "weak_activity_below": 40,
     "stale_push_days": 180,
     "score_drop_points": 5,
     "excluded_lifecycles": ["deprecated"],
     "owner_overrides": {},
-    "catalog_url_template": "https://backstage.openedx.org/catalog/default/component/{name}",
+    "catalog_url_template": "",
 }
 
 
@@ -52,7 +52,7 @@ def owner_status(
 ) -> str:
     if _text(row.get(REPO_COL)) in (owner_overrides or {}):
         return NEEDS_MAINTAINER
-    if _text(row.get(OWNER_NAME_COL)) == unmaintained_group:
+    if unmaintained_group and _text(row.get(OWNER_NAME_COL)) == unmaintained_group:
         return NEEDS_MAINTAINER
     if not _text(row.get(OWNER_COL)):
         return NO_OWNER
@@ -126,6 +126,8 @@ def _reasons(activity: object, days: int | None, delta: float, rule: dict[str, A
 
 
 def catalog_url(repo_name: str, template: str) -> str:
+    if not template:
+        return ""
     return template.format(name=repo_name.rsplit("/", 1)[-1])
 
 

@@ -9,7 +9,7 @@ from dashboard.lib.config import get_config
 from dashboard.ui.theme import THEME_STATE_KEY, is_dark
 
 THEME_TOGGLE_KEY = "theme_dark_toggle"
-DEFAULT_ORG_NAME = "Open edX Health"
+DEFAULT_ORG_NAME = "Repository Health"
 
 
 def _store_theme_choice() -> None:

@@ -270,7 +270,7 @@ def render() -> None:
         ),
         unsafe_allow_html=True,
     )
-    parts = subscores(repo_row)
+    parts = subscores(repo_row, get_config("strings").get("subscore_help"))
 
     def _subscore_text(category: str) -> str:
         value = parts[category]["value"]
