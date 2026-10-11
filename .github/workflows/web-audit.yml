@@ -4,7 +4,7 @@ name: Tests and web audit
 # every route of the built web app at desktop and mobile:
 #
 #   * axe-core accessibility, blocking on every violation (no allowlist).
-#   * a pixel diff against the reviewed baselines in tests/baseline-web/, which is
+#   * a pixel diff against the reviewed baselines in tests/baseline-web/<org>/, which is
 #     the only thing that catches a clipped axis label or a repo name overrunning
 #     its grade pill. The baselines are Linux-rendered; see docs/RUNBOOK.md for how
 #     to regenerate them through the same container CI uses.
@@ -83,7 +83,7 @@ jobs:
     name: Web visual diff
     needs: web-build
     runs-on: ubuntu-latest
-    # Pinned image: the baselines in tests/baseline-web/ are byte-compared Linux
+    # Pinned image: the baselines in tests/baseline-web/<org>/ are byte-compared Linux
     # renders.
     container:
       image: mcr.microsoft.com/playwright/python:v1.60.0-noble@sha256:8ff591d613b01c884cc488339ed4318b4513eaf0c57a164a878ba49e70e3f384
@@ -94,7 +94,7 @@ jobs:
           name: web-dist
           path: web/dist
       - run: pip install --break-system-packages -r requirements.txt -r requirements-dev.txt
-      - name: Diff every route against tests/baseline-web/
+      - name: Diff every route against tests/baseline-web/openedx/
         run: python scripts/web_audit.py --mode diff
       - name: Upload diff images
         if: failure()

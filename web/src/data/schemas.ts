@@ -72,16 +72,17 @@ const signalSchema = z.object({
 });
 
 export const metaSchema = view({
-  config_version: z.string().nullable(),
+  config_version: z.string().nullable().optional(),
+  pages: z.array(z.string()).optional(),
   branding: brandingSchema,
   github_org: z.string().optional(),
   unmaintained_group: z.string().nullable().optional(),
   feature_flags: featureFlagsSchema,
   stale_threshold_hours: int,
   critically_stale_threshold_hours: int,
-  snapshot_url: z.string().nullable(),
-  history_url: z.string().nullable(),
-  signals: z.array(signalSchema),
+  snapshot_url: z.string().nullable().optional(),
+  history_url: z.string().nullable().optional(),
+  signals: z.array(signalSchema).optional(),
 });
 
 const checkStateSchema = z.enum(["pass", "fail", "unknown"]);

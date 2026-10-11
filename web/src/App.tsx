@@ -1,11 +1,14 @@
 import { useMemo, type ReactNode } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router";
 import { toSiteMeta } from "./data/siteMeta";
+import { currentOrg } from "./data/org";
 import { useView, type ViewState } from "./data/useView";
 import { DEFAULT_SITE_META, SiteMetaProvider, type SiteMeta } from "./layout/siteMeta";
-import { routes } from "./routes";
+import { TenantProvider } from "./tenants/context";
+import { tenantFor } from "./tenants/registry";
 
-const router = createBrowserRouter(routes);
+const tenant = tenantFor(currentOrg());
+const router = createBrowserRouter(tenant.routes);
 
 function siteMetaFor(meta: ViewState<"meta">): SiteMeta {
   if (meta.status === "ready") return toSiteMeta(meta.data);
@@ -24,8 +27,10 @@ function LoadedSiteMeta({ children }: { children: ReactNode }) {
 
 export function App() {
   return (
-    <LoadedSiteMeta>
-      <RouterProvider router={router} />
-    </LoadedSiteMeta>
+    <TenantProvider tenant={tenant}>
+      <LoadedSiteMeta>
+        <RouterProvider router={router} />
+      </LoadedSiteMeta>
+    </TenantProvider>
   );
 }

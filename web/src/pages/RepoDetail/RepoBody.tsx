@@ -28,7 +28,7 @@ function Activity({ record }: { record: RepoRecord }) {
   if (meta.status !== "ready" || overview.status !== "ready") return <Loading label="Loading activity…" />;
   return (
     <ActivitySignals
-      signals={meta.data.signals}
+      signals={meta.data.signals ?? []}
       record={record as Record<string, unknown>}
       unmeasured={overview.data.unmeasured_columns}
     />

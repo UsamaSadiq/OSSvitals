@@ -38,3 +38,15 @@ def test_report_lists_every_source_with_its_state():
 
     assert "| [CSV](https://x/csv) | 2026-09-27 | 0 | ok |" in text
     assert "| [Scores](https://x/s) | unreadable |  | stale (HTTPError) |" in text
+
+
+def test_limit_follows_the_tenants_threshold_in_whole_days():
+    assert freshness.max_age_days_from_hours(48) == 2
+    assert freshness.max_age_days_from_hours(72) == 3
+    assert freshness.max_age_days_from_hours(30) == 2
+    assert freshness.max_age_days_from_hours(12) == 1
+
+
+def test_limit_defaults_when_the_threshold_is_missing_or_invalid():
+    for value in (None, 0, -5, "48", True):
+        assert freshness.max_age_days_from_hours(value) == freshness.DEFAULT_MAX_AGE_DAYS

@@ -1,7 +1,7 @@
 import type { MetaView } from "../../data/schemas";
 import { formatNumber, toFixedHalfEven } from "../../format";
 
-export type Signal = MetaView["signals"][number];
+export type Signal = NonNullable<MetaView["signals"]>[number];
 export type SignalKind = Signal["kind"];
 
 export interface SignalItem {

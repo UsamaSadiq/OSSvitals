@@ -11,15 +11,31 @@
 1. Update `csv_url` to a known-good raw CSV snapshot URL.
 2. Re-run the `build-scores` workflow and confirm it publishes fresh `scores.json` and `views/`.
 
-## Adding a tenant
+## Tenants
 
-The web app follows the subdomain: `<org>.ossvitals.org` loads `data/<org>/views/*.json`. Everything org-specific lives in `dashboard/config/<org>/`:
+Each tenant owns its collector, its view files and its pages. They share only a thin contract, so one tenant's setup never blocks another.
 
-1. Copy `dashboard/config/openedx/` to `dashboard/config/<org>/` and edit it. Wording the web app shows comes from `org_branding.yaml` (`name`, `site_title`, `provenance`, `catalog`, `footer`) and `attention_rules.yaml` (`unmaintained_group`, `catalog_url_template`). Every key under `provenance` and `catalog` is optional; leaving one out makes the page use neutral wording.
-2. Set `data_source.yaml` (`csv_url`, `history_repo`, `github_org`) and `scoring.yaml`. A metric of `parse_rule: boolean` needs no code.
-3. Add a build step for `--org <org>` to `build-scores.yml` and `collect-maintenance.yml`, so the `data` branch gains `<org>/views`.
-4. Add the route in `web/wrangler.json` (`<org>.ossvitals.org`, custom domain). `deploy-web.yml` already bundles every org folder on the `data` branch.
-5. List the live dashboard on `sites/landing/public/index.html` once it is public.
+### The tenant contract
+
+A tenant is complete when `data/<org>/views/meta.json` exists on the `data` branch and every other view file its own pages read is present. The web app follows the subdomain: `<org>.ossvitals.org` loads `data/<org>/views/*.json`.
+
+`meta.json` requires:
+- `metadata` (`org`, `generated_at`, `snapshot_timestamp`, `schema_version`, `source`)
+- `branding` (`name`, `short_name`, `tagline`; optional `site_title`, `provenance`, `catalog`, `footer`, `colors`)
+- `feature_flags` (`enable_maintainer_views`)
+- `stale_threshold_hours` and `critically_stale_threshold_hours`
+
+and optionally `pages` (the paths the nav shows; omit it to show every page the tenant defines), `github_org`, `unmaintained_group`, and the openedx-shaped `config_version`, `signals`, `snapshot_url` and `history_url`. All other view schemas belong to the tenant.
+
+### Adding a tenant
+
+1. Add `dashboard/config/<org>/` with at least `org_branding.yaml`. Wording the web app shows comes from there; every key under `provenance` and `catalog` is optional and a missing key gives neutral text.
+2. Write the tenant's collector and publish its views under `<org>/views/` on the `data` branch. It does not need a CSV, scoring or the openedx pipeline. If it uses the Python pipeline, a metric with `parse_rule: boolean` needs no code.
+3. Add a tenant module in `web/src/tenants/<org>/index.tsx` (nav sections, routes, optional nav counts and palette host) and register it in `web/src/tenants/registry.ts`. An org with no module falls back to openedx.
+4. Add the route in `web/wrangler.json` (`<org>.ossvitals.org`, custom domain). `deploy-web.yml` bundles `views` and `maintenance` for every org folder on the `data` branch.
+5. Freshness needs nothing: `data-freshness.yml` checks every org that has `views/meta.json`, using that file's `stale_threshold_hours`.
+6. Visual and accessibility gates: add a page inventory in `scripts/webaudit/pages.py` (`PAGES_BY_ORG`) and view fixtures in `tests/fixtures/<org>/views/`. Build the web app with `VITE_DEFAULT_ORG=<org>` and run `python scripts/web_audit.py --org <org> --dist <dir> --mode a11y`. Baselines live in `tests/baseline-web/<org>/`; generate them in CI (see below) and add a job to `.github/workflows/web-audit.yml` once the tenant has pages worth guarding.
+7. List the dashboard on `sites/landing/public/index.html` once it is public.
 
 ## Validation checks
 
@@ -44,13 +60,13 @@ Step 2 downloads the browser binary and is not optional.
 ### Modes
 
 - `python scripts/web_audit.py --mode screenshots` captures every route at every
-  viewport into `.ux-audit/web-current/`. Use it to look at a change, not to gate it.
+  viewport into `.ux-audit/web-current/<org>/`. Use it to look at a change, not to gate it.
 - `python scripts/web_audit.py --mode a11y` runs the axe-core scan with no
   allowlist and exits 1 on any violation.
 - `python scripts/web_audit.py --mode baseline` overwrites the committed
-  reference PNGs in `tests/baseline-web/<viewport>/<page>.png`.
+  reference PNGs in `tests/baseline-web/<org>/<viewport>/<page>.png`.
 - `python scripts/web_audit.py --mode diff` compares a fresh capture against those
-  baselines, writes diff images to `.ux-audit/web-diff/`, and exits 1 on a
+  baselines, writes diff images to `.ux-audit/web-diff/<org>/`, and exits 1 on a
   regression. CI runs this as a blocking gate.
 
 Run `diff` and `baseline` through the container (below). Everything under
@@ -59,7 +75,7 @@ is tracked.
 
 ### Baseline review workflow
 
-Baselines are reviewed like code. A diff to `tests/baseline-web/` in a pull
+Baselines are reviewed like code. A diff to `tests/baseline-web/<org>/` in a pull
 request is a claim that the visual change is intentional, and a reviewer is
 expected to open the images and agree with that claim.
 
@@ -118,8 +134,8 @@ message that the image moved.
 On Apple Silicon the container runs amd64 under emulation and can be flaky
 (timeouts, partial captures). When it is, take the baselines from CI instead:
 download the `web-visual-diff` artifact from the failing run, review every image
-in its `web-current/` folder, and copy only the expected ones into
-`tests/baseline-web/` before committing.
+in its `web-current/<org>/` folder, and copy only the expected ones into
+`tests/baseline-web/<org>/` before committing.
 
 ### Refreshing the data fixture
 

@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `deploy-web.yml` bundles every org folder on the `data` branch.
+- The web app is split into tenants (`web/src/tenants/`): each registers its own routes, nav, nav counts and search. `meta.json` gains an optional `pages` list, and `signals`, `snapshot_url`, `history_url` and `config_version` are optional.
+- `data-freshness` checks every org on the `data` branch against its own `stale_threshold_hours`.
+- `web_audit.py --org` audits one tenant; baselines moved to `tests/baseline-web/<org>/`.
 
 ## [1.0.0] - 2026-05-19
 Initial release of Phase 1 implementation

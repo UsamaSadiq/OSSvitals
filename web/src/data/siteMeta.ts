@@ -17,6 +17,7 @@ export function toSiteMeta(meta: MetaView, now: Date = new Date()): SiteMeta {
     shortName: branding.short_name,
     tagline: branding.tagline,
     title: branding.site_title ?? branding.short_name,
+    pages: meta.pages,
     githubOrg: meta.github_org,
     unmaintainedGroup: meta.unmaintained_group ?? undefined,
     scoresFileUrl: scoresFileUrl(footer.source_url, meta.metadata.org),

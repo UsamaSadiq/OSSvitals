@@ -36,3 +36,15 @@ def test_web_audit_inventory_is_unique_and_resolvable():
     assert len(names) == len(set(names))
     assert resolve_pages(["overview", "not_found"]) == [PAGES[0], PAGES[-1]]
     assert set(VIEWPORTS) == {"desktop", "mobile"}
+
+
+def test_each_org_has_its_own_page_inventory():
+    assert [page.name for page in resolve_pages([], "moneta")] == ["overview", "not_found"]
+    assert resolve_pages(["overview"], "moneta")[0].path == "/"
+
+
+def test_unknown_org_is_rejected_rather_than_audited_with_another_orgs_pages():
+    import pytest
+
+    with pytest.raises(ValueError, match="No page inventory"):
+        resolve_pages([], "nope")

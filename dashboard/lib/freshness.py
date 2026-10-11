@@ -7,7 +7,10 @@ is older than the limit, or when it cannot be read at all.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from datetime import date, datetime
+
+DEFAULT_MAX_AGE_DAYS = 2
 
 
 @dataclass(frozen=True)
@@ -18,6 +21,13 @@ class SourceStatus:
     age_days: int | None
     stale: bool
     detail: str = ""
+
+
+def max_age_days_from_hours(hours: object) -> int:
+    """Days allowed by a tenant's ``stale_threshold_hours``; the default when it is missing or invalid."""
+    if isinstance(hours, bool) or not isinstance(hours, (int, float)) or hours <= 0:
+        return DEFAULT_MAX_AGE_DAYS
+    return max(1, math.ceil(hours / 24))
 
 
 def to_date(value: object) -> date | None:

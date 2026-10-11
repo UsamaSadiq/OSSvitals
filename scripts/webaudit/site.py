@@ -21,6 +21,8 @@ from urllib.parse import urlsplit
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "data"
+ORG_FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures"
+CSV_ORG = "openedx"
 FROZEN_NOW = "2026-08-31T12:00:00+00:00"
 PINNED_COMMIT_SHA = "0000000000000000000000000000000000000000"
 DATA_PREFIXES = ("/data/", "/assets/")
@@ -96,19 +98,34 @@ def build_fixture_views(out_dir: Path) -> None:
     )
 
 
-def _prepare(dist: Path, root: Path) -> None:
+def copy_static_views(org: str, out_dir: Path) -> None:
+    source = ORG_FIXTURES_DIR / org / "views"
+    if not source.is_dir():
+        raise FileNotFoundError(f"No view fixtures for org {org!r}; expected {source}.")
+    shutil.copytree(source, out_dir)
+
+
+def _prepare(dist: Path, root: Path, org: str) -> None:
     if not (dist / "index.html").is_file():
         raise FileNotFoundError(f"{dist} has no index.html; run `npm run build` in web/ first.")
     shutil.copytree(dist, root, ignore=shutil.ignore_patterns("data"))
-    build_fixture_views(root / "data" / "openedx" / "views")
+    views_dir = root / "data" / org / "views"
+    if org == CSV_ORG:
+        build_fixture_views(views_dir)
+    else:
+        copy_static_views(org, views_dir)
 
 
 @contextmanager
-def serving(dist: Path) -> Iterator[str]:
-    """Serve ``dist`` plus fixture data on a free loopback port; yields the base URL."""
+def serving(dist: Path, org: str = CSV_ORG) -> Iterator[str]:
+    """Serve ``dist`` plus the org's fixture views on a free loopback port; yields the base URL.
+
+    ``dist`` must be built with ``VITE_DEFAULT_ORG`` set to ``org``, since the audit
+    runs on 127.0.0.1 and the app picks its org from the build, not the host.
+    """
     with tempfile.TemporaryDirectory(prefix="web-audit-") as tmp:
         root = Path(tmp) / "site"
-        _prepare(dist, root)
+        _prepare(dist, root, org)
         rules = parse_headers((root / "_headers").read_text(encoding="utf-8")) if (root / "_headers").exists() else []
         handler = partial(_SiteHandler, directory=str(root), rules=rules)
         server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
