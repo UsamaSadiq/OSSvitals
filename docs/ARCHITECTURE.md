@@ -2,21 +2,24 @@
 
 ## Overview
 
-This dashboard is a Streamlit application with a configuration-driven domain layer.
+A static web app fed by pre-computed files. Nothing calls an API at runtime.
 
-- UI orchestration: [streamlit_app.py](../streamlit_app.py)
-- Pages: [pages](../pages)
+- Web app: [web](../web), built and served by Cloudflare
 - Domain logic: [dashboard/lib](../dashboard/lib)
-- UI helpers: [dashboard/ui](../dashboard/ui)
-- Configuration: [dashboard/config/openedx](../dashboard/config/openedx)
+- Pipeline entry points: [scripts](../scripts) and [collectors](../collectors)
+- Configuration: [dashboard/config](../dashboard/config), one folder per org
 
 ## Data flow
 
-1. Snapshot is loaded from the upstream CSV URL in [dashboard/config/openedx/data_source.yaml](../dashboard/config/openedx/data_source.yaml).
-2. Data integrity checks verify minimum shape and required columns.
-3. On fetch failure, last-known-good cached snapshot is loaded.
-4. Scoring is computed using [dashboard/config/openedx/scoring.yaml](../dashboard/config/openedx/scoring.yaml).
-5. Pages render filtered views and export actions.
+1. Source CSVs come from the URLs in the org's `data_source.yaml`.
+2. `build-scores` loads the snapshot, checks its shape, scores it with `scoring.yaml`, and writes `scores.json` and page-ready `views/` to the `data` branch.
+3. `collect-maintenance` publishes upgrade jobs, waves and redundant PRs to the same branch.
+4. `data-freshness` opens an issue when any source is over 2 days old.
+5. The web app reads those files only.
+
+## Selecting the org
+
+`DASHBOARD_ORG` (default `openedx`) picks the config folder; the pipeline scripts also take `--org`.
 
 ## Config validation
 

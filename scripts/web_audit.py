@@ -11,7 +11,7 @@ fixture at the pinned instant and the browser clock frozen to the same instant.
     python scripts/web_audit.py --mode a11y
 
 Every mode also fails on console errors, page errors and CSP violations.
-Baselines are Linux-rendered: use scripts/ux_audit_container.sh with
+Baselines are Linux-rendered: use scripts/web_audit_container.sh with
 AUDIT_SCRIPT=scripts/web_audit.py, as CI does.
 """
 from __future__ import annotations
@@ -25,7 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.uxaudit import a11y, imagediff  # noqa: E402
+from scripts.webaudit import a11y, imagediff  # noqa: E402
 from scripts.webaudit.browser import browser, capture, inject_axe, open_page  # noqa: E402
 from scripts.webaudit.pages import VIEWPORTS, WebPage, resolve_pages  # noqa: E402
 from scripts.webaudit.site import serving  # noqa: E402
@@ -96,7 +96,7 @@ def _run_a11y(base_url: str, pages, viewports) -> int:
         found.extend(a11y.to_violations(a11y.run_axe(page), page_name=spec.name, viewport=viewport))
 
     errors = _walk(base_url, pages, viewports, scan)
-    print(a11y.format_report(found, [], allowlist=False))
+    print(a11y.format_report(found))
     return max(1 if found else 0, _report_errors(errors))
 
 

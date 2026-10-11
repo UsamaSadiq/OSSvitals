@@ -3,17 +3,15 @@
 Every wall-clock read in rendered code goes through :func:`now_utc`. That is one
 import more than ``datetime.now(timezone.utc)``, and it buys two things.
 
-**The visual gate becomes possible.** ``scripts/ux_audit.py --mode diff``
-compares rendered pixels against ``tests/baseline/``. Several rendered strings
-are functions of the clock rather than of the code: the sidebar freshness chip
-reads "9d ago", the staleness banner reads "This data is 9 days old", the
-bulletin stamps "Generated: <timestamp>", and Needing Attention evaluates its
-rules against the current instant. Left on the wall clock, those strings change
-between the moment a baseline is captured and every later run, so the gate fails
-on unchanged code — and a gate that cannot pass teaches people to ignore gates.
-``scripts/uxaudit/pages.py`` says the same thing from the other side: masking a
-volatile region hides real regressions inside it, so the better answer is to
-make the value injectable and pin it.
+**The visual gate stays honest.** ``scripts/web_audit.py --mode diff`` compares
+rendered pixels against ``tests/baseline-web/``. Several rendered strings are
+functions of the clock rather than of the code: the freshness chip reads "9d
+ago", the staleness banner reads "This data is 9 days old", the bulletin stamps
+"Generated: <timestamp>", and the at-risk rules evaluate against the current
+instant. Left on the wall clock, those strings change between the moment a
+baseline is captured and every later run, so the gate fails on unchanged code.
+Making the value injectable and pinning it beats masking a volatile region,
+which hides real regressions inside it.
 
 **Time-dependent behaviour becomes testable.** Asserting that a 50-hour-old
 snapshot renders the stale banner previously meant monkeypatching ``datetime``
@@ -24,7 +22,7 @@ Freezing is opt-in and absent by default, so production is wall-clock as before.
 
 Set ``DASHBOARD_FROZEN_NOW`` to an ISO 8601 timestamp to pin the clock::
 
-    DASHBOARD_FROZEN_NOW=2026-08-31T12:00:00+00:00 streamlit run streamlit_app.py
+    DASHBOARD_FROZEN_NOW=2026-08-31T12:00:00+00:00 python scripts/build_views.py --org openedx --out-dir out
 
 A value without an offset is read as UTC. An unparseable value is a hard error
 rather than a silent fall back to the wall clock: the caller asked for a
@@ -79,9 +77,8 @@ def is_frozen() -> bool:
 def frozen_now(moment: datetime | str) -> Iterator[datetime]:
     """Pin :func:`now_utc` to ``moment`` for the duration of the block.
 
-    For tests and scripts running in-process. The harness pins the clock for the
-    Streamlit *child* process through the environment instead; see
-    ``scripts/uxaudit/app.py``.
+    For tests and scripts running in-process. The web audit pins the clock for the
+    views build through the environment instead; see ``scripts/webaudit/site.py``.
 
     Args:
         moment: The instant to pin, as a ``datetime`` or an ISO 8601 string.

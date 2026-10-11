@@ -1,10 +1,10 @@
 """Optional local data source, for deterministic rendering.
 
-The dashboard normally fetches both CSVs live from ``openedx/wg-maintenance``.
+The pipeline normally fetches both CSVs live from the configured data source.
 That is right in production and wrong for two other jobs:
 
-  * **The visual gate.** ``scripts/ux_audit.py --mode diff`` compares rendered
-    pixels against ``tests/baseline/``. Against live data, upstream churn — a
+  * **The visual gate.** ``scripts/web_audit.py --mode diff`` compares rendered
+    pixels against ``tests/baseline-web/``. Against live data, upstream churn — a
     repo added, a check flipping, a score moving a tenth — repaints the page
     with no code change, so the gate reports a failure nobody caused. Pinning
     the data is what lets a pixel difference mean "someone changed the UI".

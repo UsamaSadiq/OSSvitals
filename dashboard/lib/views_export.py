@@ -1,6 +1,6 @@
 """Page-ready JSON for the static frontend, one file per page.
 
-Every number comes from the same ``dashboard.lib`` functions the Streamlit pages
+Every number comes from the same ``dashboard.lib`` functions the web app's views
 call; this module only selects and serialises. Values stay raw (seconds, ratios,
 ISO dates) and the frontend formats them.
 """

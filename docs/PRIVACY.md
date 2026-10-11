@@ -22,4 +22,3 @@ If you are named on the dashboard and something is wrong, or you want your handl
 - **Hosting:** the dashboard is a static site served by Cloudflare. Like any web host, Cloudflare processes the IP address and request details needed to deliver the pages; see [Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/).
 - **Analytics:** [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) counts page views in aggregate: pages, referrers, countries and browser or device type. It uses no cookies and no local storage, and does not build visitor profiles.
 - **Theme choice:** your dark or light choice is kept in your own browser's local storage and is never sent anywhere.
-- **The previous Streamlit version:** while it stays online, it runs on Streamlit Community Cloud, whose own session cookies apply. Streamlit usage statistics are disabled in [.streamlit/config.toml](../.streamlit/config.toml).

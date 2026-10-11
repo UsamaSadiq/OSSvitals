@@ -2,7 +2,7 @@ import { Fragment } from "react";
 
 const BACKTICK = "`";
 
-// Text from the pipeline marks inline code with backticks, which Streamlit renders as markdown.
+// Text from the pipeline marks inline code with backticks, which render as inline code.
 export function CodeText({ text }: { text: string }) {
   const parts = text.split(BACKTICK);
   return (

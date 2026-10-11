@@ -10,18 +10,18 @@ from the `2026-08-31` upstream snapshot.
 
 ## What it is for
 
-`scripts/ux_audit.py --mode diff` compares rendered pixels against
-`tests/baseline/`. Against live data the comparison is meaningless: a repo added
+`scripts/web_audit.py --mode diff` compares rendered pixels against
+`tests/baseline-web/`. Against live data the comparison is meaningless: a repo added
 upstream, a check flipping, a score moving a tenth all repaint the page with no
 code change. Pinning the data is what makes a pixel difference mean "someone
 changed the UI" rather than "Tuesday happened".
 
-The harness points `DASHBOARD_DATA_FIXTURE` at this directory automatically. See
-`dashboard/lib/fixtures.py` for the contract and `scripts/uxaudit/app.py` for
+The web audit points `DASHBOARD_DATA_FIXTURE` at this directory automatically. See
+`dashboard/lib/fixtures.py` for the contract and `scripts/webaudit/site.py` for
 where it is set.
 
 Pinning the data is only half of determinism — the freshness chip, the staleness
-banner and the Needing Attention rules are functions of the clock, so the harness
+banner and the at-risk rules are functions of the clock, so the harness
 also pins `DASHBOARD_FROZEN_NOW` to `2026-08-31T12:00:00+00:00`, the same UTC day
 as the snapshot. See `dashboard/lib/clock.py`.
 
@@ -45,11 +45,11 @@ base=https://raw.githubusercontent.com/openedx/wg-maintenance/main/dashboards
 curl -sSfo tests/fixtures/data/dashboard_main.csv    "$base/dashboard_main.csv"
 curl -sSfo tests/fixtures/data/dashboard_history.csv "$base/dashboard_history.csv"
 
-# Re-pin the clock to the new snapshot date in scripts/uxaudit/app.py, then
+# Re-pin the clock to the new snapshot date in scripts/webaudit/site.py, then
 # regenerate through the container - a host-rendered baseline fails CI on font
 # rasterisation alone, and in a commit with no code change to blame it reads as
 # a harness bug. See docs/RUNBOOK.md.
-scripts/ux_audit_container.sh --mode baseline
+scripts/web_audit_container.sh --mode baseline
 ```
 
 Commit the refreshed CSVs and the regenerated baselines **in their own commit**,

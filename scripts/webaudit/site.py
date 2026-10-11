@@ -1,7 +1,7 @@
 """Serve a built web/dist the way the Cloudflare Worker does: SPA fallback plus _headers.
 
 Pinned fixture data is built into the served copy, so captures are a function of
-the code alone (the same fixture and frozen instant the Streamlit gate uses).
+the code alone (a pinned fixture and a frozen instant).
 """
 from __future__ import annotations
 

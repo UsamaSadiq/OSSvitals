@@ -1,6 +1,6 @@
 """Per-repository rules the Repo Detail page applies on top of the scores.
 
-Shared by the Streamlit page and the views builder so both show the same
+Used by the views builder so every consumer shows the same
 coverage chip, withheld sub-scores, metric order and category levels.
 """
 from __future__ import annotations

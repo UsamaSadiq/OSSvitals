@@ -88,27 +88,3 @@ def test_frozen_now_context_manager_unsets_when_it_was_unset(monkeypatch):
         assert clock.is_frozen()
 
     assert not clock.is_frozen()
-
-
-def test_rendered_freshness_follows_the_pinned_clock():
-    """The end-to-end reason this module exists.
-
-    The freshness chip is a pure function of (snapshot date, now). Pinned, it
-    renders the same string forever; unpinned it changes daily, which is exactly
-    what made the pixel gate unrunnable.
-    """
-    from datetime import date
-
-    from dashboard.ui.banners import freshness_chip_html
-
-    snapshot = date(2026, 8, 31)
-    with clock.frozen_now("2026-08-31T12:00:00+00:00"):
-        same_day = freshness_chip_html(snapshot, stale_hours=48, critical_hours=168)
-    with clock.frozen_now("2026-09-09T12:00:00+00:00"):
-        nine_days_later = freshness_chip_html(snapshot, stale_hours=48, critical_hours=168)
-
-    assert same_day != nine_days_later
-    assert "9d ago" in nine_days_later
-    # And re-reading under the same pin is stable, which is the gate's premise.
-    with clock.frozen_now("2026-08-31T12:00:00+00:00"):
-        assert freshness_chip_html(snapshot, stale_hours=48, critical_hours=168) == same_day

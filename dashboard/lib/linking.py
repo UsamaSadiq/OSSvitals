@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode
 
 REDIRECT_PARAM_MAP = {
     "repository": "repo",
@@ -64,18 +64,6 @@ def github_issue_url(
     if issue_type:
         query["type"] = issue_type
     return f"https://github.com/{repo}/issues/new?{urlencode(query)}"
-
-
-def moved_url(new_base: str, current_url: str, params: dict[str, str] | None = None) -> str:
-    """The same page and query on the dashboard's new home.
-
-    Streamlit's ``st.context.url`` has no query string, so the caller passes the
-    query params separately; they win over any query in ``current_url``.
-    """
-    parts = urlsplit(current_url)
-    query_string = urlencode(params) if params else parts.query
-    query = f"?{query_string}" if query_string else ""
-    return f"{new_base.rstrip('/')}{parts.path or '/'}{query}"
 
 
 def pr_template(check: str, pr_config: dict) -> dict[str, str]:
