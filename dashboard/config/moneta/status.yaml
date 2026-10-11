@@ -1,0 +1,23 @@
+version: 1
+branches:
+  production: "foss-main"
+  staging: "foss-sandbox"
+statuses:
+  - key: "in-sync"
+    label: "In sync"
+  - key: "lagging"
+    label: "Lagging"
+    min_behind: 50
+    min_days_since_upstream_merge: 30
+  - key: "stale"
+    label: "Stale"
+    min_behind: 500
+    min_days_since_upstream_merge: 90
+  - key: "critical"
+    label: "Critical"
+    min_behind: 2000
+    min_days_since_upstream_merge: 180
+    on_advisory_newer_than_release: true
+freshness:
+  stale_threshold_hours: 48
+  critically_stale_threshold_hours: 168

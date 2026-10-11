@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["github_org", "apps"],
+  "properties": {
+    "github_org": {"type": "string"},
+    "site_url": {"type": "string"},
+    "apps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["repo", "class"],
+        "properties": {
+          "repo": {"type": "string"},
+          "class": {"enum": ["fork", "original"]},
+          "upstream": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+          "upstream_branch": {"type": "string"},
+          "production_branch": {"type": "string"},
+          "licence": {"type": "string"},
+          "purpose": {"type": "string"},
+          "what_we_changed": {"type": "string"}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"class": {"const": "fork"}}},
+            "then": {"required": ["upstream", "upstream_branch"]}
+          }
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
