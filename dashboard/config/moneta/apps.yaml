@@ -1,13 +1,13 @@
 github_org: "Pressingly"
 site_url: "https://moneta.ossvitals.org"
 apps:
-  - {repo: outline, class: fork, upstream: outline/outline, upstream_branch: main, licence: "BUSL-1.1"}
+  - {repo: outline, class: fork, upstream: outline/outline, upstream_branch: main, licence: "BUSL-1.1 (Apache-2.0 from 2030-05-04)"}
   - {repo: plane, class: fork, upstream: makeplane/plane, upstream_branch: preview, licence: "AGPL-3.0"}
   - {repo: penpot, class: fork, upstream: penpot/penpot, upstream_branch: develop, licence: "MPL-2.0"}
-  - {repo: twenty, class: fork, upstream: twentyhq/twenty, upstream_branch: main, licence: "AGPL-3.0"}
+  - {repo: twenty, class: fork, upstream: twentyhq/twenty, upstream_branch: main, licence: "AGPL-3.0 (Enterprise files under a commercial licence)"}
   - {repo: zammad, class: fork, upstream: zammad/zammad, upstream_branch: develop, licence: "AGPL-3.0"}
-  - {repo: chatwoot, class: fork, upstream: chatwoot/chatwoot, upstream_branch: develop, licence: "MIT"}
-  - {repo: mautic, class: fork, upstream: mautic/mautic, upstream_branch: "7.x", licence: "GPL-3.0"}
+  - {repo: chatwoot, class: fork, upstream: chatwoot/chatwoot, upstream_branch: develop, licence: "MIT (enterprise/ under a separate licence)"}
+  - {repo: mautic, class: fork, upstream: mautic/mautic, upstream_branch: "7.x", licence: "GPL-3.0-or-later"}
   - {repo: SurfSense, class: fork, upstream: MODSetter/SurfSense, upstream_branch: main, licence: "Apache-2.0"}
   - {repo: open-notebook, class: fork, upstream: lfnovo/open-notebook, upstream_branch: main, licence: "MIT", production_branch: main}
   - {repo: presenton, class: fork, upstream: presenton/presenton, upstream_branch: main, licence: "Apache-2.0", production_branch: main}
