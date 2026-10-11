@@ -6,6 +6,7 @@ This directory contains configuration for repository-health dashboard behavior.
 
 - `feature_flags.yaml`: global feature toggles.
 - `openedx/*.yaml`: Open edX org-specific configuration.
+- `moneta/*.yaml`: Pressingly (Moneta) configuration: `apps.yaml` is the app inventory, `status.yaml` the drift status thresholds.
 - `schemas/*.schema.json`: JSON Schemas used to validate config payloads at load time.
 
 ## Validation Behavior
@@ -26,3 +27,5 @@ This directory contains configuration for repository-health dashboard behavior.
 - `attention_rules.schema.json`
 - `strings.schema.json`
 - `org_branding.schema.json`
+- `status.schema.json`
+- `apps.schema.json`
