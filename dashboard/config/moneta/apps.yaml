@@ -2,30 +2,14 @@ github_org: "Pressingly"
 site_url: "https://moneta.ossvitals.org"
 apps:
   - {repo: outline, class: fork, upstream: outline/outline, upstream_branch: main, licence: "BUSL-1.1"}
-  - {repo: mautic, class: fork, upstream: mautic/mautic, upstream_branch: "7.x", licence: "GPL-3.0"}
+  - {repo: plane, class: fork, upstream: makeplane/plane, upstream_branch: preview, licence: "AGPL-3.0"}
   - {repo: penpot, class: fork, upstream: penpot/penpot, upstream_branch: develop, licence: "MPL-2.0"}
   - {repo: twenty, class: fork, upstream: twentyhq/twenty, upstream_branch: main, licence: "AGPL-3.0"}
-  - {repo: chatwoot, class: fork, upstream: chatwoot/chatwoot, upstream_branch: develop, licence: "MIT"}
-  - {repo: plane, class: fork, upstream: makeplane/plane, upstream_branch: preview, licence: "AGPL-3.0"}
   - {repo: zammad, class: fork, upstream: zammad/zammad, upstream_branch: develop, licence: "AGPL-3.0"}
+  - {repo: chatwoot, class: fork, upstream: chatwoot/chatwoot, upstream_branch: develop, licence: "MIT"}
+  - {repo: mautic, class: fork, upstream: mautic/mautic, upstream_branch: "7.x", licence: "GPL-3.0"}
   - {repo: SurfSense, class: fork, upstream: MODSetter/SurfSense, upstream_branch: main, licence: "Apache-2.0"}
   - {repo: plane-mcp-server, class: fork, upstream: makeplane/plane-mcp-server, upstream_branch: main, licence: "MIT"}
-  - {repo: surfsense-mcp-server, class: fork, upstream: arbisoft/surfsense-mcp-server, upstream_branch: main, licence: "Apache-2.0"}
-  - {repo: litellm, class: fork, upstream: BerriAI/litellm, upstream_branch: main, licence: "MIT", production_branch: main}
-  - {repo: lagu, class: fork, upstream: getlago/lago, upstream_branch: main, licence: "AGPL-3.0", production_branch: main}
-  - {repo: presenton, class: fork, upstream: presenton/presenton, upstream_branch: main, licence: "Apache-2.0", production_branch: main}
-  - {repo: open-notebook, class: fork, upstream: lfnovo/open-notebook, upstream_branch: main, licence: "MIT", production_branch: main}
-  - {repo: askiimall-mcp-google-workspace, class: fork, upstream: taylorwilsdon/google_workspace_mcp, upstream_branch: main, licence: "MIT", production_branch: main}
-  - {repo: askiimall-mcp-microsoft-365, class: fork, upstream: Softeria/ms-365-mcp-server, upstream_branch: main, licence: "MIT", production_branch: main}
-  - {repo: openid-connect-generic, class: fork, upstream: oidc-wp/openid-connect-generic, upstream_branch: develop, production_branch: develop}
-  - {repo: BMAD-METHOD-MONETA, class: fork, upstream: bmad-code-org/BMAD-METHOD, upstream_branch: main, licence: "MIT", production_branch: main}
-  - {repo: lago-ruby-client, class: fork, upstream: getlago/lago-ruby-client, upstream_branch: main, licence: "MIT", production_branch: main}
   - {repo: outline-mcp-server, class: original, licence: "MIT"}
   - {repo: zammad-mcp-server, class: original, licence: "MIT"}
-  - {repo: moneta-mcp-auth, class: original, licence: "Apache-2.0"}
-  - {repo: askii-python, class: original, licence: "MIT"}
-  - {repo: mpass-auth-proxy, class: original, licence: "GPL-3.0"}
-  - {repo: mpass-sso-devkit, class: original, licence: "GPL-3.0"}
-  - {repo: foss-landing, class: original, licence: "GPL-3.0"}
-  - {repo: launchpad-api, class: original, licence: "GPL-3.0"}
-  - {repo: foss-sso-e2e, class: original}
+  - {repo: surfsense-mcp-server, class: fork, upstream: arbisoft/surfsense-mcp-server, upstream_branch: main, licence: "Apache-2.0"}
