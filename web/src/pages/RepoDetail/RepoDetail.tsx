@@ -22,7 +22,7 @@ export function isUnscoredFullName(names: readonly string[], requested: string |
   return requested !== null && requested.includes("/") && !names.includes(requested);
 }
 
-// Streamlit always shows a repository: the requested one, else the best match for it, else the first.
+// The page always shows a repository: the requested one, else the best match for it, else the first.
 export function shownRepo(names: readonly string[], requested: string | null): string | null {
   if (requested !== null && names.includes(requested)) return requested;
   if (isUnscoredFullName(names, requested)) return null;

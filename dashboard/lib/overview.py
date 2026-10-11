@@ -1,4 +1,4 @@
-"""Org-level summaries for the Overview page, free of Streamlit and loaders."""
+"""Org-level summaries for the Overview page, free of loaders."""
 from __future__ import annotations
 
 from datetime import date, datetime

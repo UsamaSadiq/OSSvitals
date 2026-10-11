@@ -20,5 +20,5 @@ Signed-off-by: Your Name <your.email@example.com>
 ## Testing
 1. Run `flake8 .` for linter checks
 2. Run `mypy .` for typechecker
-3. Check all visualizations in Streamlit app
+3. Run `python -m pytest -q tests`, and for UI changes `scripts/web_audit_container.sh --mode diff` (see docs/RUNBOOK.md)
 

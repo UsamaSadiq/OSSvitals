@@ -10,11 +10,11 @@
 | **Size** | 553,290 bytes |
 | **SHA-256** | `b511cd9dec01c76f4b2ad1723b66b6db37d4c2eb4ed199076e1829d9ee7b75e3` |
 | **Licence** | Mozilla Public License 2.0 — © 2015–2024 Deque Systems, Inc. |
-| **Consumed by** | `scripts/uxaudit/a11y.py` (`run_axe`, via `page.add_script_tag`) |
+| **Consumed by** | `scripts/webaudit/a11y.py` (`run_axe`) |
 
 ### Why this is committed rather than fetched
 
-`scripts/ux_audit.py --mode a11y` is a **CI gate**. Fetching the scanner from a
+`scripts/web_audit.py --mode a11y` is a **CI gate**. Fetching the scanner from a
 CDN at scan time would make the gate:
 
 - **network-dependent** — a jsdelivr outage or a locked-down runner turns a
@@ -34,11 +34,10 @@ no network call on the a11y path.
 
 1. Download the new `axe.min.js`, replace this file, update the table above
    (version, URL, date, size, checksum).
-2. Re-run `scripts/ux_audit.py --mode a11y` and diff the report against the
+2. Re-run `scripts/web_audit.py --mode a11y` and diff the report against the
    previous run. A new axe version routinely surfaces new rules.
-3. Triage every new rule explicitly into blocking or `KNOWN_ACCEPTED` in
-   `scripts/uxaudit/a11y.py`. Do not widen the allowlist to make the gate green
-   again — that is the failure mode the allowlist exists to prevent.
+3. Fix every new finding in the web app. There is no allowlist, and none should
+   be added to make the gate green.
 
 ### Licence obligations
 

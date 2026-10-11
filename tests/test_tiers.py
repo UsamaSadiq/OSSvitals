@@ -1,9 +1,6 @@
-"""Guards for WP-3: the Tier filter must actually filter.
+"""Guards for tier annotation: the ``repo_tier`` column must exist and be populated.
 
-``FilterState.apply`` filtered on a ``repo_tier`` column that nothing created and
-that the upstream CSV does not contain, so the sidebar's Tier control silently
-returned every repository. A no-op control is worse than a missing one: it makes
-the user believe they have narrowed the view.
+A filter on a ``repo_tier`` column that nothing created silently returned every repository.
 """
 from __future__ import annotations
 
@@ -17,7 +14,6 @@ from dashboard.lib.tiers import (
     repo_tier,
     tier_counts,
 )
-from dashboard.ui.filters import FilterState
 
 CONFIG = {
     "critical": ["openedx/edx-platform", "xblock"],
@@ -75,19 +71,6 @@ def test_annotate_tiers_tolerates_an_empty_snapshot() -> None:
     # A frame with no repo column is returned untouched rather than raising.
     other = pd.DataFrame({"unrelated": [1, 2]})
     assert TIER_COL not in annotate_tiers(other, CONFIG).columns
-
-
-def test_tier_filter_actually_narrows_the_frame() -> None:
-    """The regression itself: this returned all rows before annotate_tiers existed."""
-    annotated = annotate_tiers(_frame(), CONFIG)
-
-    every = FilterState(search="", include_archived=True, tier="all").apply(annotated)
-    critical = FilterState(search="", include_archived=True, tier="critical").apply(annotated)
-
-    assert len(every) == 4
-    assert len(critical) == 2
-    assert len(critical) < len(every)
-    assert set(critical["repo_name"]) == {"openedx/edx-platform", "openedx/xblock"}
 
 
 def test_tier_counts_reports_zero_tiers_rather_than_omitting_them() -> None:

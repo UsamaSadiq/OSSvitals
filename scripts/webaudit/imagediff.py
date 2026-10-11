@@ -1,4 +1,4 @@
-"""Pixel comparison of captured screenshots against ``tests/baseline/``.
+"""Pixel comparison of captured screenshots against ``tests/baseline-web/``.
 
 This module is the mechanical half of the visual acceptance criteria: the defect
 class it targets — a gauge tick clipped so ``100`` renders as ``1``, a y-axis
@@ -85,7 +85,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
 # ---------------------------------------------------------------------------
-# Tuning constants. Public so scripts/ux_audit.py can override for a one-off
+# Tuning constants. Public so scripts/web_audit.py can override for a one-off
 # run without editing this module; the defaults are what CI uses.
 # ---------------------------------------------------------------------------
 

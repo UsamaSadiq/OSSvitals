@@ -1,30 +1,24 @@
 #!/usr/bin/env bash
 #
-# Run scripts/ux_audit.py inside the same container CI uses.
+# Run scripts/web_audit.py inside the same container CI uses.
 #
-#   scripts/ux_audit_container.sh --mode diff
-#   scripts/ux_audit_container.sh --mode baseline
-#   scripts/ux_audit_container.sh --mode a11y --pages overview
-#   AUDIT_SCRIPT=scripts/web_audit.py scripts/ux_audit_container.sh --mode diff   # React app in web/dist
+#   scripts/web_audit_container.sh --mode diff
+#   scripts/web_audit_container.sh --mode baseline   # review and commit
+#   scripts/web_audit_container.sh --mode a11y
 #
-# Why this exists: the screenshot baselines in tests/baseline/ are byte-compared,
-# and text rasterisation differs between operating systems. A baseline captured
-# on macOS fails against a Linux runner on font rendering alone — measured at
-# 1.2-10.6% of pixels changed, with page heights shifting 25px from line-wrap
-# differences. Any tolerance loose enough to absorb that is far too loose to
-# catch a clipped axis label, which is the whole point of the gate.
-#
-# So there is exactly one reference environment, this image, and everyone renders
-# in it. Running ux_audit.py directly on macOS is still useful for --mode a11y
-# and for eyeballing --mode screenshots; it is only --mode diff and --mode
-# baseline that need the container.
+# Why this exists: the screenshot baselines in tests/baseline-web/ are
+# byte-compared, and text rasterisation differs between operating systems. A
+# baseline captured on macOS fails against a Linux runner on font rendering
+# alone, and any tolerance loose enough to absorb that is too loose to catch a
+# clipped axis label. So there is exactly one reference environment, this image,
+# and everyone renders in it.
 #
 # The image is pinned by digest, not by tag. A tag is a mutable pointer, and this
 # one is rebuilt for OS security patches — a freetype or fontconfig change moves
 # text rasterisation. CI pulls fresh on every job while Docker here reuses an
 # already-present tag, so the two would silently drift apart and reintroduce the
 # cross-machine font failure this script exists to prevent. The digest must stay
-# in step with the `container:` image in .github/workflows/ux-audit.yml and with
+# in step with the `container:` image in .github/workflows/web-audit.yml and with
 # the playwright pin in requirements-dev.txt.
 set -euo pipefail
 
@@ -43,17 +37,17 @@ fi
 # identical to the CI step rather than merely similar. Drop it with
 # `docker volume rm ossvitals-audit-pip` if it ever misbehaves.
 PIP_CACHE_VOLUME="ossvitals-audit-pip"
-AUDIT_SCRIPT="${AUDIT_SCRIPT:-scripts/ux_audit.py}"
+AUDIT_SCRIPT="${AUDIT_SCRIPT:-scripts/web_audit.py}"
 
 # -t only when stdout is a terminal, so CI and pipes still work.
 TTY_FLAG=()
 [ -t 1 ] && TTY_FLAG=(-t)
 
 # Run as the invoking user on Linux, where the bind mount shares the host's uid
-# namespace: as root, everything the run *creates* — .ux-audit/current/,
-# .ux-audit/diff/ — lands root-owned on the host. The next plain
-# `python scripts/ux_audit.py` then fails, and confusingly: ux_audit.py clears
-# .ux-audit/current with `ignore_errors=True`, so the denied removal is silent
+# namespace: as root, everything the run *creates* — .ux-audit/web-current/,
+# .ux-audit/web-diff/ — lands root-owned on the host. The next plain
+# `python scripts/web_audit.py` then fails, and confusingly: web_audit.py clears
+# .ux-audit/web-current with `ignore_errors=True`, so the denied removal is silent
 # and the run dies later on a PermissionError writing into it. Recovery needs
 # sudo, for what looked like a harness bug.
 #

@@ -46,7 +46,7 @@ def _fetch_history_frame(cfg: dict[str, Any], org: str) -> pd.DataFrame | None:
 
     Makes exactly one HTTP request to the same static-file host as the main
     snapshot — no GitHub API calls at runtime (the locked architecture forbids
-    them; unauthenticated API access is rate-limited on Streamlit Cloud).
+    them; unauthenticated API access is rate-limited).
     """
     # A configured fixture replaces the network entirely; see dashboard.lib.fixtures.
     pinned = fixtures.history_path()

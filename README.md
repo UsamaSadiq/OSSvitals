@@ -6,12 +6,12 @@ The Open edX Repository Health Dashboard is a community tool that provides visua
 
 This is an unofficial community project. It is not affiliated with or endorsed by Axim Collaborative. Open edX is a registered trademark of Axim Collaborative.
 
-**Live dashboard:** https://openedx-health-dashboard.streamlit.app/
+**Live dashboard:** https://openedx.ossvitals.org/
 
 ## Key Features
 - 9-metric scoring system cross-referenced to CHAOSS metrics and OpenSSF Scorecard checks
 - Historical trend analysis and delta detection
-- Deep linking and filter-preserving exports
+- Deep linking and exports
 - Configurable remediation snippets and auto-PR generation
 - Org-specific configuration and visualization rules
 
