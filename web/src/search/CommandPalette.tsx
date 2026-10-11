@@ -3,13 +3,13 @@ import { createPortal } from "react-dom";
 import { GradePill } from "../components/GradePill";
 import { CloseIcon, SearchIcon } from "../components/icons";
 import { RepoName } from "../components/RepoName";
-import { useView, type ViewState } from "../data/useView";
 import { toFixedHalfEven } from "../format";
 import { useSiteMeta } from "../layout/siteMeta";
-import { ALL_PAGES, type PageEntry } from "../pages/catalog";
+import { visibleSections } from "../pages/catalog";
+import { useTenant } from "../tenants/context";
 import { searchSections, type PaletteItem, type PaletteSection } from "./paletteItems";
 import { nextIndex, trappedFocusTarget } from "./paletteKeys";
-import { usePaletteIndex, type PaletteIndex } from "./usePaletteIndex";
+import type { PaletteIndex } from "./usePaletteIndex";
 import "./commandPalette.css";
 
 interface CommandPaletteProps {
@@ -95,7 +95,8 @@ function ResultList({ listId, sections, active, onHover, onChoose }: ResultListP
 }
 
 function ResultsNote({ index, query, count }: { index: PaletteIndex; query: string; count: number }) {
-  if (index.loading) return <p className="palette__note">Loading repositories, checks and owners…</p>;
+  const { loadingNote } = useTenant().paletteCopy;
+  if (index.loading) return <p className="palette__note">{loadingNote}</p>;
   if (count > 0) return null;
   return <p className="palette__note">No matches for “{query.trim()}”.</p>;
 }
@@ -106,6 +107,7 @@ function Unavailable({ labels }: { labels: readonly string[] }) {
 }
 
 function PaletteDialog({ onClose, onNavigate, index }: CommandPaletteProps & { index: PaletteIndex }) {
+  const { placeholder, ariaLabel } = useTenant().paletteCopy;
   const titleId = useId();
   const listId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -164,7 +166,7 @@ function PaletteDialog({ onClose, onNavigate, index }: CommandPaletteProps & { i
           <input
             type="text"
             role="combobox"
-            aria-label="Search pages, repositories, checks and owners"
+            aria-label={ariaLabel}
             aria-expanded="true"
             aria-controls={listId}
             aria-autocomplete="list"
@@ -172,7 +174,7 @@ function PaletteDialog({ onClose, onNavigate, index }: CommandPaletteProps & { i
             autoComplete="off"
             spellCheck={false}
             autoFocus
-            placeholder="Search repositories, checks, owners, pages…"
+            placeholder={placeholder}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
@@ -198,22 +200,18 @@ function PaletteDialog({ onClose, onNavigate, index }: CommandPaletteProps & { i
   );
 }
 
-function IndexedPalette({ pages, owners, ...props }: CommandPaletteProps & { pages: readonly PageEntry[]; owners: ViewState<"owners"> | null }) {
-  return <PaletteDialog {...props} index={usePaletteIndex(pages, owners)} />;
-}
-
-function PaletteWithOwners(props: CommandPaletteProps & { pages: readonly PageEntry[] }) {
-  return <IndexedPalette {...props} owners={useView("owners")} />;
-}
-
 export function CommandPalette(props: CommandPaletteProps) {
-  const { featureFlags } = useSiteMeta();
+  const { featureFlags, pages: manifest } = useSiteMeta();
+  const { sections, PaletteHost } = useTenant();
   const maintainerViews = featureFlags.enableMaintainerViews;
-  const pages = useMemo(() => ALL_PAGES.filter((page) => maintainerViews || !page.maintainerOnly), [maintainerViews]);
-  const palette = maintainerViews ? (
-    <PaletteWithOwners {...props} pages={pages} />
-  ) : (
-    <IndexedPalette {...props} pages={pages} owners={null} />
+  const pages = useMemo(
+    () => visibleSections(sections, { maintainerViews, manifest }).flatMap((section) => section.pages),
+    [sections, maintainerViews, manifest],
   );
-  return createPortal(palette, document.body);
+  return createPortal(
+    <PaletteHost pages={pages} maintainerViews={maintainerViews}>
+      {(index) => <PaletteDialog {...props} index={index} />}
+    </PaletteHost>,
+    document.body,
+  );
 }

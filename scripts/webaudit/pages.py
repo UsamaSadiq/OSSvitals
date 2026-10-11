@@ -38,17 +38,27 @@ PAGES: list[WebPage] = [
     WebPage("not_found", "/no-such-page"),
 ]
 
+MONETA_PAGES: list[WebPage] = [
+    WebPage("overview", "/"),
+    WebPage("not_found", "/no-such-page"),
+]
+
+PAGES_BY_ORG: dict[str, list[WebPage]] = {"openedx": PAGES, "moneta": MONETA_PAGES}
+
 VIEWPORTS: dict[str, tuple[int, int]] = {
     "desktop": (1440, 1000),
     "mobile": (390, 844),
 }
 
 
-def resolve_pages(names: list[str]) -> list[WebPage]:
+def resolve_pages(names: list[str], org: str = "openedx") -> list[WebPage]:
+    if org not in PAGES_BY_ORG:
+        raise ValueError(f"No page inventory for org {org!r}. Known orgs: {', '.join(PAGES_BY_ORG)}")
+    inventory = PAGES_BY_ORG[org]
     if not names:
-        return list(PAGES)
-    by_name = {page.name: page for page in PAGES}
+        return list(inventory)
+    by_name = {page.name: page for page in inventory}
     unknown = [name for name in names if name not in by_name]
     if unknown:
         raise ValueError(f"Unknown page(s): {', '.join(unknown)}. Valid names: {', '.join(by_name)}")
-    return [page for page in PAGES if page.name in set(names)]
+    return [page for page in inventory if page.name in set(names)]

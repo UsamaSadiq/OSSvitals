@@ -1,13 +1,6 @@
-export interface PageEntry {
-  path: string;
-  title: string;
-  maintainerOnly?: boolean;
-}
+import type { NavSection, PageEntry } from "../tenants/types";
 
-export interface NavSection {
-  title: string;
-  pages: PageEntry[];
-}
+export type { NavSection, PageEntry };
 
 export const OVERVIEW: PageEntry = { path: "/", title: "Overview" };
 
@@ -45,9 +38,18 @@ export const ALL_PAGES: PageEntry[] = NAV_SECTIONS.flatMap((section) => section.
 
 export const SUB_PAGES: PageEntry[] = ALL_PAGES.filter((page) => page !== OVERVIEW);
 
-export function visibleSections(sections: NavSection[], maintainerViews: boolean): NavSection[] {
-  return sections.map((section) => ({
-    ...section,
-    pages: section.pages.filter((page) => maintainerViews || !page.maintainerOnly),
-  }));
+export interface PageVisibility {
+  maintainerViews: boolean;
+  manifest?: readonly string[];
+}
+
+export function isPageVisible(page: PageEntry, { maintainerViews, manifest }: PageVisibility): boolean {
+  if (page.maintainerOnly && !maintainerViews) return false;
+  return manifest === undefined || manifest.includes(page.path);
+}
+
+export function visibleSections(sections: readonly NavSection[], visibility: PageVisibility): NavSection[] {
+  return sections
+    .map((section) => ({ ...section, pages: section.pages.filter((page) => isPageVisible(page, visibility)) }))
+    .filter((section) => section.pages.length > 0);
 }

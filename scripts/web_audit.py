@@ -6,7 +6,7 @@ Serves a built ``web/dist`` the way the Cloudflare Worker does (SPA fallback plu
 fixture at the pinned instant and the browser clock frozen to the same instant.
 
     python scripts/web_audit.py --mode screenshots
-    python scripts/web_audit.py --mode baseline     # rewrite tests/baseline-web/
+    python scripts/web_audit.py --mode baseline     # rewrite tests/baseline-web/<org>/
     python scripts/web_audit.py --mode diff
     python scripts/web_audit.py --mode a11y
 
@@ -30,9 +30,10 @@ from scripts.webaudit.browser import browser, capture, inject_axe, open_page  # 
 from scripts.webaudit.pages import VIEWPORTS, WebPage, resolve_pages  # noqa: E402
 from scripts.webaudit.site import serving  # noqa: E402
 
-BASELINE_DIR = REPO_ROOT / "tests" / "baseline-web"
-CURRENT_DIR = REPO_ROOT / ".ux-audit" / "web-current"
-DIFF_DIR = REPO_ROOT / ".ux-audit" / "web-diff"
+BASELINE_ROOT = REPO_ROOT / "tests" / "baseline-web"
+CURRENT_ROOT = REPO_ROOT / ".ux-audit" / "web-current"
+DIFF_ROOT = REPO_ROOT / ".ux-audit" / "web-diff"
+DEFAULT_ORG = "openedx"
 DEFAULT_DIST = REPO_ROOT / "web" / "dist"
 TOLERANCE = 0.0025
 
@@ -40,6 +41,7 @@ TOLERANCE = 0.0025
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--mode", required=True, choices=("screenshots", "baseline", "diff", "a11y"))
+    parser.add_argument("--org", default=DEFAULT_ORG, help="Tenant to audit. Its dist must be built with VITE_DEFAULT_ORG.")
     parser.add_argument("--dist", type=Path, default=DEFAULT_DIST, help="Built site to serve. Default: web/dist.")
     parser.add_argument("--pages", default="", help="Comma-separated page names. Default: all.")
     parser.add_argument("--viewport", default="all", choices=(*VIEWPORTS, "all"))
@@ -100,9 +102,10 @@ def _run_a11y(base_url: str, pages, viewports) -> int:
     return max(1 if found else 0, _report_errors(errors))
 
 
-def _run_diff(base_url: str, pages, viewports, tolerance: float) -> int:
-    errors = _capture_into(CURRENT_DIR, base_url, pages, viewports)
-    results = imagediff.diff_tree(BASELINE_DIR, CURRENT_DIR, DIFF_DIR, tolerance=tolerance)
+def _run_diff(org: str, base_url: str, pages, viewports, tolerance: float) -> int:
+    current_dir = CURRENT_ROOT / org
+    errors = _capture_into(current_dir, base_url, pages, viewports)
+    results = imagediff.diff_tree(BASELINE_ROOT / org, current_dir, DIFF_ROOT / org, tolerance=tolerance)
     print(imagediff.format_report(results))
     failed = any(result.passed is False for result in results)
     return max(1 if failed else 0, _report_errors(errors))
@@ -110,15 +113,15 @@ def _run_diff(base_url: str, pages, viewports, tolerance: float) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    pages = resolve_pages([name.strip() for name in args.pages.split(",") if name.strip()])
+    pages = resolve_pages([name.strip() for name in args.pages.split(",") if name.strip()], args.org)
     viewports = _viewports(args.viewport)
-    with serving(args.dist) as base_url:
+    with serving(args.dist, args.org) as base_url:
         print(f"Serving {args.dist} at {base_url}: {len(pages)} page(s) x {len(viewports)} viewport(s)", flush=True)
         if args.mode == "a11y":
             return _run_a11y(base_url, pages, viewports)
         if args.mode == "diff":
-            return _run_diff(base_url, pages, viewports, args.tolerance)
-        out_dir = BASELINE_DIR if args.mode == "baseline" else CURRENT_DIR
+            return _run_diff(args.org, base_url, pages, viewports, args.tolerance)
+        out_dir = (BASELINE_ROOT if args.mode == "baseline" else CURRENT_ROOT) / args.org
         errors = _capture_into(out_dir, base_url, pages, viewports)
         print(f"Wrote {len(pages) * len(viewports)} screenshot(s) to {out_dir}")
         return _report_errors(errors)

@@ -1,8 +1,8 @@
 name: Data freshness
 
-# Everything upstream of the dashboard now runs unattended: the openedx data job,
-# the auto-merge routine, build-scores and collect-maintenance. This checks daily
-# that each published source is at most 2 days old, opens (or updates) one issue
+# Everything upstream of the dashboard runs unattended. This checks daily that
+# every tenant's published views (and any upstream sources it configures) are
+# within that tenant's freshness limit, 2 days by default, opens (or updates) one issue
 # labelled data-freshness when something is stale or unreadable, and closes it
 # once everything is fresh again.
 
@@ -30,9 +30,15 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
+      - name: Fetch the data branch
+        run: |
+          git fetch --depth 1 origin data
+          mkdir -p "$RUNNER_TEMP/data"
+          git archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/data"
+
       - name: Check sources
         id: check
-        run: python scripts/check_freshness.py --report "$REPORT" && echo "stale=false" >> "$GITHUB_OUTPUT" || echo "stale=true" >> "$GITHUB_OUTPUT"
+        run: python scripts/check_freshness.py --report "$REPORT" --data-dir "$RUNNER_TEMP/data" && echo "stale=false" >> "$GITHUB_OUTPUT" || echo "stale=true" >> "$GITHUB_OUTPUT"
         env:
           PYTHONPATH: ${{ github.workspace }}
 

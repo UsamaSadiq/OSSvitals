@@ -29,6 +29,7 @@ export interface SiteMeta {
   shortName: string;
   tagline: string;
   title: string;
+  pages?: readonly string[];
   githubOrg?: string;
   unmaintainedGroup?: string;
   scoresFileUrl?: string;

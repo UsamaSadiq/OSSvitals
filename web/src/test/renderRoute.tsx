@@ -3,7 +3,9 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { metaFixture } from "../data/fixtures";
 import { toSiteMeta } from "../data/siteMeta";
 import { DEFAULT_SITE_META, SiteMetaProvider, type SiteMeta } from "../layout/siteMeta";
-import { routes } from "../routes";
+import { TenantProvider } from "../tenants/context";
+import { openedxTenant } from "../tenants/openedx";
+import type { Tenant } from "../tenants/types";
 
 const { name, shortName, tagline, title, githubOrg, unmaintainedGroup, scoresFileUrl, provenance, catalog, footer } =
   toSiteMeta(metaFixture());
@@ -22,12 +24,14 @@ export const OPENEDX_SITE_META: SiteMeta = {
   footer,
 };
 
-export function renderRoute(path: string, meta: SiteMeta = OPENEDX_SITE_META) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] });
+export function renderRoute(path: string, meta: SiteMeta = OPENEDX_SITE_META, tenant: Tenant = openedxTenant) {
+  const router = createMemoryRouter(tenant.routes, { initialEntries: [path] });
   const rendered = render(
-    <SiteMetaProvider value={meta}>
-      <RouterProvider router={router} />
-    </SiteMetaProvider>,
+    <TenantProvider tenant={tenant}>
+      <SiteMetaProvider value={meta}>
+        <RouterProvider router={router} />
+      </SiteMetaProvider>
+    </TenantProvider>,
   );
   return { ...rendered, router };
 }

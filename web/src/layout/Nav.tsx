@@ -1,5 +1,7 @@
 import { NavLink } from "react-router";
-import { NAV_SECTIONS, visibleSections, type NavSection } from "../pages/catalog";
+import { visibleSections } from "../pages/catalog";
+import { useTenant } from "../tenants/context";
+import type { NavSection } from "../tenants/types";
 import { NavCount } from "./NavCount";
 import { PageIcon } from "./navIcons";
 import { useSiteMeta } from "./siteMeta";
@@ -13,8 +15,9 @@ function linkClassName({ isActive }: { isActive: boolean }): string {
 }
 
 export function Nav({ id, onNavigate }: { id: string; onNavigate?: () => void }) {
-  const { featureFlags } = useSiteMeta();
-  const sections = visibleSections(NAV_SECTIONS, featureFlags.enableMaintainerViews);
+  const { featureFlags, pages } = useSiteMeta();
+  const { sections: tenantSections } = useTenant();
+  const sections = visibleSections(tenantSections, { maintainerViews: featureFlags.enableMaintainerViews, manifest: pages });
 
   return (
     <nav id={id} className="nav" aria-label="Pages">

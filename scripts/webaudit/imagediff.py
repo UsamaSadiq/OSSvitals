@@ -1,4 +1,4 @@
-"""Pixel comparison of captured screenshots against ``tests/baseline-web/``.
+"""Pixel comparison of captured screenshots against ``tests/baseline-web/<org>/``.
 
 This module is the mechanical half of the visual acceptance criteria: the defect
 class it targets — a gauge tick clipped so ``100`` renders as ``1``, a y-axis

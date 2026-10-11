@@ -1,7 +1,6 @@
-import type { ComponentType } from "react";
-import { countText, FAILING_JOBS, REPOSITORIES, type CountNoun } from "./navCounts";
+import { useTenant } from "../tenants/context";
+import { countText, type CountNoun } from "./navCounts";
 import { useAfterFirstPaint } from "./useAfterFirstPaint";
-import { useAtRiskCount, useAttentionCount, useFailingUpgradeCount } from "./usePageCounts";
 
 export function CountBadge({ count, noun }: { count: number | null; noun: CountNoun }) {
   if (count === null || count === 0) return null;
@@ -15,27 +14,10 @@ export function CountBadge({ count, noun }: { count: number | null; noun: CountN
   );
 }
 
-function AttentionCount() {
-  return <CountBadge count={useAttentionCount()} noun={REPOSITORIES} />;
-}
-
-function AtRiskCount() {
-  return <CountBadge count={useAtRiskCount()} noun={REPOSITORIES} />;
-}
-
-function UpgradesCount() {
-  return <CountBadge count={useFailingUpgradeCount()} noun={FAILING_JOBS} />;
-}
-
-const PAGE_COUNTS: Record<string, ComponentType> = {
-  "/needing_attention": AttentionCount,
-  "/at_risk": AtRiskCount,
-  "/maintenance": UpgradesCount,
-};
-
 export function NavCount({ path }: { path: string }) {
+  const { navCounts } = useTenant();
   const painted = useAfterFirstPaint();
-  const Count = PAGE_COUNTS[path];
+  const Count = navCounts[path];
   if (!Count || !painted) return null;
   return <Count />;
 }
