@@ -9,6 +9,8 @@ apps:
   - {repo: chatwoot, class: fork, upstream: chatwoot/chatwoot, upstream_branch: develop, licence: "MIT"}
   - {repo: mautic, class: fork, upstream: mautic/mautic, upstream_branch: "7.x", licence: "GPL-3.0"}
   - {repo: SurfSense, class: fork, upstream: MODSetter/SurfSense, upstream_branch: main, licence: "Apache-2.0"}
+  - {repo: open-notebook, class: fork, upstream: lfnovo/open-notebook, upstream_branch: main, licence: "MIT", production_branch: main}
+  - {repo: presenton, class: fork, upstream: presenton/presenton, upstream_branch: main, licence: "Apache-2.0", production_branch: main}
   - {repo: plane-mcp-server, class: fork, upstream: makeplane/plane-mcp-server, upstream_branch: main, licence: "MIT"}
   - {repo: outline-mcp-server, class: original, licence: "MIT"}
   - {repo: zammad-mcp-server, class: original, licence: "MIT"}
