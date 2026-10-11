@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `streamlit`, `plotly`, `duckdb`, `rapidfuzz` and `pydantic` dependencies.
 
 ### Added
+- Moneta collector (`scripts/collect_moneta.py`, `collect-moneta.yml`): fork drift, latest fork release, upstream release, advisories and promotion lag from the public GitHub API, published to `moneta/views/`.
 - `DASHBOARD_ORG` selects the active org config folder.
 - Wording the web app shows (page title, scoring provenance, catalog names, governance body) comes from the org's `org_branding.yaml` and is exported in `meta.json`; leaving it out gives neutral wording.
 - `parse_rule: boolean` scores any metric, replacing a check on two metric names.
