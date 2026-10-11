@@ -2,12 +2,12 @@ import { Fragment } from "react";
 import { DataTable, type Column } from "../../components/DataTable";
 import type { ScoringView } from "../../data/schemas";
 import { CodeText } from "../../components/CodeText";
+import { useSiteMeta } from "../../layout/siteMeta";
 import {
   formatWholePercent,
   limitedRows,
   missingDefaults,
   provisionalMetrics,
-  SCORES_FILE_URL,
   versionText,
   type MetricRow,
 } from "./scoringText";
@@ -44,22 +44,29 @@ const METRIC_COLUMNS: Column<MetricRow>[] = [
 ];
 
 export function Intro({ version }: { version: string | null }) {
+  const { provenance, scoresFileUrl } = useSiteMeta();
+  const checks = provenance.checksRepoUrl ? (
+    <a href={provenance.checksRepoUrl}>{provenance.checksRepoLabel ?? provenance.checksRepoUrl}</a>
+  ) : (
+    (provenance.checksRepoLabel ?? "repository health")
+  );
+  const data = provenance.dataRepoUrl ? (
+    <a href={provenance.dataRepoUrl}>{provenance.dataRepoLabel ?? provenance.dataRepoUrl}</a>
+  ) : (
+    (provenance.dataRepoLabel ?? "the published CSVs")
+  );
+  const scoresFile = <code>scores.json</code>;
   return (
     <>
       <p>
         Each repository gets a score from 0 to 100: a weighted average of the metrics below, each scored 0 to 100
-        from public data collected by the daily{" "}
-        <a href="https://github.com/openedx/edx-repo-health">edx-repo-health</a> checks. The score maps to a letter
+        from public data collected by the daily {checks} checks. The score maps to a letter
         grade. Weights, thresholds and grade bands are read from <code>scoring.yaml</code> (version{" "}
         {versionText(version)}), not hardcoded.
       </p>
       <p>
-        Scores can be recomputed by anyone: the inputs are the public CSVs in{" "}
-        <a href="https://github.com/openedx/wg-maintenance/tree/main/dashboards">openedx/wg-maintenance</a>, and the
-        daily output is published as{" "}
-        <a href={SCORES_FILE_URL}>
-          <code>scores.json</code>
-        </a>{" "}
+        Scores can be recomputed by anyone: the inputs are the public CSVs in {data}, and the
+        daily output is published as {scoresFileUrl ? <a href={scoresFileUrl}>{scoresFile}</a> : scoresFile}{" "}
         by <code>scripts/build_scores.py</code>.
       </p>
     </>
@@ -133,6 +140,7 @@ export function MissingData({ rows }: { rows: readonly MetricRow[] }) {
 }
 
 export function Limitations({ rows }: { rows: readonly MetricRow[] }) {
+  const governanceBody = useSiteMeta().provenance.governanceBody ?? "the maintainers";
   const limited = limitedRows(rows);
   const provisional = provisionalMetrics(rows);
   if (limited.length === 0 && provisional.length === 0) return null;
@@ -148,7 +156,7 @@ export function Limitations({ rows }: { rows: readonly MetricRow[] }) {
         {provisional.length > 0 && (
           <li>
             <strong>Provisional thresholds</strong> ({provisional.join(", ")}): set from current data and awaiting
-            review by the Open edX Maintenance Working Group.
+            review by {governanceBody}.
           </li>
         )}
       </ul>

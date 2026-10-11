@@ -7,10 +7,11 @@ import { ShareLink } from "../../components/ShareLink";
 import type { AtRiskView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
+import { useSiteMeta } from "../../layout/siteMeta";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import { lifecycleFilterable, PRODUCTION_ONLY_BY_DEFAULT } from "./atRiskDefaults";
 import { AtRiskTable } from "./AtRiskTable";
-import { AT_RISK_CAPTION, atRiskCsv, baselineCaption, visibleRows, type AtRiskRow } from "./atRiskText";
+import { atRiskCaption, atRiskCsv, baselineCaption, visibleRows, type AtRiskRow } from "./atRiskText";
 import { CodeText } from "../../components/CodeText";
 
 function ProductionToggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
@@ -62,6 +63,7 @@ function LifecycleFilter({ atRisk }: { atRisk: AtRiskView }) {
 }
 
 function AtRiskSections({ atRisk }: { atRisk: AtRiskView }) {
+  const { unmaintainedGroup } = useSiteMeta();
   if (!atRisk.enabled) {
     return (
       <EmptyState
@@ -74,7 +76,7 @@ function AtRiskSections({ atRisk }: { atRisk: AtRiskView }) {
   return (
     <>
       <p className="caption">
-        <CodeText text={AT_RISK_CAPTION} />
+        <CodeText text={atRiskCaption(unmaintainedGroup)} />
       </p>
       {atRisk.baseline_date && (
         <p className="caption">{baselineCaption(atRisk.baseline_date, atRisk.skipped_metrics)}</p>

@@ -29,6 +29,7 @@ function HandleResults({ handle }: { handle: string }) {
 
 function HandleSearch() {
   const id = useId();
+  const { githubOrg } = useSiteMeta();
   const [handle, setHandle] = useState("");
   return (
     <>
@@ -39,7 +40,7 @@ function HandleSearch() {
           id={id}
           type="text"
           value={handle}
-          placeholder="e.g. openedx"
+          placeholder={`e.g. ${githubOrg ?? "my-org"}`}
           onChange={(event) => setHandle(event.target.value)}
         />
       </div>

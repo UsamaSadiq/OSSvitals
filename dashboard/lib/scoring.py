@@ -267,15 +267,6 @@ def _metric_score(
     if metric_name == "readme_quality":
         return _score_readme_quality(row), False
 
-    if metric_name in {"ci_status", "openedx_yaml_compliance"}:
-        as_str = str(value).strip().lower()
-        if as_str in {"true", "1", "yes"}:
-            return 100.0, False
-        if as_str in {"false", "0", "no"}:
-            return 0.0, False
-        # Neither a pass nor a fail token: no signal, so this is a default.
-        return 50.0, True
-
     if metric_name == "dependency_freshness":
         return _score_dependency_freshness(row), False
 
@@ -354,7 +345,18 @@ def _score_max_days(cfg: dict[str, Any], value: Any, _row: pd.Series, default: f
     return _score_by_max_threshold(days, ceilings, default=0), False
 
 
+def _score_boolean(cfg: dict[str, Any], value: Any, row: pd.Series, default: float) -> tuple[float, bool]:
+    as_str = str(value).strip().lower()
+    if as_str in {"true", "1", "yes"}:
+        return 100.0, False
+    if as_str in {"false", "0", "no"}:
+        return 0.0, False
+    # Neither a pass nor a fail token: no signal, so this is a default.
+    return 50.0, True
+
+
 _RULE_HANDLERS = {
+    "boolean": _score_boolean,
     "pass_values": _score_pass_values,
     "required_columns": _score_required_columns,
     "threshold_max_days": _score_max_days,

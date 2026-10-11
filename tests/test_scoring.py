@@ -116,3 +116,30 @@ def test_letter_grade_boundary_is_half_open():
     assert _get_letter_grade(79.5, grades) == "B"
     assert _get_letter_grade(80.0, grades) == "A"
     assert _get_letter_grade(0.0, grades) == "F"
+
+
+def test_boolean_parse_rule_scores_any_metric_not_just_known_names():
+    config = {
+        "version": "t",
+        "letter_grades": {"A": [80, 100], "F": [0, 79]},
+        "metrics": {
+            "has_security_policy": {
+                "weight": 1.0,
+                "category": "structural",
+                "column": "exists.security_policy",
+                "parse_rule": "boolean",
+                "status": "computable",
+                "default_when_missing": 50,
+            }
+        },
+    }
+    frame = pd.concat(
+        [
+            _sample_frame(**{"exists.security_policy": True}),
+            _sample_frame(**{"exists.security_policy": False}),
+            _sample_frame(**{"exists.security_policy": "maybe"}),
+        ],
+        ignore_index=True,
+    )
+    scored = calculate_scores(frame, config=config)
+    assert [row["has_security_policy"] for row in scored["score_per_metric"]] == [100.0, 0.0, 50.0]

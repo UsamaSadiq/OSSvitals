@@ -6,8 +6,6 @@ export type Proposed = NonNullable<ScoringView["proposed"]>;
 export type SwapRow = Proposed["swaps"][number];
 export type ChangeRow = Proposed["changes"][number];
 
-export const SCORES_FILE_URL = "https://github.com/UsamaSadiq/OSSvitals/blob/data/openedx/scores.json";
-
 export function formatWholePercent(value: number | null): string {
   return value === null ? "" : `${toFixedHalfEven(value, 0)}%`;
 }

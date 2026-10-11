@@ -34,6 +34,6 @@ describe("Overview export", () => {
   });
 
   it("names files by UTC date", () => {
-    expect(exportName(new Date("2026-10-03T23:30:00Z"))).toBe("openedx-health-2026-10-03");
+    expect(exportName(new Date("2026-10-03T23:30:00Z"), "openedx")).toBe("openedx-health-2026-10-03");
   });
 });

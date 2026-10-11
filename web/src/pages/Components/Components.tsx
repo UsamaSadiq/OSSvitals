@@ -8,7 +8,9 @@ import { ShareLink } from "../../components/ShareLink";
 import type { ComponentsView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { formatNumber } from "../../format";
+import { membershipNote } from "../../layout/catalogCopy";
 import { usePageTitle } from "../../layout/pageTitle";
+import { useSiteMeta } from "../../layout/siteMeta";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import { ComponentsTable } from "./ComponentTables";
 import { FindingCards } from "./FindingCards";
@@ -28,15 +30,16 @@ import {
 } from "./componentRows";
 import "./componentsPage.css";
 
-const BACKSTAGE_URL = "https://backstage.openedx.org/catalog";
 const EMPTY_SUMMARY: Summary = { repos: 0, with_file: 0, with_problem: 0 };
 
 function Intro() {
+  const { catalog } = useSiteMeta();
+  const reader = catalog.name ?? "a service catalog";
   return (
     <p>
       What each repository declares in its <code>catalog-info.yaml</code>: the same files{" "}
-      <a href={BACKSTAGE_URL}>Backstage</a> reads, joined here with health grades, and checked for entries that are
-      missing or half-filled.
+      {catalog.browseUrl ? <a href={catalog.browseUrl}>{reader}</a> : reader} reads, joined here with health grades,
+      and checked for entries that are missing or half-filled.
     </p>
   );
 }
@@ -56,6 +59,7 @@ function SummaryTiles({ summary }: { summary: Summary }) {
 }
 
 function CatalogIssues({ findings }: { findings: readonly FindingRow[] }) {
+  const catalogName = useSiteMeta().catalog.name ?? "the catalog";
   return (
     <section className="components-section" aria-labelledby="catalog-issues-heading">
       <h2 id="catalog-issues-heading">Catalog issues</h2>
@@ -64,7 +68,7 @@ function CatalogIssues({ findings }: { findings: readonly FindingRow[] }) {
       ) : (
         <>
           <p className="caption">
-            Problems stop Backstage or this dashboard from reading the entry correctly; notes are worth a look.
+            Problems stop {catalogName} or this dashboard from reading the entry correctly; notes are worth a look.
           </p>
           <FindingCards findings={findings} />
         </>
@@ -114,11 +118,11 @@ function DeclaredRelations({ relations }: { relations: readonly RelationRow[] })
 }
 
 function CatalogSnapshot({ view }: { view: ComponentsView }) {
+  const { catalog } = useSiteMeta();
   return (
     <>
       <p className="caption">
-        Collected {collectedLabel(view.collected_at)} from each repo's default branch. User owners are checked against
-        GitHub; group owners are not, since that needs openedx org membership.
+        Collected {collectedLabel(view.collected_at)} from each repo's default branch. {membershipNote(catalog)}
       </p>
       <SummaryTiles summary={view.summary ?? EMPTY_SUMMARY} />
       <CatalogIssues findings={view.findings ?? []} />

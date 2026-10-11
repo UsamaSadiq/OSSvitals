@@ -4,12 +4,16 @@ import type { AtRiskView } from "../../data/schemas";
 
 export type AtRiskRow = AtRiskView["records"][number];
 
-export const AT_RISK_CAPTION =
-  "Repositories waiting for a maintainer (`openedx-unmaintained`), owned by a " +
-  "single person, or with no owner, that also show weak activity, no recent " +
-  "push, or a falling score. Deprecated and archived repositories are left out. Ownership " +
-  "data starts with the 2026-09-24 snapshot, so score changes are shown for " +
-  "repos with thin ownership today, not changes in who owns them.";
+export function atRiskCaption(unmaintainedGroup: string | undefined): string {
+  const waiting = unmaintainedGroup ? `waiting for a maintainer (\`${unmaintainedGroup}\`)` : "waiting for a maintainer";
+  return (
+    `Repositories ${waiting}, owned by a ` +
+    "single person, or with no owner, that also show weak activity, no recent " +
+    "push, or a falling score. Deprecated and archived repositories are left out. Ownership " +
+    "data starts with the 2026-09-24 snapshot, so score changes are shown for " +
+    "repos with thin ownership today, not changes in who owns them."
+  );
+}
 
 const CSV_FIELDS = [
   "repo_name",

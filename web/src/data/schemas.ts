@@ -30,10 +30,30 @@ const footerSchema = z.looseObject({
   notice: z.string().optional(),
 });
 
+const provenanceSchema = z.looseObject({
+  checks_name: z.string().optional(),
+  checks_repo_label: z.string().optional(),
+  checks_repo_url: z.string().optional(),
+  data_repo_label: z.string().optional(),
+  data_repo_url: z.string().optional(),
+  governance_body: z.string().optional(),
+});
+
+const catalogBrandingSchema = z.looseObject({
+  name: z.string().optional(),
+  browse_url: z.string().optional(),
+  membership_scope: z.string().optional(),
+  spec_name: z.string().optional(),
+  spec_url: z.string().optional(),
+});
+
 const brandingSchema = z.looseObject({
   name: z.string(),
   short_name: z.string(),
   tagline: z.string(),
+  site_title: z.string().optional(),
+  provenance: provenanceSchema.optional(),
+  catalog: catalogBrandingSchema.optional(),
   footer: footerSchema.optional(),
 });
 
@@ -54,6 +74,8 @@ const signalSchema = z.object({
 export const metaSchema = view({
   config_version: z.string().nullable(),
   branding: brandingSchema,
+  github_org: z.string().optional(),
+  unmaintained_group: z.string().nullable().optional(),
   feature_flags: featureFlagsSchema,
   stale_threshold_hours: int,
   critically_stale_threshold_hours: int,

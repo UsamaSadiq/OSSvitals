@@ -45,7 +45,13 @@ jobs:
         run: |
           git fetch --depth 1 origin data
           mkdir -p web/public/data
-          git archive FETCH_HEAD openedx/views openedx/maintenance | tar -x -C web/public/data
+          paths=()
+          for org in $(git ls-tree -d --name-only FETCH_HEAD); do
+            for folder in views maintenance; do
+              if git cat-file -e "FETCH_HEAD:$org/$folder" 2>/dev/null; then paths+=("$org/$folder"); fi
+            done
+          done
+          git archive FETCH_HEAD "${paths[@]}" | tar -x -C web/public/data
       - run: npm run validate-data
       - run: npm run build
       - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

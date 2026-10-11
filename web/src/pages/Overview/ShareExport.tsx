@@ -3,6 +3,7 @@ import { ShareLink } from "../../components/ShareLink";
 import { sortRows } from "../../components/sortRows";
 import { fieldColumns, toCsv } from "../../format/csv";
 import type { MetaView, ReposView } from "../../data/schemas";
+import { useSiteMeta } from "../../layout/siteMeta";
 import { useView } from "../../data/useView";
 
 type RepoRecord = ReposView["records"][number];
@@ -41,16 +42,17 @@ export function exportJson(rows: readonly ExportRow[], meta: MetaView | undefine
   return JSON.stringify({ metadata, records: rows });
 }
 
-export function exportName(now: Date): string {
-  return `openedx-health-${now.toISOString().slice(0, 10)}`;
+export function exportName(now: Date, prefix: string): string {
+  return `${prefix}-health-${now.toISOString().slice(0, 10)}`;
 }
 
 function Downloads() {
+  const { githubOrg } = useSiteMeta();
   const repos = useView("repos");
   const meta = useView("meta");
   if (repos.status !== "ready") return null;
   const rows = rankedRows(repos.data.records);
-  const name = exportName(new Date());
+  const name = exportName(new Date(), githubOrg ?? "repo");
   return (
     <div className="page-actions">
       <DownloadButton label="Download CSV" filename={`${name}.csv`} mimeType="text/csv" content={() => exportCsv(rows)} />

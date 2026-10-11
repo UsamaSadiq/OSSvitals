@@ -11,6 +11,16 @@
 1. Update `csv_url` to a known-good raw CSV snapshot URL.
 2. Re-run the `build-scores` workflow and confirm it publishes fresh `scores.json` and `views/`.
 
+## Adding a tenant
+
+The web app follows the subdomain: `<org>.ossvitals.org` loads `data/<org>/views/*.json`. Everything org-specific lives in `dashboard/config/<org>/`:
+
+1. Copy `dashboard/config/openedx/` to `dashboard/config/<org>/` and edit it. Wording the web app shows comes from `org_branding.yaml` (`name`, `site_title`, `provenance`, `catalog`, `footer`) and `attention_rules.yaml` (`unmaintained_group`, `catalog_url_template`). Every key under `provenance` and `catalog` is optional; leaving one out makes the page use neutral wording.
+2. Set `data_source.yaml` (`csv_url`, `history_repo`, `github_org`) and `scoring.yaml`. A metric of `parse_rule: boolean` needs no code.
+3. Add a build step for `--org <org>` to `build-scores.yml` and `collect-maintenance.yml`, so the `data` branch gains `<org>/views`.
+4. Add the route in `web/wrangler.json` (`<org>.ossvitals.org`, custom domain). `deploy-web.yml` already bundles every org folder on the `data` branch.
+5. List the live dashboard on `sites/landing/public/index.html` once it is public.
+
 ## Validation checks
 
 - Run tests: `python -m pytest -q tests`

@@ -326,3 +326,14 @@ def test_repo_detail_carries_the_page_rules_per_repo(built):
     assert {card["level"] for card in entry["category_cards"]} <= {"pass", "warn", "fail", "unknown"}
     with_catalog = next(value for value in detail["repos"].values() if value["catalog"])
     assert {"owner", "type", "lifecycle", "release", "relations", "findings"} <= set(with_catalog["catalog"])
+
+
+def test_meta_exports_org_copy_for_the_web_app(built):
+    _, files = built
+    meta = files["meta.json"]
+    branding = meta["branding"]
+    assert branding["site_title"] == "Open edX Repo Health"
+    assert branding["provenance"]["governance_body"] == "the Open edX Maintenance Working Group"
+    assert branding["catalog"]["name"] == "Backstage"
+    assert meta["github_org"] == "openedx"
+    assert meta["unmaintained_group"] == "openedx-unmaintained"
