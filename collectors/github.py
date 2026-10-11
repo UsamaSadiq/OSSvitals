@@ -35,6 +35,12 @@ def _gh_optional(*args: str) -> str | None:
     raise RuntimeError(f"gh {' '.join(args)} failed: {result.stderr}")
 
 
+def api_optional(path: str) -> Any | None:
+    """Parsed JSON of a GitHub API path, or None when GitHub answers 404."""
+    out = _gh_optional("api", path)
+    return None if out is None else json.loads(out or "null")
+
+
 def file_content(full_name: str, path: str, ref: str) -> str | None:
     """Raw text of a file on ``ref``, or None when the repo has no such file."""
     return _gh_optional("api", f"repos/{full_name}/contents/{path}?ref={ref}", "-H", "Accept: application/vnd.github.raw")
