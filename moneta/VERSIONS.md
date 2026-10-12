@@ -8,7 +8,7 @@ Generated 2026-10-12. Generated from public GitHub data. "Latest release" is the
 | mautic | v26.10.0 | 7.2.1 | GPL-3.0-or-later | stale |
 | open-notebook | v1.8.5 | v1.15.0 | MIT | stale |
 | outline | v26.9.0 | v1.10.1 | BUSL-1.1 | stale |
-| outline-mcp-server | v26.9.0 | – | MIT | – |
+| outline-mcp-server | v26.9.0 | – | MIT | in-sync |
 | penpot | v26.9.2 | 2.18.3 | MPL-2.0 | critical |
 | plane | v26.10.0 | v1.4.2 | AGPL-3.0 | stale |
 | plane-mcp-server | v26.10.1 | v0.3.4 | MIT | stale |
