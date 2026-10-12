@@ -18,6 +18,11 @@
           "upstream_branch": {"type": "string"},
           "production_branch": {"type": "string"},
           "licence": {"type": "string"},
+          "licence_note": {"type": "string"},
+          "mcp_server": {"type": "string"},
+          "sso": {"type": "string"},
+          "e2e": {"type": "string"},
+          "runbook_url": {"type": "string"},
           "purpose": {"type": "string"},
           "what_we_changed": {"type": "string"}
         },

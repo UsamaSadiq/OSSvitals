@@ -7,12 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- The accessibility report crashed instead of listing findings (`_sort_key` was undefined).
+
 ### Removed
 - The Streamlit dashboard, its UI tests, screenshot baselines and audit harness. The web app is the only front end.
 - `streamlit`, `plotly`, `duckdb`, `rapidfuzz` and `pydantic` dependencies.
 
 ### Added
-- Moneta collector (`scripts/collect_moneta.py`, `collect-moneta.yml`): fork drift, latest fork release, upstream release, advisories and promotion lag from the public GitHub API, published to `moneta/views/`.
+- Moneta tenant: `config/moneta/` (app inventory, status thresholds, updates), a daily API-only collector (`scripts/collect_moneta.py`, `collect-moneta.yml`) and a weekly conflict forecast (`scripts/collect_moneta_conflicts.py`, `collect-moneta-conflicts.yml`).
+- Moneta web pages: org-wide overview, needs-attention page (each fork with the reasons), filterable apps page (cards and table, CSV export), per-app detail (advisories, sync forecast, trend, badge snippet), app search in the palette.
+- Moneta published data: fork status history, README badge endpoints, generated `VERSIONS.md`.
+- Moneta accessibility and visual CI jobs with Linux baselines in `tests/baseline-web/moneta/`.
 - `DASHBOARD_ORG` selects the active org config folder.
 - Wording the web app shows (page title, scoring provenance, catalog names, governance body) comes from the org's `org_branding.yaml` and is exported in `meta.json`; leaving it out gives neutral wording.
 - `parse_rule: boolean` scores any metric, replacing a check on two metric names.

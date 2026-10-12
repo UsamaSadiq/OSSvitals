@@ -31,7 +31,7 @@ def test_feature_flags_config_validates_against_schema():
 
 
 def test_moneta_config_files_validate_against_schemas():
-    for name in ["org_branding", "status", "apps"]:
+    for name in ["org_branding", "status", "apps", "updates"]:
         payload = read_config_file(f"config/moneta/{name}.yaml")
         assert validate_config_data(name, payload, strict=True)
 
