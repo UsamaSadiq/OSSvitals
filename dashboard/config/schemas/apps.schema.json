@@ -17,6 +17,8 @@
           "upstream": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
           "upstream_branch": {"type": "string"},
           "production_branch": {"type": "string"},
+          "fork_release_tag": {"type": "string", "format": "regex"},
+          "release_tag": {"type": "string", "format": "regex"},
           "licence": {"type": "string"},
           "licence_note": {"type": "string"},
           "mcp_server": {"type": "string"},

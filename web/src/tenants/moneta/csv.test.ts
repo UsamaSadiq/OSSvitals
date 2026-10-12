@@ -24,6 +24,7 @@ const ROW: ForkRow = {
     status: "critical",
     ahead_by: 47,
     behind_by: 4849,
+    behind_release: 4372,
     last_upstream_merge: "2026-04-30T10:00:00Z",
     days_since_upstream_merge: 164,
     fork_release: null,
@@ -36,8 +37,8 @@ const ROW: ForkRow = {
 describe("forksCsv", () => {
   it("writes a header and one escaped row per fork", () => {
     expect(forksCsv([ROW]).split("\n")).toEqual([
-      "app,status,behind_by,ahead_by,last_upstream_sync,our_release,upstream_release,new_advisories,licence",
-      'twenty,critical,4849,47,2026-04-30,,v2.45.0,2,"AGPL-3.0, ""quoted"""',
+      "app,status,behind_by,behind_release,ahead_by,last_upstream_sync,our_release,upstream_release,new_advisories,licence",
+      'twenty,critical,4849,4372,47,2026-04-30,,v2.45.0,2,"AGPL-3.0, ""quoted"""',
       "",
     ]);
   });

@@ -26,6 +26,7 @@ function AdvisoryRow({ item }: { item: AdvisoryItem }) {
       <span>{item.severity ?? "unknown severity"}</span>
       <span>{formatDay(item.published_at)}</span>
       <span>{item.after_our_release ? "after our latest release" : "before our latest release"}</span>
+      {item.affects_fork_release != null && <span>{item.affects_fork_release ? "affects our base version" : "does not affect our base version"}</span>}
       {item.summary && <span className="detail-row__wide">{item.summary}</span>}
     </li>
   );

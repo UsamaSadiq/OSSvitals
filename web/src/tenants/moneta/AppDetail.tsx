@@ -68,6 +68,9 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
   return (
     <>
       <Fact term="Behind upstream">{pluralise(drift.behind_by, "commit")}</Fact>
+      {drift.behind_release != null && drift.upstream_release && (
+        <Fact term="Behind latest release">{`${pluralise(drift.behind_release, "commit")} behind ${drift.upstream_release.tag}`}</Fact>
+      )}
       <Fact term="Our patches">{pluralise(drift.ahead_by, "commit")}</Fact>
       <Fact term="Last upstream sync">
         {formatDay(drift.last_upstream_merge)} ({drift.days_since_upstream_merge} days ago)
@@ -75,6 +78,7 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
       <ReleaseFacts row={row} githubOrg={githubOrg} />
       <Fact term="Upstream advisories">
         {advisories.since_fork_release} published after our latest release, {advisories.published} in total
+        {advisories.base_release && `, ${advisories.affecting_fork_release ?? 0} affecting ${advisories.base_release}, the upstream version we are based on`}
       </Fact>
       <Fact term="Not yet promoted">
         {promotion ? `${pluralise(promotion.unpromoted_commits, "commit")} on staging not yet released` : "No staging branch"}

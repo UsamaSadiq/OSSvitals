@@ -4,8 +4,8 @@ apps:
   - {repo: outline, class: fork, mcp_server: outline-mcp-server, upstream: outline/outline, upstream_branch: main, licence: "BUSL-1.1", licence_note: "Becomes Apache-2.0 on 2030-05-04"}
   - {repo: plane, class: fork, mcp_server: plane-mcp-server, upstream: makeplane/plane, upstream_branch: preview, licence: "AGPL-3.0"}
   - {repo: penpot, class: fork, upstream: penpot/penpot, upstream_branch: develop, licence: "MPL-2.0"}
-  - {repo: twenty, class: fork, upstream: twentyhq/twenty, upstream_branch: main, licence: "AGPL-3.0", licence_note: "Files marked Enterprise are under a commercial licence"}
-  - {repo: zammad, class: fork, mcp_server: zammad-mcp-server, upstream: zammad/zammad, upstream_branch: develop, licence: "AGPL-3.0"}
+  - {repo: twenty, class: fork, upstream: twentyhq/twenty, upstream_branch: main, release_tag: '^twenty/v\d+\.\d+\.\d+$', licence: "AGPL-3.0", licence_note: "Files marked Enterprise are under a commercial licence"}
+  - {repo: zammad, class: fork, mcp_server: zammad-mcp-server, upstream: zammad/zammad, upstream_branch: develop, release_tag: '^\d+\.\d+\.\d+$', licence: "AGPL-3.0"}
   - {repo: chatwoot, class: fork, upstream: chatwoot/chatwoot, upstream_branch: develop, licence: "MIT", licence_note: "enterprise/ is under a separate licence"}
   - {repo: mautic, class: fork, upstream: mautic/mautic, upstream_branch: "7.x", licence: "GPL-3.0-or-later"}
   - {repo: open-notebook, class: fork, upstream: lfnovo/open-notebook, upstream_branch: main, licence: "MIT", production_branch: main}

@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -214,3 +215,86 @@ def test_audit_fixture_records_match_the_published_view_shape(name):
     view = json.loads(Path(f"tests/fixtures/moneta/views/{name}.json").read_text())
     assert set(view) == {"metadata", "records"}
     assert view["metadata"]["org"] == "moneta"
+
+
+def test_upstream_tags_matching_no_fork_pattern_never_become_a_fork_release():
+    chatwoot_tags = [{"name": "v4.18.0", "commit": {"sha": "up418"}}, {"name": "v26.10.0", "commit": {"sha": "fork2610"}}]
+    routes = {
+        **ROUTES,
+        f"{BASE}/tags?per_page=100": chatwoot_tags,
+        f"{BASE}/compare/up:main...up418": {"ahead_by": 5},
+        f"{BASE}/compare/up:main...fork2610": {"ahead_by": 1},
+        f"{BASE}/commits/fork2610": commit("2026-10-02T00:00:00Z"),
+    }
+    assert collect(routes)["fork_release"] == {"tag": "v26.10.0", "date": "2026-10-02T00:00:00Z"}
+
+
+def test_a_fork_release_pattern_can_be_set_per_app():
+    tags = [{"name": "v26.9.0", "commit": {"sha": "fork926"}}, {"name": "rel-26.11", "commit": {"sha": "r5"}}]
+    routes = {**ROUTES, f"{BASE}/tags?per_page=100": tags, f"{BASE}/compare/up:main...r5": {"ahead_by": 1}, f"{BASE}/commits/r5": commit("2026-10-03T00:00:00Z")}
+    assert collect(routes, {**APP, "fork_release_tag": r"^rel-\d+\.\d+$"})["fork_release"] == {"tag": "rel-26.11", "date": "2026-10-03T00:00:00Z"}
+
+
+def test_an_rc_must_match_the_fork_pattern_once_its_suffix_is_removed():
+    tags = [{"name": "v4.19.0-rc.1", "commit": {"sha": "x"}}, {"name": "v26.10.0-rc.1", "commit": {"sha": "rc1"}}]
+    assert [tag["name"] for tag in fork.rc_tags(tags, re.compile(fork.FORK_RELEASE_TAG))] == ["v26.10.0-rc.1"]
+
+
+def release_pair(tag, published):
+    return {"tag_name": tag, "published_at": published, "draft": False, "prerelease": False}
+
+
+def test_a_release_pattern_keeps_one_release_line_out_of_a_shared_repository():
+    releases = [
+        release_pair("sdk/v1.5.0", "2026-10-02T00:00:00Z"),
+        release_pair("app/v1.5.0", "2026-10-01T00:00:00Z"),
+        release_pair("sdk/v1.4.0", "2026-09-20T00:00:00Z"),
+        release_pair("app/v1.4.0", "2026-09-15T00:00:00Z"),
+    ]
+    routes = {"repos/up/demo/releases?per_page=100": releases}
+    pattern = re.compile(r"^app/v\d+\.\d+\.\d+$")
+    kept = fork.upstream_releases(api_for(routes), "up/demo", pattern)
+    assert [release["tag_name"] for release in kept] == ["app/v1.5.0", "app/v1.4.0"]
+    assert fork.latest_upstream_release(api_for(routes), "up/demo", kept, pattern)["tag"] == "app/v1.5.0"
+    assert fork.release_lag(kept, "2026-09-16T00:00:00Z", None)["upstream_releases_since_sync"] == 1
+
+
+def test_the_newest_release_wins_whatever_order_the_api_returns():
+    releases = [release_pair("v1.0.0", "2026-01-01T00:00:00Z"), release_pair("v1.1.0", "2026-02-01T00:00:00Z")]
+    kept = fork.upstream_releases(api_for({"repos/up/demo/releases?per_page=100": releases}), "up/demo")
+    assert kept[0]["tag_name"] == "v1.1.0"
+
+
+def test_distance_to_the_upstream_release_is_reported_beside_the_branch_distance():
+    routes = {**ROUTES, f"{BASE}/compare/up:v1.5.0...foss-main": {"ahead_by": 3, "behind_by": 90}}
+    record = collect(routes)
+    assert (record["behind_by"], record["behind_release"], record["ahead_release"]) == (120, 90, 3)
+
+
+def test_release_distance_is_null_when_the_upstream_tag_cannot_be_compared():
+    record = collect()
+    assert (record["behind_release"], record["ahead_release"]) == (None, None)
+
+
+def test_an_advisory_is_matched_to_the_upstream_version_the_fork_release_is_based_on():
+    advisories = [
+        {"published_at": "2026-09-25T00:00:00Z", "severity": "high", "ghsa_id": "FIXED", "vulnerabilities": [{"vulnerable_version_range": "< 1.4.0"}]},
+        {"published_at": "2026-09-10T00:00:00Z", "severity": "high", "ghsa_id": "OPEN", "vulnerabilities": [{"vulnerable_version_range": "< 1.5.0"}]},
+        {"published_at": "2026-09-05T00:00:00Z", "severity": "low", "ghsa_id": "UNKNOWN"},
+    ]
+    routes = {
+        **ROUTES,
+        "repos/up/demo/security-advisories?per_page=100": advisories,
+        f"{BASE}/compare/up:main...v26.9.0": {"merge_base_commit": {"sha": "mb", **commit("2026-09-16T00:00:00Z")}},
+        f"{BASE}/compare/up:v1.4.0...mb": {"behind_by": 0},
+    }
+    result = collect(routes)["advisories"]
+    verdicts = {item["ghsa_id"]: item["affects_fork_release"] for item in result["items"]}
+    assert verdicts == {"FIXED": False, "OPEN": True, "UNKNOWN": None}
+    assert (result["base_release"], result["affecting_fork_release"], result["severe_affecting_fork_release"]) == ("v1.4.0", 1, 1)
+
+
+def test_advisories_are_unmatched_when_the_base_release_cannot_be_found():
+    result = collect()["advisories"]
+    assert result["base_release"] is None
+    assert all(item["affects_fork_release"] is None for item in result["items"])
