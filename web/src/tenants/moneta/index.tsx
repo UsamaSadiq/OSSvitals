@@ -1,29 +1,21 @@
 import type { RouteObject } from "react-router";
 import { Shell } from "../../layout/Shell";
-import { useSiteMeta } from "../../layout/siteMeta";
 import { NotFound } from "../../pages/NotFound";
-import { pageItems } from "../../search/paletteItems";
-import type { PaletteHostProps, Tenant } from "../types";
-
-function MonetaOverview() {
-  const { name, tagline } = useSiteMeta();
-  return (
-    <>
-      <h1>{name}</h1>
-      <p>{tagline}</p>
-    </>
-  );
-}
-
-function MonetaPaletteHost({ pages, children }: PaletteHostProps) {
-  return <>{children({ items: { pages: pageItems(pages) }, loading: false, unavailable: [] })}</>;
-}
+import type { Tenant } from "../types";
+import { AppDetail } from "./AppDetail";
+import { MonetaApps } from "./Apps";
+import { MonetaAttention } from "./AttentionPage";
+import { MonetaOverview } from "./Overview";
+import { MonetaPaletteHost } from "./PaletteHost";
 
 const routes: RouteObject[] = [
   {
     element: <Shell />,
     children: [
       { index: true, element: <MonetaOverview /> },
+      { path: "apps", element: <MonetaApps /> },
+      { path: "attention", element: <MonetaAttention /> },
+      { path: "apps/:repo", element: <AppDetail /> },
       { path: "*", element: <NotFound /> },
     ],
   },
@@ -31,13 +23,22 @@ const routes: RouteObject[] = [
 
 export const monetaTenant: Tenant = {
   org: "moneta",
-  sections: [{ title: "Status", pages: [{ path: "/", title: "Overview" }] }],
+  sections: [
+    {
+      title: "Status",
+      pages: [
+        { path: "/", title: "Overview" },
+        { path: "/apps", title: "Apps" },
+        { path: "/attention", title: "Needs attention" },
+      ],
+    },
+  ],
   routes,
   navCounts: {},
   PaletteHost: MonetaPaletteHost,
   paletteCopy: {
-    placeholder: "Search pages…",
-    ariaLabel: "Search pages",
+    placeholder: "Search apps and pages…",
+    ariaLabel: "Search apps and pages",
     loadingNote: "Loading…",
   },
 };

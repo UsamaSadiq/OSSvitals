@@ -46,7 +46,7 @@ describe("a tenant with only meta.json", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "Moneta Status" })).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Pages" });
-    expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual(["Overview"]);
+    expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual(["Overview", "Apps", "Needs attention"]);
     expect(requested.filter((name) => name !== "meta")).toEqual([]);
   });
 });

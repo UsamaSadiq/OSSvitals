@@ -1,0 +1,53 @@
+name: Forecast Moneta sync conflicts
+
+# Weekly: clones each public fork and its upstream without file contents (--filter=blob:none) and
+# runs `git merge-tree` to list the files a sync would conflict on. No worktree is ever checked out.
+# Publishes moneta/views/conflicts.json to the orphan `data` branch. Read-only for Pressingly repos.
+
+on:
+  schedule:
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: collect-moneta-conflicts
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      OUT_DIR: ${{ github.workspace }}/out/moneta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/collect_moneta_conflicts.py --out-dir "$OUT_DIR"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to data branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch
+          mkdir -p data-branch/moneta/views
+          cp "$OUT_DIR"/views/conflicts.json data-branch/moneta/views/
+          cd data-branch
+          git add moneta/views/conflicts.json
+          if git diff --cached --quiet; then
+            echo "Conflict forecast unchanged."
+            exit 0
+          fi
+          git commit -m "chore(data): update moneta conflict forecast $(date -u +%F)"
+          git push origin data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

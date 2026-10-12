@@ -37,6 +37,16 @@ and optionally `pages` (the paths the nav shows; omit it to show every page the 
 6. Visual and accessibility gates: add a page inventory in `scripts/webaudit/pages.py` (`PAGES_BY_ORG`) and view fixtures in `tests/fixtures/<org>/views/`. Build the web app with `VITE_DEFAULT_ORG=<org>` and run `python scripts/web_audit.py --org <org> --dist <dir> --mode a11y`. Baselines live in `tests/baseline-web/<org>/`; generate them in CI (see below) and add a job to `.github/workflows/web-audit.yml` once the tenant has pages worth guarding.
 7. List the dashboard on `sites/landing/public/index.html` once it is public.
 
+### Moneta tenant
+
+The Moneta tenant (`moneta`, forks of the FOSS stack against their upstreams) has no CSV and no scoring. Everything comes from the public GitHub API with the default token.
+
+- `dashboard/config/moneta/apps.yaml` lists the tracked repos: `class` (`fork` or `original`, set by hand), upstream, branches, licence (`licence` is the plain licence name used for counting, `licence_note` carries caveats), and the optional `mcp_server`, `sso`, `e2e`, `runbook_url`, `purpose` and `what_we_changed`. A `FORK.md` on the production branch replaces `what_we_changed`.
+- `status.yaml` holds the status thresholds, the advisory severities that make a fork critical, the quiet-upstream window and the history length. `updates.yaml` is the hand-written updates feed.
+- `collect-moneta.yml` (daily) runs `scripts/collect_moneta.py`: `views/{meta,apps,drift,drift_history,updates}.json`, `badges/<repo>.json` (shields.io endpoint payloads) and `VERSIONS.md`, all under `moneta/` on the `data` branch. History is extended from the previous run's `drift_history.json`.
+- `collect-moneta-conflicts.yml` (weekly) runs `scripts/collect_moneta_conflicts.py`: blob-less clones plus `git merge-tree` to list the files a sync with upstream would conflict on. It writes `views/conflicts.json`; the page works without it.
+- "Latest release" means the newest stable tag cut from the production branch (a stable tag whose commit is not in upstream). "Maintainers" on an app are the people who merged its pull requests (all of them, paged) into the production branch of our fork (GraphQL `mergedBy`, bots skipped), never upstream maintainers.. The collector cannot see production, so no page says "deployed".
+
 ## Validation checks
 
 - Run tests: `python -m pytest -q tests`

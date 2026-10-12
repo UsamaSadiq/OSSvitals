@@ -2,6 +2,9 @@ version: 1
 branches:
   production: "foss-main"
   staging: "foss-sandbox"
+critical_advisory_severities: ["critical", "high"]
+upstream_quiet_days: 120
+history_days: 90
 statuses:
   - key: "in-sync"
     label: "In sync"

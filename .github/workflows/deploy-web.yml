@@ -11,7 +11,7 @@ on:
       - web/**
       - .github/workflows/deploy-web.yml
   workflow_run:
-    workflows: ["Build scores", "Collect maintenance signals"]
+    workflows: ["Build scores", "Collect maintenance signals", "Collect Moneta status", "Forecast Moneta sync conflicts"]
     types: [completed]
     branches: [main]
   workflow_dispatch:

@@ -46,6 +46,38 @@ def file_content(full_name: str, path: str, ref: str) -> str | None:
     return _gh_optional("api", f"repos/{full_name}/contents/{path}?ref={ref}", "-H", "Accept: application/vnd.github.raw")
 
 
+MERGED_BY_QUERY = (
+    "query($owner:String!,$name:String!,$base:String!,$after:String){repository(owner:$owner,name:$name)"
+    "{pullRequests(states:MERGED,baseRefName:$base,first:100,after:$after,orderBy:{field:CREATED_AT,direction:DESC})"
+    "{pageInfo{hasNextPage endCursor} nodes{mergedBy{login __typename}}}}}"
+)
+MERGED_PAGE_LIMIT = 50
+
+
+def _merged_page(owner: str, name: str, base_branch: str, after: str | None) -> dict[str, Any] | None:
+    args = ["api", "graphql", "-f", f"query={MERGED_BY_QUERY}", "-f", f"owner={owner}", "-f", f"name={name}", "-f", f"base={base_branch}"]
+    if after:
+        args += ["-f", f"after={after}"]
+    repository = ((gh_json(*args) or {}).get("data") or {}).get("repository")
+    return repository["pullRequests"] if repository else None
+
+
+def merged_by_logins(owner: str, name: str, base_branch: str) -> list[str] | None:
+    """Who merged every pull request into ``base_branch`` of this repo, newest first; bots are skipped."""
+    logins: list[str] = []
+    after: str | None = None
+    for _ in range(MERGED_PAGE_LIMIT):
+        page = _merged_page(owner, name, base_branch, after)
+        if page is None:
+            return None
+        mergers = (node.get("mergedBy") for node in page["nodes"])
+        logins += [merger["login"] for merger in mergers if merger and merger.get("__typename") != "Bot"]
+        if not page["pageInfo"]["hasNextPage"]:
+            break
+        after = page["pageInfo"]["endCursor"]
+    return logins
+
+
 def user_exists(login: str) -> bool:
     return _gh_optional("api", f"users/{login}", "--jq", ".login") is not None
 

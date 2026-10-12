@@ -5,7 +5,7 @@ from typing import Any
 
 SCHEMA_VERSION = 1
 SOURCE = "github-api"
-PAGES = ["/"]
+PAGES = ["/", "/apps", "/attention"]
 
 
 def meta_view(org: str, generated_at: datetime, *, branding: dict[str, Any], rules: dict[str, Any], github_org: str) -> dict[str, Any]:
@@ -15,7 +15,7 @@ def meta_view(org: str, generated_at: datetime, *, branding: dict[str, Any], rul
             "schema_version": SCHEMA_VERSION,
             "org": org,
             "generated_at": generated_at.isoformat(),
-            "snapshot_timestamp": None,
+            "snapshot_timestamp": generated_at.isoformat(),
             "source": SOURCE,
         },
         "pages": PAGES,
@@ -33,7 +33,7 @@ def records_view(org: str, generated_at: datetime, records: list[dict[str, Any]]
             "schema_version": SCHEMA_VERSION,
             "org": org,
             "generated_at": generated_at.isoformat(),
-            "snapshot_timestamp": None,
+            "snapshot_timestamp": generated_at.isoformat(),
             "source": SOURCE,
         },
         "records": records,

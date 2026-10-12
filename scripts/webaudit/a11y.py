@@ -137,6 +137,10 @@ def to_violations(raw: list[dict], *, page_name: str, viewport: str) -> list[Vio
     return out
 
 
+def _sort_key(violation: Violation) -> tuple[int, str, str, str]:
+    return (_IMPACT_ORDER.get(violation.impact, len(_IMPACT_ORDER)), violation.rule, violation.page, violation.viewport)
+
+
 def _truncate(html: str) -> str:
     """Flatten and shorten an outerHTML snippet for single-line report output."""
     flat = " ".join(html.split())

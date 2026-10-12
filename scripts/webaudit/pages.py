@@ -40,6 +40,10 @@ PAGES: list[WebPage] = [
 
 MONETA_PAGES: list[WebPage] = [
     WebPage("overview", "/"),
+    WebPage("apps", "/apps"),
+    WebPage("apps_filtered", "/apps", {"status": "critical,lagging"}),
+    WebPage("attention", "/attention"),
+    WebPage("app_detail", "/apps/alpha"),
     WebPage("not_found", "/no-such-page"),
 ]
 
