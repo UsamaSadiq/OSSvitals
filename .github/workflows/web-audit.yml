@@ -106,3 +106,72 @@ jobs:
             .ux-audit/web-current/
           retention-days: 7
           if-no-files-found: ignore
+
+  # The Moneta tenant is audited the same way, from its own build (VITE_DEFAULT_ORG=moneta) and its own
+  # fixture views (tests/fixtures/moneta/views) and baselines (tests/baseline-web/moneta/).
+  moneta-web-build:
+    name: Moneta web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+        env:
+          VITE_DEFAULT_ORG: moneta
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-moneta
+          path: web/dist/
+          retention-days: 1
+
+  moneta-web-accessibility:
+    name: Moneta accessibility gate
+    needs: moneta-web-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-moneta
+          path: web/dist
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: Run axe-core over every Moneta route (no allowlist)
+        run: python scripts/web_audit.py --mode a11y --org moneta
+
+  moneta-web-visual:
+    name: Moneta visual diff
+    needs: moneta-web-build
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.60.0-noble@sha256:8ff591d613b01c884cc488339ed4318b4513eaf0c57a164a878ba49e70e3f384
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-moneta
+          path: web/dist
+      - run: pip install --break-system-packages -r requirements.txt -r requirements-dev.txt
+      - name: Diff every route against tests/baseline-web/moneta/
+        run: python scripts/web_audit.py --mode diff --org moneta
+      - name: Upload diff images
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moneta-web-visual-diff
+          path: |
+            .ux-audit/web-diff/moneta/
+            .ux-audit/web-current/moneta/
+          retention-days: 7
+          if-no-files-found: ignore

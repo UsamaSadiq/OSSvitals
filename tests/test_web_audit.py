@@ -39,7 +39,7 @@ def test_web_audit_inventory_is_unique_and_resolvable():
 
 
 def test_each_org_has_its_own_page_inventory():
-    assert [page.name for page in resolve_pages([], "moneta")] == ["overview", "not_found"]
+    assert [page.name for page in resolve_pages([], "moneta")] == ["overview", "apps", "apps_filtered", "attention", "app_detail", "not_found"]
     assert resolve_pages(["overview"], "moneta")[0].path == "/"
 
 
@@ -48,3 +48,14 @@ def test_unknown_org_is_rejected_rather_than_audited_with_another_orgs_pages():
 
     with pytest.raises(ValueError, match="No page inventory"):
         resolve_pages([], "nope")
+
+
+def test_a11y_report_lists_findings_most_severe_first():
+    from scripts.webaudit.a11y import Violation, format_report
+
+    def violation(rule, impact):
+        return Violation(rule=rule, impact=impact, count=1, help="h", samples=["<div>"], page="overview", viewport="desktop")
+
+    report = format_report([violation("minor-rule", "minor"), violation("bad-rule", "critical")])
+    assert report.index("bad-rule") < report.index("minor-rule")
+    assert "2 finding(s)" in report
