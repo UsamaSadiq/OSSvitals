@@ -34,6 +34,7 @@ const advisoryItem = z.object({
   url: nullableString,
   published_at: z.string(),
   after_our_release: z.boolean(),
+  affects_fork_release: z.boolean().nullish(),
 });
 
 const driftRecord = z.object({
@@ -41,6 +42,8 @@ const driftRecord = z.object({
   status: z.string(),
   ahead_by: z.number().int(),
   behind_by: z.number().int(),
+  behind_release: z.number().int().nullish(),
+  ahead_release: z.number().int().nullish(),
   last_upstream_merge: z.string(),
   days_since_upstream_merge: z.number().int(),
   fork_release: release.nullable(),
@@ -53,6 +56,9 @@ const driftRecord = z.object({
     published: z.number().int(),
     since_fork_release: z.number().int(),
     severe_since_fork_release: z.number().int().optional(),
+    affecting_fork_release: z.number().int().optional(),
+    severe_affecting_fork_release: z.number().int().optional(),
+    base_release: z.string().nullish(),
     source: z.string(),
     items: z.array(advisoryItem).optional(),
   }),

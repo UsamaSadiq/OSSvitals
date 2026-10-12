@@ -41,9 +41,13 @@
             "summary": "Example advisory",
             "url": "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz",
             "published_at": "2026-08-10T00:00:00Z",
-            "after_our_release": true
+            "after_our_release": true,
+            "affects_fork_release": true
           }
-        ]
+        ],
+        "affecting_fork_release": 1,
+        "severe_affecting_fork_release": 0,
+        "base_release": "v2.0.0"
       },
       "promotion": {
         "unpromoted_commits": 5
@@ -74,7 +78,9 @@
         "pushed_at": "2026-08-29T00:00:00Z",
         "idle_days": 2,
         "quiet": false
-      }
+      },
+      "behind_release": 2200,
+      "ahead_release": 12
     },
     {
       "repo": "beta",
@@ -101,7 +107,10 @@
         "since_fork_release": 0,
         "severe_since_fork_release": 0,
         "source": "github-published-advisories",
-        "items": []
+        "items": [],
+        "affecting_fork_release": 0,
+        "severe_affecting_fork_release": 0,
+        "base_release": null
       },
       "promotion": {
         "unpromoted_commits": 0
@@ -119,7 +128,9 @@
         "pushed_at": "2026-08-29T00:00:00Z",
         "idle_days": 2,
         "quiet": false
-      }
+      },
+      "behind_release": 0,
+      "ahead_release": 12
     },
     {
       "repo": "gamma",
@@ -146,7 +157,10 @@
         "since_fork_release": 0,
         "severe_since_fork_release": 0,
         "source": "github-published-advisories",
-        "items": []
+        "items": [],
+        "affecting_fork_release": 0,
+        "severe_affecting_fork_release": 0,
+        "base_release": null
       },
       "promotion": {
         "unpromoted_commits": 0
@@ -164,7 +178,9 @@
         "pushed_at": "2026-08-29T00:00:00Z",
         "idle_days": 2,
         "quiet": false
-      }
+      },
+      "behind_release": 0,
+      "ahead_release": 12
     }
   ]
 }

@@ -34,6 +34,8 @@ const DRIFT = {
   status: "critical",
   ahead_by: 3,
   behind_by: 900,
+  behind_release: 700,
+  ahead_release: 3,
   last_upstream_merge: "2026-09-01T00:00:00Z",
   days_since_upstream_merge: 20,
   fork_release: { tag: "v1.0.0", date: "2026-09-10T00:00:00Z" },
@@ -44,8 +46,10 @@ const DRIFT = {
     published: 4,
     since_fork_release: 2,
     severe_since_fork_release: 1,
+    affecting_fork_release: 1,
+    base_release: "v1.5.0",
     source: "github-published-advisories",
-    items: [{ ghsa_id: "GHSA-1", severity: "high", summary: "Bad thing", url: "https://x/GHSA-1", published_at: "2026-09-12T00:00:00Z", after_our_release: true }],
+    items: [{ ghsa_id: "GHSA-1", severity: "high", summary: "Bad thing", url: "https://x/GHSA-1", published_at: "2026-09-12T00:00:00Z", after_our_release: true, affects_fork_release: true }],
   },
   promotion: { unpromoted_commits: 5 },
   ci: { state: "failing", total: 5 },
@@ -116,6 +120,14 @@ describe("Moneta app detail with the full data set", () => {
     expect(screen.getByText("no conflicts expected")).toBeTruthy();
     expect(screen.getByText("server/auth.py")).toBeTruthy();
     expect(screen.getByText(/img\.shields\.io\/endpoint/)).toBeTruthy();
+  });
+
+  it("shows the distance to the latest upstream release and the advisories that match our base version", async () => {
+    renderRoute("/apps/burning", META, monetaTenant);
+    await screen.findByRole("heading", { level: 2, name: "Upstream advisories" });
+    expect(screen.getByText("700 commits behind v2.0.0")).toBeTruthy();
+    expect(screen.getByText(/1 affecting v1\.5\.0, the upstream version we are based on/)).toBeTruthy();
+    expect(screen.getByText("affects our base version")).toBeTruthy();
   });
 
   it("describes the trend in words", async () => {
