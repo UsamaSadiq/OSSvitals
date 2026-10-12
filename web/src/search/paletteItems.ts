@@ -7,7 +7,7 @@ import { rankSearchables, type Searchable } from "./match";
 
 export const MAX_PER_SECTION = 8;
 
-export type SectionId = "pages" | "repos" | "checks" | "owners";
+export type SectionId = "pages" | "apps" | "repos" | "checks" | "owners";
 
 export interface PaletteItem extends Searchable {
   id: string;
@@ -26,12 +26,13 @@ export interface PaletteSection {
 
 const SECTION_TITLES: Record<SectionId, string> = {
   pages: "Pages",
+  apps: "Apps",
   repos: "Repositories",
   checks: "Checks",
   owners: "Owners",
 };
 
-const SECTION_ORDER: readonly SectionId[] = ["pages", "repos", "checks", "owners"];
+const SECTION_ORDER: readonly SectionId[] = ["pages", "apps", "repos", "checks", "owners"];
 
 export function failingCheckPath(check: string): string {
   return `/failing_checks?${new URLSearchParams({ category: check }).toString()}`;
