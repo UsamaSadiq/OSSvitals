@@ -285,8 +285,8 @@ def test_an_advisory_is_matched_to_the_upstream_version_the_fork_release_is_base
     routes = {
         **ROUTES,
         "repos/up/demo/security-advisories?per_page=100": advisories,
-        f"{BASE}/compare/up:main...v26.9.0": {"merge_base_commit": {"sha": "mb", **commit("2026-09-16T00:00:00Z")}},
-        f"{BASE}/compare/up:v1.4.0...mb": {"behind_by": 0},
+        f"{BASE}/compare/up:v1.5.0...v26.9.0": {"behind_by": 7},
+        f"{BASE}/compare/up:v1.4.0...v26.9.0": {"behind_by": 0},
     }
     result = collect(routes)["advisories"]
     verdicts = {item["ghsa_id"]: item["affects_fork_release"] for item in result["items"]}
@@ -298,3 +298,25 @@ def test_advisories_are_unmatched_when_the_base_release_cannot_be_found():
     result = collect()["advisories"]
     assert result["base_release"] is None
     assert all(item["affects_fork_release"] is None for item in result["items"])
+
+
+def test_the_base_release_is_the_highest_version_in_history_not_the_newest_by_date():
+    releases = [release_pair("v1.7.0", "2026-09-30T00:00:00Z"), release_pair("v1.7.1", "2026-08-01T00:00:00Z"), release_pair("v1.6.0", "2026-07-01T00:00:00Z")]
+    routes = {
+        "repos/up/demo/releases?per_page=100": releases,
+        f"{BASE}/compare/up:v1.7.1...v26.9.0": {"behind_by": 0},
+        f"{BASE}/compare/up:v1.7.0...v26.9.0": {"behind_by": 0},
+    }
+    release = {"tag": "v26.9.0", "date": "2026-09-20T00:00:00Z"}
+    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", None, release, fork.upstream_releases(api_for(routes), "up/demo")) == "v1.7.1"
+
+
+def test_a_release_cut_from_a_side_branch_does_not_stop_the_search():
+    releases = [release_pair("v2.0.0", "2026-09-30T00:00:00Z"), release_pair("v1.9.0", "2026-09-01T00:00:00Z")]
+    routes = {
+        "repos/up/demo/releases?per_page=100": releases,
+        f"{BASE}/compare/up:v2.0.0...v26.9.0": {"behind_by": 12},
+        f"{BASE}/compare/up:v1.9.0...v26.9.0": {"behind_by": 0},
+    }
+    release = {"tag": "v26.9.0", "date": "2026-09-20T00:00:00Z"}
+    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", None, release, fork.upstream_releases(api_for(routes), "up/demo")) == "v1.9.0"

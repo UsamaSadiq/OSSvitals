@@ -17,7 +17,7 @@ STABLE_TAG = re.compile(r"^v?\d+(\.\d+)+$")
 FORK_RELEASE_TAG = r"^v2\d\.\d{1,2}\.\d+$"
 RC_TAG = re.compile(r"^v?(\d+(?:\.\d+)+)-rc[.\-]?(\d*)$")
 RC_SUFFIX = re.compile(r"-rc[.\-]?\d*$")
-BASE_RELEASE_CANDIDATES = 6
+BASE_RELEASE_CANDIDATES = 25
 RELEASE_PAGES = 4
 TAG_CANDIDATES = 5
 ADVISORY_SOURCE = "github-published-advisories"
@@ -100,36 +100,32 @@ def release_lag(releases: list[dict[str, Any]], merged_at: str, fork_release: di
     return {"upstream_releases_since_sync": len(since), "upstream_ahead_of_our_release_days": behind_days}
 
 
-def _releases_before(api: Api, upstream: str, pattern: re.Pattern[str] | None, releases: list[dict[str, Any]], date: str) -> list[dict[str, Any]]:
-    for page in range(1, RELEASE_PAGES + 1):
-        older = [release for release in (releases if page == 1 else upstream_releases(api, upstream, pattern, page)) if release["published_at"] <= date]
-        if older:
-            return older
-    return []
+def _all_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None, first_page: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    releases = list(first_page)
+    for page in range(2, RELEASE_PAGES + 1):
+        more = upstream_releases(api, upstream, pattern, page)
+        if not more:
+            break
+        releases.extend(more)
+    return releases
 
 
 def fork_base_release(
     api: Api,
     base: str,
-    upstream_ref: str,
     upstream: str,
     pattern: re.Pattern[str] | None,
     fork_release: dict[str, Any] | None,
     releases: list[dict[str, Any]],
 ) -> str | None:
-    """The upstream release our latest fork release is built on: the newest one that is an ancestor of the merge base."""
+    """The highest-versioned upstream release that is in the history of our latest fork release."""
     if fork_release is None:
         return None
-    comparison = api(f"{base}/compare/{upstream_ref}...{quote(fork_release['tag'], safe='')}")
-    if not comparison:
-        return None
     owner = upstream.split("/")[0]
-    merge_base = comparison["merge_base_commit"]
-    older = _releases_before(api, upstream, pattern, releases, _commit_date(merge_base))
-    for release in older[:BASE_RELEASE_CANDIDATES]:
-        tag = quote(release["tag_name"], safe="")
-        contained = api(f"{base}/compare/{owner}:{tag}...{merge_base['sha']}")
-        if contained and contained["behind_by"] == 0:
+    newest_first = sorted(_all_releases(api, upstream, pattern, releases), key=lambda release: version_key(release["tag_name"]), reverse=True)
+    for release in newest_first[:BASE_RELEASE_CANDIDATES]:
+        comparison = api(f"{base}/compare/{owner}:{quote(release['tag_name'], safe='')}...{quote(fork_release['tag'], safe='')}")
+        if comparison and comparison["behind_by"] == 0:
             return release["tag_name"]
     return None
 
@@ -212,7 +208,7 @@ def collect_fork(
     release = latest_fork_release(api, base, upstream_ref, tags, fork_pattern)
     releases = upstream_releases(api, app["upstream"], upstream_pattern)
     upstream_release = latest_upstream_release(api, app["upstream"], releases, upstream_pattern)
-    base_release = signals.guarded(lambda: fork_base_release(api, base, upstream_ref, app["upstream"], upstream_pattern, release, releases))
+    base_release = signals.guarded(lambda: fork_base_release(api, base, app["upstream"], upstream_pattern, release, releases))
     advisories = advisory_summary(
         api, app["upstream"], release["date"] if release else None, rules.get("critical_advisory_severities", []), base_release
     )

@@ -41,3 +41,19 @@ def test_unknown_when_the_version_or_ranges_cannot_be_read():
     assert affects(None, advisory("< 1.0.0")) is None
     assert affects((1, 0, 0), advisory("garbage")) is None
     assert affects((1, 0, 0), {"vulnerabilities": []}) is None
+
+
+def patched(range_text, fixes):
+    return {"vulnerabilities": [{"vulnerable_version_range": range_text, "patched_versions": fixes}]}
+
+
+def test_an_open_ended_range_is_not_vulnerable_once_a_fix_on_the_same_major_line_is_included():
+    assert affects((7, 2, 0), patched(">= 7.0.0", "7.1.2")) is False
+    assert affects((7, 1, 1), patched(">= 7.0.0", "7.1.2")) is True
+
+
+def test_a_fix_on_another_major_line_does_not_cover_the_version():
+    assert affects((7, 0, 1), patched(">= 7.0.0", "6.0.9, 5.2.11")) is True
+    assert affects((7, 2, 0), patched(">= 4.0", "6.0.7, 5.2.9, 4.4.18")) is False
+    assert affects((5, 2, 3), patched(">= 2.0.0", "5.2.11, 4.4.20")) is True
+    assert affects((5, 2, 11), patched(">= 2.0.0", "5.2.11, 4.4.20")) is False
