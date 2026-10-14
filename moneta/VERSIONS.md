@@ -1,6 +1,6 @@
 # Versions
 
-Generated 2026-10-13. Generated from public GitHub data. "Latest release" is the newest stable tag we cut from the production branch; it is what source is published, not what any server is running.
+Generated 2026-10-14. Generated from public GitHub data. "Latest release" is the newest stable tag we cut from the production branch; it is what source is published, not what any server is running.
 
 | App | Latest release | Upstream release | Licence | Status |
 |---|---|---|---|---|
