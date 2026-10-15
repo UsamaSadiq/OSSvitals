@@ -1,0 +1,1078 @@
+{
+ "metadata": {
+  "schema_version": 1,
+  "org": "openedx",
+  "generated_at": "2026-10-11T19:59:14.090385+00:00",
+  "snapshot_timestamp": "2026-10-11",
+  "source": "scores, checks and catalog-info.yaml snapshot"
+ },
+ "catalog_available": true,
+ "catalog_collected_at": "2026-10-11T15:10:36.340613+00:00",
+ "repos": {
+  "openedx/course-discovery": {
+   "summary": {
+    "available": 9,
+    "total": 9,
+    "coverage_pct": 100.0,
+    "level": "pass"
+   },
+   "subscores": {
+    "structural": {
+     "value": 66.67,
+     "help": "Baseline compliance: README, CI, openedx.yaml, deps."
+    },
+    "activity": {
+     "value": 65.38,
+     "help": "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals. 77% of this category's weight is measured."
+    }
+   },
+   "metric_bars": [
+    {
+     "metric": "ci_status",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "commit_recency",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "dependency_freshness",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.05,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_closure_ratio",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "readme_quality",
+     "state": "measured",
+     "score": 83.33,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "release_frequency",
+     "state": "measured",
+     "score": 50.0,
+     "weight": 0.1,
+     "letter": "C"
+    },
+    {
+     "metric": "contributor_absence_factor",
+     "state": "measured",
+     "score": 0.0,
+     "weight": 0.1,
+     "letter": "F"
+    },
+    {
+     "metric": "openedx_yaml_compliance",
+     "state": "measured",
+     "score": 0.0,
+     "weight": 0.1,
+     "letter": "F"
+    },
+    {
+     "metric": "pr_response_time",
+     "state": "defaulted",
+     "score": 50.0,
+     "weight": 0.15,
+     "letter": "C"
+    }
+   ],
+   "category_cards": [
+    {
+     "name": "File Existence",
+     "pass": 10,
+     "fail": 8,
+     "na": 0,
+     "pass_rate": 55.55555555555556,
+     "level": "warn"
+    },
+    {
+     "name": "CI / Tooling",
+     "pass": 1,
+     "fail": 0,
+     "na": 0,
+     "pass_rate": 100.0,
+     "level": "pass"
+    },
+    {
+     "name": "Dependencies",
+     "pass": 1,
+     "fail": 5,
+     "na": 11,
+     "pass_rate": 16.666666666666664,
+     "level": "fail"
+    },
+    {
+     "name": "Documentation",
+     "pass": 0,
+     "fail": 2,
+     "na": 0,
+     "pass_rate": 0.0,
+     "level": "fail"
+    },
+    {
+     "name": "README",
+     "pass": 4,
+     "fail": 0,
+     "na": 2,
+     "pass_rate": 100.0,
+     "level": "pass"
+    }
+   ],
+   "catalog": {
+    "has_file": true,
+    "has_entity": true,
+    "owner": "group:2u-phoenix",
+    "owner_key": "2u-phoenix",
+    "type": "service",
+    "lifecycle": "production",
+    "release": "master",
+    "interest": "none listed",
+    "description": "Course Discovery Service which powers the metadata for all products marketed at edX",
+    "links": [
+     {
+      "title": "Deployed Site",
+      "url": "https://discovery.edx.org/"
+     }
+    ],
+    "relations": [
+     {
+      "label": "Depends on",
+      "target": "studio",
+      "suffix": " (not in catalog)"
+     },
+     {
+      "label": "Depends on",
+      "target": "lms",
+      "suffix": " (not in catalog)"
+     },
+     {
+      "label": "Depends on",
+      "target": "taxonomy-connector",
+      "suffix": ""
+     },
+     {
+      "label": "Depends on",
+      "target": "ecommerce",
+      "suffix": " (not in catalog)"
+     }
+    ],
+    "backstage_url": "https://backstage.openedx.org/catalog/default/component/course-discovery",
+    "findings": [
+     {
+      "severity": "problem",
+      "label": "Depends on or belongs to an entity not in the catalog"
+     }
+    ]
+   }
+  },
+  "openedx/edx-enterprise": {
+   "summary": {
+    "available": 9,
+    "total": 9,
+    "coverage_pct": 100.0,
+    "level": "pass"
+   },
+   "subscores": {
+    "structural": {
+     "value": 66.67,
+     "help": "Baseline compliance: README, CI, openedx.yaml, deps."
+    },
+    "activity": {
+     "value": 88.46,
+     "help": "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals."
+    }
+   },
+   "metric_bars": [
+    {
+     "metric": "ci_status",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "commit_recency",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "contributor_absence_factor",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "dependency_freshness",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.05,
+     "letter": "A"
+    },
+    {
+     "metric": "release_frequency",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "readme_quality",
+     "state": "measured",
+     "score": 83.33,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_response_time",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_closure_ratio",
+     "state": "measured",
+     "score": 70.0,
+     "weight": 0.15,
+     "letter": "B"
+    },
+    {
+     "metric": "openedx_yaml_compliance",
+     "state": "measured",
+     "score": 0.0,
+     "weight": 0.1,
+     "letter": "F"
+    }
+   ],
+   "category_cards": [
+    {
+     "name": "File Existence",
+     "pass": 15,
+     "fail": 3,
+     "na": 0,
+     "pass_rate": 83.33333333333334,
+     "level": "pass"
+    },
+    {
+     "name": "CI / Tooling",
+     "pass": 1,
+     "fail": 0,
+     "na": 0,
+     "pass_rate": 100.0,
+     "level": "pass"
+    },
+    {
+     "name": "Dependencies",
+     "pass": 3,
+     "fail": 3,
+     "na": 11,
+     "pass_rate": 50.0,
+     "level": "warn"
+    },
+    {
+     "name": "Documentation",
+     "pass": 2,
+     "fail": 0,
+     "na": 0,
+     "pass_rate": 100.0,
+     "level": "pass"
+    },
+    {
+     "name": "README",
+     "pass": 4,
+     "fail": 0,
+     "na": 2,
+     "pass_rate": 100.0,
+     "level": "pass"
+    }
+   ],
+   "catalog": {
+    "has_file": true,
+    "has_entity": true,
+    "owner": "group:2u-enterprise",
+    "owner_key": "2u-enterprise",
+    "type": "library",
+    "lifecycle": "production",
+    "release": "no",
+    "interest": "none listed",
+    "description": "The Open edx Enterprise Service app provides enterprise features to the Open edX platform",
+    "links": [],
+    "relations": [],
+    "backstage_url": "https://backstage.openedx.org/catalog/default/component/edx-enterprise",
+    "findings": []
+   }
+  },
+  "openedx/license-manager": {
+   "summary": {
+    "available": 9,
+    "total": 9,
+    "coverage_pct": 100.0,
+    "level": "pass"
+   },
+   "subscores": {
+    "structural": {
+     "value": 57.14,
+     "help": "Baseline compliance: README, CI, openedx.yaml, deps."
+    },
+    "activity": {
+     "value": 93.85,
+     "help": "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals."
+    }
+   },
+   "metric_bars": [
+    {
+     "metric": "ci_status",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "commit_recency",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "dependency_freshness",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.05,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_closure_ratio",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_response_time",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "contributor_absence_factor",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "release_frequency",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "readme_quality",
+     "state": "measured",
+     "score": 50.0,
+     "weight": 0.1,
+     "letter": "C"
+    },
+    {
+     "metric": "openedx_yaml_compliance",
+     "state": "measured",
+     "score": 0.0,
+     "weight": 0.1,
+     "letter": "F"
+    }
+   ],
+   "category_cards": [
+    {
+     "name": "File Existence",
+     "pass": 11,
+     "fail": 7,
+     "na": 0,
+     "pass_rate": 61.111111111111114,
+     "level": "warn"
+    },
+    {
+     "name": "CI / Tooling",
+     "pass": 0,
+     "fail": 1,
+     "na": 0,
+     "pass_rate": 0.0,
+     "level": "fail"
+    },
+    {
+     "name": "Dependencies",
+     "pass": 2,
+     "fail": 9,
+     "na": 6,
+     "pass_rate": 18.181818181818183,
+     "level": "fail"
+    },
+    {
+     "name": "Documentation",
+     "pass": 1,
+     "fail": 1,
+     "na": 0,
+     "pass_rate": 50.0,
+     "level": "warn"
+    },
+    {
+     "name": "README",
+     "pass": 2,
+     "fail": 2,
+     "na": 2,
+     "pass_rate": 50.0,
+     "level": "warn"
+    }
+   ],
+   "catalog": {
+    "has_file": true,
+    "has_entity": true,
+    "owner": "sameeramin",
+    "owner_key": null,
+    "type": "service",
+    "lifecycle": "production",
+    "release": "master",
+    "interest": "none listed",
+    "description": "Django backend for managing licenses and subscriptions for enterprise customer.",
+    "links": [],
+    "relations": [
+     {
+      "label": "Depends on",
+      "target": "<component_or_resource>",
+      "suffix": " (template placeholder)"
+     },
+     {
+      "label": "Depends on",
+      "target": "<another_component_or_resource>",
+      "suffix": " (template placeholder)"
+     },
+     {
+      "label": "Part of",
+      "target": "<name_of_a_component>",
+      "suffix": " (template placeholder)"
+     }
+    ],
+    "backstage_url": "https://backstage.openedx.org/catalog/default/component/license-manager",
+    "findings": [
+     {
+      "severity": "problem",
+      "label": "Owner has no group: or user: prefix, so Backstage reads it as a group"
+     },
+     {
+      "severity": "problem",
+      "label": "Template placeholders left in the file"
+     }
+    ]
+   }
+  },
+  "openedx/edx-ora2": {
+   "summary": {
+    "available": 9,
+    "total": 9,
+    "coverage_pct": 100.0,
+    "level": "pass"
+   },
+   "subscores": {
+    "structural": {
+     "value": 95.24,
+     "help": "Baseline compliance: README, CI, openedx.yaml, deps."
+    },
+    "activity": {
+     "value": 61.54,
+     "help": "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals."
+    }
+   },
+   "metric_bars": [
+    {
+     "metric": "ci_status",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "commit_recency",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "dependency_freshness",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.05,
+     "letter": "A"
+    },
+    {
+     "metric": "openedx_yaml_compliance",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "readme_quality",
+     "state": "measured",
+     "score": 83.33,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "contributor_absence_factor",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "release_frequency",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_closure_ratio",
+     "state": "measured",
+     "score": 40.0,
+     "weight": 0.15,
+     "letter": "C"
+    },
+    {
+     "metric": "pr_response_time",
+     "state": "measured",
+     "score": 20.0,
+     "weight": 0.15,
+     "letter": "D"
+    }
+   ],
+   "category_cards": [
+    {
+     "name": "File Existence",
+     "pass": 14,
+     "fail": 4,
+     "na": 0,
+     "pass_rate": 77.77777777777779,
+     "level": "warn"
+    },
+    {
+     "name": "CI / Tooling",
+     "pass": 1,
+     "fail": 0,
+     "na": 0,
+     "pass_rate": 100.0,
+     "level": "pass"
+    },
+    {
+     "name": "Dependencies",
+     "pass": 2,
+     "fail": 4,
+     "na": 11,
+     "pass_rate": 33.33333333333333,
+     "level": "fail"
+    },
+    {
+     "name": "Documentation",
+     "pass": 1,
+     "fail": 1,
+     "na": 0,
+     "pass_rate": 50.0,
+     "level": "warn"
+    },
+    {
+     "name": "README",
+     "pass": 4,
+     "fail": 0,
+     "na": 2,
+     "pass_rate": 100.0,
+     "level": "pass"
+    }
+   ],
+   "catalog": {
+    "has_file": true,
+    "has_entity": true,
+    "owner": "group:openedx-unmaintained",
+    "owner_key": "openedx-unmaintained",
+    "type": "xblock",
+    "lifecycle": "production",
+    "release": "no",
+    "interest": "none listed",
+    "description": "Open Response Assessment (ORA) XBlock for use within edx-platform",
+    "links": [
+     {
+      "title": "Open Response Assessment (ORA) XBlock",
+      "url": "https://github.com/openedx/edx-ora2"
+     }
+    ],
+    "relations": [],
+    "backstage_url": "https://backstage.openedx.org/catalog/default/component/edx-ora2",
+    "findings": [
+     {
+      "severity": "note",
+      "label": "Type is not service, website or library"
+     }
+    ]
+   }
+  },
+  "openedx/credentials": {
+   "summary": {
+    "available": 9,
+    "total": 9,
+    "coverage_pct": 100.0,
+    "level": "pass"
+   },
+   "subscores": {
+    "structural": {
+     "value": 61.91,
+     "help": "Baseline compliance: README, CI, openedx.yaml, deps."
+    },
+    "activity": {
+     "value": 78.46,
+     "help": "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals."
+    }
+   },
+   "metric_bars": [
+    {
+     "metric": "ci_status",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "commit_recency",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "contributor_absence_factor",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "dependency_freshness",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.05,
+     "letter": "A"
+    },
+    {
+     "metric": "release_frequency",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_closure_ratio",
+     "state": "measured",
+     "score": 70.0,
+     "weight": 0.15,
+     "letter": "B"
+    },
+    {
+     "metric": "readme_quality",
+     "state": "measured",
+     "score": 66.67,
+     "weight": 0.1,
+     "letter": "B"
+    },
+    {
+     "metric": "pr_response_time",
+     "state": "measured",
+     "score": 50.0,
+     "weight": 0.15,
+     "letter": "C"
+    },
+    {
+     "metric": "openedx_yaml_compliance",
+     "state": "measured",
+     "score": 0.0,
+     "weight": 0.1,
+     "letter": "F"
+    }
+   ],
+   "category_cards": [
+    {
+     "name": "File Existence",
+     "pass": 12,
+     "fail": 6,
+     "na": 0,
+     "pass_rate": 66.66666666666666,
+     "level": "warn"
+    },
+    {
+     "name": "CI / Tooling",
+     "pass": 1,
+     "fail": 0,
+     "na": 0,
+     "pass_rate": 100.0,
+     "level": "pass"
+    },
+    {
+     "name": "Dependencies",
+     "pass": 2,
+     "fail": 3,
+     "na": 12,
+     "pass_rate": 40.0,
+     "level": "fail"
+    },
+    {
+     "name": "Documentation",
+     "pass": 1,
+     "fail": 1,
+     "na": 0,
+     "pass_rate": 50.0,
+     "level": "warn"
+    },
+    {
+     "name": "README",
+     "pass": 3,
+     "fail": 1,
+     "na": 2,
+     "pass_rate": 75.0,
+     "level": "warn"
+    }
+   ],
+   "catalog": {
+    "has_file": true,
+    "has_entity": true,
+    "owner": "user:jajjibhai008",
+    "owner_key": "jajjibhai008",
+    "type": "service",
+    "lifecycle": "production",
+    "release": "master",
+    "interest": "none listed",
+    "description": "The Open edX Credentials Service, which supports course and program certificates.",
+    "links": [
+     {
+      "title": "Documentation",
+      "url": "https://edx-credentials.readthedocs.io/"
+     }
+    ],
+    "relations": [],
+    "backstage_url": "https://backstage.openedx.org/catalog/default/component/credentials",
+    "findings": []
+   }
+  },
+  "openedx/XBlock": {
+   "summary": {
+    "available": 9,
+    "total": 9,
+    "coverage_pct": 100.0,
+    "level": "pass"
+   },
+   "subscores": {
+    "structural": {
+     "value": 95.24,
+     "help": "Baseline compliance: README, CI, openedx.yaml, deps."
+    },
+    "activity": {
+     "value": 85.38,
+     "help": "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals."
+    }
+   },
+   "metric_bars": [
+    {
+     "metric": "ci_status",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "commit_recency",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "contributor_absence_factor",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "dependency_freshness",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.05,
+     "letter": "A"
+    },
+    {
+     "metric": "openedx_yaml_compliance",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_closure_ratio",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "readme_quality",
+     "state": "measured",
+     "score": 83.33,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "release_frequency",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_response_time",
+     "state": "measured",
+     "score": 50.0,
+     "weight": 0.15,
+     "letter": "C"
+    }
+   ],
+   "category_cards": [
+    {
+     "name": "File Existence",
+     "pass": 11,
+     "fail": 7,
+     "na": 0,
+     "pass_rate": 61.111111111111114,
+     "level": "warn"
+    },
+    {
+     "name": "CI / Tooling",
+     "pass": 0,
+     "fail": 1,
+     "na": 0,
+     "pass_rate": 0.0,
+     "level": "fail"
+    },
+    {
+     "name": "Dependencies",
+     "pass": 2,
+     "fail": 9,
+     "na": 6,
+     "pass_rate": 18.181818181818183,
+     "level": "fail"
+    },
+    {
+     "name": "Documentation",
+     "pass": 2,
+     "fail": 0,
+     "na": 0,
+     "pass_rate": 100.0,
+     "level": "pass"
+    },
+    {
+     "name": "README",
+     "pass": 4,
+     "fail": 0,
+     "na": 2,
+     "pass_rate": 100.0,
+     "level": "pass"
+    }
+   ],
+   "catalog": {
+    "has_file": true,
+    "has_entity": true,
+    "owner": "group:axim-engineering",
+    "owner_key": "axim-engineering",
+    "type": "library",
+    "lifecycle": "production",
+    "release": "no",
+    "interest": "feanil",
+    "description": "Framework for building custom learning components that run in the Open edX LMS!",
+    "links": [
+     {
+      "title": "XBlock Docs",
+      "url": "https://docs.openedx.org/projects/xblock/en/latest/"
+     },
+     {
+      "title": "XBlock Tutorial",
+      "url": "https://docs.openedx.org/projects/xblock/en/latest/xblock-tutorial/index.html"
+     }
+    ],
+    "relations": [],
+    "backstage_url": "https://backstage.openedx.org/catalog/default/component/XBlock",
+    "findings": []
+   }
+  },
+  "openedx/frontend-app-learning": {
+   "summary": {
+    "available": 9,
+    "total": 9,
+    "coverage_pct": 100.0,
+    "level": "pass"
+   },
+   "subscores": {
+    "structural": {
+     "value": 61.91,
+     "help": "Baseline compliance: README, CI, openedx.yaml, deps."
+    },
+    "activity": {
+     "value": 92.31,
+     "help": "Commit recency, PR response time, PR closure ratio, release frequency and contributor signals."
+    }
+   },
+   "metric_bars": [
+    {
+     "metric": "ci_status",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "commit_recency",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "contributor_absence_factor",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "dependency_freshness",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.05,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_closure_ratio",
+     "state": "measured",
+     "score": 100.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "pr_response_time",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.15,
+     "letter": "A"
+    },
+    {
+     "metric": "release_frequency",
+     "state": "measured",
+     "score": 80.0,
+     "weight": 0.1,
+     "letter": "A"
+    },
+    {
+     "metric": "readme_quality",
+     "state": "measured",
+     "score": 66.67,
+     "weight": 0.1,
+     "letter": "B"
+    },
+    {
+     "metric": "openedx_yaml_compliance",
+     "state": "measured",
+     "score": 0.0,
+     "weight": 0.1,
+     "letter": "F"
+    }
+   ],
+   "category_cards": [
+    {
+     "name": "File Existence",
+     "pass": 6,
+     "fail": 12,
+     "na": 0,
+     "pass_rate": 33.33333333333333,
+     "level": "fail"
+    },
+    {
+     "name": "CI / Tooling",
+     "pass": 1,
+     "fail": 0,
+     "na": 0,
+     "pass_rate": 100.0,
+     "level": "pass"
+    },
+    {
+     "name": "Dependencies",
+     "pass": 2,
+     "fail": 6,
+     "na": 9,
+     "pass_rate": 25.0,
+     "level": "fail"
+    },
+    {
+     "name": "Documentation",
+     "pass": 0,
+     "fail": 2,
+     "na": 0,
+     "pass_rate": 0.0,
+     "level": "fail"
+    },
+    {
+     "name": "README",
+     "pass": 3,
+     "fail": 1,
+     "na": 2,
+     "pass_rate": 75.0,
+     "level": "warn"
+    }
+   ],
+   "catalog": {
+    "has_file": true,
+    "has_entity": true,
+    "owner": "group:committers-frontend-app-learning",
+    "owner_key": "committers-frontend-app-learning",
+    "type": "website",
+    "lifecycle": "production",
+    "release": "master",
+    "interest": "none listed",
+    "description": "This is the Learning MFE, which renders all learner-facing course pages.",
+    "links": [
+     {
+      "title": "Learning MFE",
+      "url": "https://github.com/openedx/frontend-app-learning"
+     }
+    ],
+    "relations": [],
+    "backstage_url": "https://backstage.openedx.org/catalog/default/component/frontend-app-learning",
+    "findings": []
+   }
+  }
+ }
+}

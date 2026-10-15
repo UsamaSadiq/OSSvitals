@@ -1,0 +1,32 @@
+{
+ "metadata": {
+  "schema_version": 1,
+  "org": "openedx",
+  "generated_at": "2026-10-11T19:59:14.090385+00:00",
+  "snapshot_timestamp": "2026-10-11",
+  "source": "attention_rules.yaml"
+ },
+ "records": [
+  {
+   "repo_name": "openedx/edx-notes-api",
+   "repo_tier": "important",
+   "score_composite": 75.17,
+   "score_letter": "B",
+   "reasons": "important tier with 5+ failing checks"
+  },
+  {
+   "repo_name": "openedx/modular-learning",
+   "repo_tier": "standard",
+   "score_composite": 23.67,
+   "score_letter": "D",
+   "reasons": "no commits in 90+ days"
+  },
+  {
+   "repo_name": "openedx/openedx-app-test",
+   "repo_tier": "standard",
+   "score_composite": 32.0,
+   "score_letter": "D",
+   "reasons": "no commits in 90+ days"
+  }
+ ]
+}

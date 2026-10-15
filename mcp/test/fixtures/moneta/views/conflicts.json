@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "org": "moneta",
+    "generated_at": "2026-08-31T08:00:00+00:00",
+    "snapshot_timestamp": "2026-08-31T08:00:00+00:00",
+    "source": "github-api"
+  },
+  "records": [
+    {
+      "repo": "alpha",
+      "against_upstream_head": {
+        "clean": false,
+        "conflicted_files": [
+          "server/auth.py",
+          "app/login.tsx"
+        ],
+        "conflicted_total": 2
+      },
+      "against_upstream_release": {
+        "tag": "v2.1.0",
+        "clean": true,
+        "conflicted_files": [],
+        "conflicted_total": 0
+      }
+    },
+    {
+      "repo": "beta",
+      "error": "clone failed"
+    }
+  ]
+}
