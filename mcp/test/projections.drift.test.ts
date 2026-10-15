@@ -70,8 +70,8 @@ describe("getApp", () => {
     if (!first) throw new Error("fixture is empty");
     const view = { ...apps, records: [{ ...first, description: long, what_we_changed: long }, ...rest] };
     const app = getApp(view, drift, first.repo);
-    expect(app?.description).toHaveLength(300);
-    expect(app?.what_we_changed).toHaveLength(300);
+    expect(app?.description).toBe(`${"x".repeat(300)}…`);
+    expect(app?.what_we_changed).toBe(`${"x".repeat(300)}…`);
   });
 });
 

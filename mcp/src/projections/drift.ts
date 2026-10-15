@@ -6,6 +6,7 @@ import type {
   DriftRecord,
   DriftView,
 } from "../../../web/src/tenants/moneta/schemas.ts";
+import { truncate } from "../text.ts";
 
 const DESCRIPTION_LIMIT = 300;
 const CONFLICT_FILE_LIMIT = 50;
@@ -15,11 +16,6 @@ export const REPO_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
 export interface AppFilter {
   status?: string;
   class?: AppRecord["class"];
-}
-
-function truncate(text: string | null, limit: number): string | null {
-  if (text === null || text.length <= limit) return text;
-  return `${text.slice(0, limit - 1)}…`;
 }
 
 function sameRepo(left: string, right: string): boolean {
