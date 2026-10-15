@@ -1,0 +1,17 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "org": "moneta",
+    "generated_at": "2026-08-31T08:00:00+00:00",
+    "snapshot_timestamp": "2026-08-31T08:00:00+00:00",
+    "source": "github-api"
+  },
+  "records": [
+    {
+      "date": "2026-08-30",
+      "title": "Fork status dashboard drafted",
+      "url": "https://example.org/post",
+      "repo": "alpha"
+    }
+  ]
+}

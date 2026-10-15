@@ -1,0 +1,83 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "org": "moneta",
+    "generated_at": "2026-08-31T08:00:00+00:00",
+    "snapshot_timestamp": "2026-08-31T08:00:00+00:00",
+    "source": "github-api"
+  },
+  "records": [
+    {
+      "date": "2026-08-28",
+      "repo": "alpha",
+      "status": "stale",
+      "behind_by": 2400,
+      "ahead_by": 12,
+      "advisories_since_release": 3
+    },
+    {
+      "date": "2026-08-28",
+      "repo": "beta",
+      "status": "in-sync",
+      "behind_by": 60,
+      "ahead_by": 12,
+      "advisories_since_release": 0
+    },
+    {
+      "date": "2026-08-28",
+      "repo": "gamma",
+      "status": "in-sync",
+      "behind_by": 0,
+      "ahead_by": 12,
+      "advisories_since_release": 0
+    },
+    {
+      "date": "2026-08-29",
+      "repo": "alpha",
+      "status": "critical",
+      "behind_by": 2450,
+      "ahead_by": 12,
+      "advisories_since_release": 3
+    },
+    {
+      "date": "2026-08-29",
+      "repo": "beta",
+      "status": "lagging",
+      "behind_by": 70,
+      "ahead_by": 12,
+      "advisories_since_release": 0
+    },
+    {
+      "date": "2026-08-29",
+      "repo": "gamma",
+      "status": "in-sync",
+      "behind_by": 0,
+      "ahead_by": 12,
+      "advisories_since_release": 0
+    },
+    {
+      "date": "2026-08-30",
+      "repo": "alpha",
+      "status": "critical",
+      "behind_by": 2500,
+      "ahead_by": 12,
+      "advisories_since_release": 3
+    },
+    {
+      "date": "2026-08-30",
+      "repo": "beta",
+      "status": "lagging",
+      "behind_by": 80,
+      "ahead_by": 12,
+      "advisories_since_release": 0
+    },
+    {
+      "date": "2026-08-30",
+      "repo": "gamma",
+      "status": "in-sync",
+      "behind_by": 0,
+      "ahead_by": 12,
+      "advisories_since_release": 0
+    }
+  ]
+}

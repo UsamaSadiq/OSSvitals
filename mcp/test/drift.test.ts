@@ -1,0 +1,92 @@
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import { describe, expect, it } from "vitest";
+import appsJson from "./fixtures/moneta/views/apps.json";
+import conflictsJson from "./fixtures/moneta/views/conflicts.json";
+import driftJson from "./fixtures/moneta/views/drift.json";
+import { handle, type HandlerDeps } from "../src/index.ts";
+import { neverLimit } from "../src/limiter.ts";
+
+const BASE = "https://{org}.test/data/{org}/views";
+
+const FIXTURES: Record<string, unknown> = { apps: appsJson, drift: driftJson, conflicts: conflictsJson };
+
+function fakeFetch(unavailable: string[] = []): typeof fetch {
+  return async (input) => {
+    const view = /\/views\/(\w+)\.json$/.exec(String(input))?.[1];
+    const body = view === undefined ? undefined : FIXTURES[view];
+    if (!view || body === undefined || unavailable.includes(view)) return new Response("missing", { status: 404 });
+    return Response.json(body);
+  };
+}
+
+async function connect(unavailable: string[] = []): Promise<Client> {
+  const deps: HandlerDeps = { fetch: fakeFetch(unavailable), limiter: neverLimit, base: BASE };
+  const transport = new StreamableHTTPClientTransport(new URL("https://mcp.ossvitals.org/moneta/mcp"), {
+    fetch: (input, init) => handle(new Request(input, init), deps),
+  });
+  const client = new Client({ name: "test", version: "0" });
+  await client.connect(transport);
+  return client;
+}
+
+async function call(client: Client, name: string, args: Record<string, unknown>) {
+  const result = await client.callTool({ name, arguments: args });
+  const text = (result.content as { text: string }[])[0]?.text ?? "";
+  return { isError: result.isError === true, text };
+}
+
+describe("moneta drift tools", () => {
+  it("lists list_tenants plus the three drift tools", async () => {
+    const client = await connect();
+    const { tools } = await client.listTools();
+    expect(tools.map((tool) => tool.name).sort()).toEqual(
+      ["get_app", "get_conflict_forecast", "list_apps", "list_tenants"].sort(),
+    );
+    await client.close();
+  });
+
+  it("list_apps joins and filters", async () => {
+    const client = await connect();
+    const all = await call(client, "list_apps", {});
+    expect(JSON.parse(all.text)).toHaveLength(5);
+    const critical = await call(client, "list_apps", { status: "critical", class: "fork" });
+    expect(JSON.parse(critical.text)).toMatchObject([{ repo: "alpha", status: "critical" }]);
+    await client.close();
+  });
+
+  it("get_app returns the merged record", async () => {
+    const client = await connect();
+    const { text } = await call(client, "get_app", { repo: "alpha" });
+    expect(JSON.parse(text)).toMatchObject({ repo: "alpha", status: "critical", behind_by: 2500 });
+    await client.close();
+  });
+
+  it("get_app reports an unknown repo as an error", async () => {
+    const client = await connect();
+    const result = await call(client, "get_app", { repo: "nope" });
+    expect(result).toEqual({ isError: true, text: "Unknown app nope for moneta" });
+    await client.close();
+  });
+
+  it("get_app rejects a malformed repo argument", async () => {
+    const client = await connect();
+    const result = await client.callTool({ name: "get_app", arguments: { repo: "../etc/passwd" } }).catch(() => null);
+    expect(result === null || result.isError === true).toBe(true);
+    await client.close();
+  });
+
+  it("get_conflict_forecast returns the forecast", async () => {
+    const client = await connect();
+    const { text } = await call(client, "get_conflict_forecast", { repo: "alpha" });
+    expect(JSON.parse(text)).toMatchObject({ repo: "alpha", against_upstream_head: { clean: false } });
+    await client.close();
+  });
+
+  it("get_conflict_forecast returns an error when the view is unavailable", async () => {
+    const client = await connect(["conflicts"]);
+    const result = await call(client, "get_conflict_forecast", { repo: "alpha" });
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("conflicts");
+    await client.close();
+  });
+});

@@ -1,0 +1,186 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "org": "moneta",
+    "generated_at": "2026-08-31T08:00:00+00:00",
+    "snapshot_timestamp": "2026-08-31T08:00:00+00:00",
+    "source": "github-api"
+  },
+  "records": [
+    {
+      "repo": "alpha",
+      "status": "critical",
+      "ahead_by": 12,
+      "behind_by": 2500,
+      "last_upstream_merge": "2026-06-01T00:00:00Z",
+      "days_since_upstream_merge": 91,
+      "fork_release": {
+        "tag": "v26.8.0",
+        "date": "2026-08-01T00:00:00Z"
+      },
+      "release_candidate": {
+        "tag": "v26.9.0-rc.1"
+      },
+      "upstream_release": {
+        "tag": "v2.1.0",
+        "date": "2026-08-20T00:00:00Z"
+      },
+      "release_lag": {
+        "upstream_releases_since_sync": 6,
+        "upstream_ahead_of_our_release_days": 19
+      },
+      "advisories": {
+        "published": 3,
+        "since_fork_release": 3,
+        "severe_since_fork_release": 2,
+        "source": "github-published-advisories",
+        "items": [
+          {
+            "ghsa_id": "GHSA-xxxx-yyyy-zzzz",
+            "severity": "high",
+            "summary": "Example advisory",
+            "url": "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz",
+            "published_at": "2026-08-10T00:00:00Z",
+            "after_our_release": true,
+            "affects_fork_release": true
+          }
+        ],
+        "affecting_fork_release": 1,
+        "severe_affecting_fork_release": 0,
+        "base_release": "v2.0.0"
+      },
+      "promotion": {
+        "unpromoted_commits": 5
+      },
+      "ci": {
+        "state": "failing",
+        "total": 5
+      },
+      "pull_requests": {
+        "open": 1,
+        "sync_pull": {
+          "number": 4,
+          "title": "Sync with upstream",
+          "url": "https://github.com/Pressingly/alpha/pull/4"
+        }
+      },
+      "maintainers": [
+        {
+          "login": "alice",
+          "merged": 14
+        },
+        {
+          "login": "bob",
+          "merged": 3
+        }
+      ],
+      "upstream_activity": {
+        "pushed_at": "2026-08-29T00:00:00Z",
+        "idle_days": 2,
+        "quiet": false
+      },
+      "behind_release": 2200,
+      "ahead_release": 12
+    },
+    {
+      "repo": "beta",
+      "status": "lagging",
+      "ahead_by": 12,
+      "behind_by": 80,
+      "last_upstream_merge": "2026-06-01T00:00:00Z",
+      "days_since_upstream_merge": 91,
+      "fork_release": {
+        "tag": "v26.8.0",
+        "date": "2026-08-01T00:00:00Z"
+      },
+      "release_candidate": null,
+      "upstream_release": {
+        "tag": "v2.1.0",
+        "date": "2026-08-20T00:00:00Z"
+      },
+      "release_lag": {
+        "upstream_releases_since_sync": 6,
+        "upstream_ahead_of_our_release_days": 19
+      },
+      "advisories": {
+        "published": 0,
+        "since_fork_release": 0,
+        "severe_since_fork_release": 0,
+        "source": "github-published-advisories",
+        "items": [],
+        "affecting_fork_release": 0,
+        "severe_affecting_fork_release": 0,
+        "base_release": null
+      },
+      "promotion": {
+        "unpromoted_commits": 0
+      },
+      "ci": {
+        "state": "passing",
+        "total": 5
+      },
+      "pull_requests": {
+        "open": 1,
+        "sync_pull": null
+      },
+      "maintainers": [],
+      "upstream_activity": {
+        "pushed_at": "2026-08-29T00:00:00Z",
+        "idle_days": 2,
+        "quiet": false
+      },
+      "behind_release": 0,
+      "ahead_release": 12
+    },
+    {
+      "repo": "gamma",
+      "status": "in-sync",
+      "ahead_by": 12,
+      "behind_by": 0,
+      "last_upstream_merge": "2026-06-01T00:00:00Z",
+      "days_since_upstream_merge": 91,
+      "fork_release": {
+        "tag": "v26.8.0",
+        "date": "2026-08-01T00:00:00Z"
+      },
+      "release_candidate": null,
+      "upstream_release": {
+        "tag": "v2.1.0",
+        "date": "2026-08-20T00:00:00Z"
+      },
+      "release_lag": {
+        "upstream_releases_since_sync": 6,
+        "upstream_ahead_of_our_release_days": 19
+      },
+      "advisories": {
+        "published": 0,
+        "since_fork_release": 0,
+        "severe_since_fork_release": 0,
+        "source": "github-published-advisories",
+        "items": [],
+        "affecting_fork_release": 0,
+        "severe_affecting_fork_release": 0,
+        "base_release": null
+      },
+      "promotion": {
+        "unpromoted_commits": 0
+      },
+      "ci": {
+        "state": "passing",
+        "total": 5
+      },
+      "pull_requests": {
+        "open": 1,
+        "sync_pull": null
+      },
+      "maintainers": null,
+      "upstream_activity": {
+        "pushed_at": "2026-08-29T00:00:00Z",
+        "idle_days": 2,
+        "quiet": false
+      },
+      "behind_release": 0,
+      "ahead_release": 12
+    }
+  ]
+}

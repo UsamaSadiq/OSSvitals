@@ -22,6 +22,15 @@ Every check, weight, threshold and score for public repositories stays open and 
 
 Scores are not estimates. They are computed by that published method from real data that the Open edX repo health checks collect from every repository through daily jobs. Labels such as "at risk" describe what those checks measure, not a judgement of any project or person. The dashboard is provided without warranty; to report an error or ask for a correction, open an issue on this repository.
 
+## Connect an agent
+The published data is also served over the Model Context Protocol, read-only and without auth, at `https://mcp.ossvitals.org/<org>/mcp` (for example `openedx` or `moneta`). Add it as a custom connector in claude.ai, or in Claude Code:
+
+```bash
+claude mcp add --transport http ossvitals https://mcp.ossvitals.org/openedx/mcp
+```
+
+Tools, limits and local development are described in [mcp/README.md](mcp/README.md).
+
 ## Contributing
 Contributions are accepted under AGPL-3.0-or-later with a DCO sign-off. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
