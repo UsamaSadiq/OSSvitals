@@ -31,9 +31,9 @@ function viewDeps(deps: HandlerDeps): ViewDeps {
   return { fetch: deps.fetch, base: deps.base, cache: deps.cache };
 }
 
-async function serveMcp(request: Request, org: string | null, deps: HandlerDeps): Promise<Response> {
+async function serveMcp(request: Request, org: string | null, deps: HandlerDeps, origin: string): Promise<Response> {
   if (org !== null && !tenantFor(org)) return jsonResponse({ error: `Unknown organisation: ${org}` }, 404);
-  const handler = createMcpHandler(() => buildServer(org, viewDeps(deps)));
+  const handler = createMcpHandler(() => buildServer(org, viewDeps(deps), origin));
   return handler.fetch(request);
 }
 
@@ -50,7 +50,7 @@ export async function handle(request: Request, deps: HandlerDeps): Promise<Respo
       headers: { "Retry-After": RATE_LIMIT_RETRY_SECONDS },
     });
   }
-  return serveMcp(request, matched.org, deps);
+  return serveMcp(request, matched.org, deps, url.origin);
 }
 
 export default {

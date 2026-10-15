@@ -48,7 +48,7 @@ export function projectAppSummary(app: AppRecord, drift: DriftRecord | undefined
 }
 
 function matchesFilter(summary: ReturnType<typeof projectAppSummary>, filter: AppFilter): boolean {
-  if (filter.status !== undefined && summary.status !== filter.status) return false;
+  if (filter.status !== undefined && !sameRepo(summary.status ?? "", filter.status)) return false;
   return filter.class === undefined || summary.class === filter.class;
 }
 

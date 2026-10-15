@@ -84,11 +84,15 @@ function lastPush(repo: RepoRecord): string | null {
   return repo["github.last_push"] ?? null;
 }
 
+function failsCheck(repo: RepoRecord, name: string): boolean {
+  return Object.entries(repo.checks).some(([check, value]) => sameText(check, name) && value === "fail");
+}
+
 function matchesFilters(repo: RepoRecord, filters: RepoFilters): boolean {
   const { letter, tier, failing_check, owner, min_score, max_score } = filters;
   if (letter !== undefined && repo.score_letter !== letter) return false;
   if (tier !== undefined && !sameText(repo.repo_tier ?? "", tier)) return false;
-  if (failing_check !== undefined && repo.checks[failing_check] !== "fail") return false;
+  if (failing_check !== undefined && !failsCheck(repo, failing_check)) return false;
   if (owner !== undefined && !ownerAliases(repo).some((alias) => sameText(alias, owner))) return false;
   if (min_score !== undefined && repo.score_composite < min_score) return false;
   if (max_score !== undefined && repo.score_composite > max_score) return false;

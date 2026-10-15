@@ -5,8 +5,8 @@ import { fetchView, ViewUnavailable, viewUrl } from "../src/views.ts";
 const BASE = "https://{org}.example.test/data/{org}/views";
 const schema = z.object({ value: z.number() });
 
-const respondWith = (body: BodyInit, status = 200): typeof fetch =>
-  async () => new Response(body, { status, headers: { "Cache-Control": "no-cache" } });
+const respondWith = (body: BodyInit, status = 200, type = "application/json"): typeof fetch =>
+  async () => new Response(body, { status, headers: { "Cache-Control": "no-cache", "Content-Type": type } });
 
 class MemoryCache {
   readonly stored = new Map<string, Response>();
@@ -57,6 +57,20 @@ describe("fetchView", () => {
   it("throws ViewUnavailable on non-JSON", async () => {
     const deps = { fetch: respondWith("<html>"), base: BASE };
     await expect(fetchView(deps, "openedx", "meta", schema)).rejects.toBeInstanceOf(ViewUnavailable);
+  });
+
+  it("treats the site's html fallback as not published and never caches it", async () => {
+    const cache = new MemoryCache();
+    const deps = { fetch: respondWith("<html>", 200, "text/html"), base: BASE, cache: cache as unknown as Cache };
+    await expect(fetchView(deps, "openedx", "meta", schema)).rejects.toThrow(/not published/);
+    expect(cache.stored.size).toBe(0);
+  });
+
+  it("does not cache a response that fails validation", async () => {
+    const cache = new MemoryCache();
+    const deps = { fetch: respondWith('{"value":"x"}'), base: BASE, cache: cache as unknown as Cache };
+    await expect(fetchView(deps, "openedx", "meta", schema)).rejects.toBeInstanceOf(ViewUnavailable);
+    expect(cache.stored.size).toBe(0);
   });
 
   it("throws ViewUnavailable on schema failure", async () => {

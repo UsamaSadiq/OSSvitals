@@ -16,9 +16,9 @@ const REGISTER_BY_KIND: Record<TenantKind, (server: McpServer, org: string, deps
   drift: registerDriftTools,
 };
 
-export function buildServer(org: string | null, deps: ViewDeps): McpServer {
+export function buildServer(org: string | null, deps: ViewDeps, origin: string): McpServer {
   const server = new McpServer({ name: "ossvitals", version: "0.1.0" }, { instructions: INSTRUCTIONS });
-  registerCommonTools(server, deps);
+  registerCommonTools(server, deps, origin);
   const tenant = org === null ? undefined : tenantFor(org);
   if (org !== null && tenant) REGISTER_BY_KIND[tenant.kind](server, org, deps);
   return server;

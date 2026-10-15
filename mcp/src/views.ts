@@ -19,30 +19,38 @@ export function viewUrl(base: string, org: string, name: string): string {
   return `${base.replaceAll("{org}", org)}/${name}.json`;
 }
 
-function cacheableCopy(response: Response): Response {
-  const headers = new Headers(response.headers);
-  headers.set("Cache-Control", `s-maxage=${CACHE_TTL_SECONDS}`);
-  return new Response(response.body, { status: response.status, headers });
+function cacheableJson(text: string): Response {
+  return new Response(text, {
+    status: 200,
+    headers: { "Content-Type": "application/json", "Cache-Control": `s-maxage=${CACHE_TTL_SECONDS}` },
+  });
 }
 
-async function loadResponse(deps: ViewDeps, url: string): Promise<Response> {
-  const cacheKey = new Request(url);
-  const cached = await deps.cache?.match(cacheKey);
-  if (cached) return cached;
-  const fresh = await deps.fetch(url);
-  if (fresh.status === 200 && deps.cache) {
-    await deps.cache.put(cacheKey, cacheableCopy(fresh.clone()));
-  }
-  return fresh;
+function isJsonContentType(response: Response): boolean {
+  return (response.headers.get("Content-Type") ?? "").includes("json");
 }
 
-async function readJson(org: string, name: string, response: Response): Promise<unknown> {
+async function fetchJsonText(deps: ViewDeps, org: string, name: string, url: string): Promise<string> {
+  const response = await deps.fetch(url).catch(() => {
+    throw new ViewUnavailable(org, name, "network error");
+  });
   if (response.status !== 200) throw new ViewUnavailable(org, name, `HTTP ${response.status}`);
+  if (!isJsonContentType(response)) throw new ViewUnavailable(org, name, "not published");
+  return response.text();
+}
+
+function parseJson(org: string, name: string, text: string): unknown {
   try {
-    return await response.json();
+    return JSON.parse(text);
   } catch {
     throw new ViewUnavailable(org, name, "response is not valid JSON");
   }
+}
+
+function validate<Schema extends z.ZodType>(org: string, name: string, schema: Schema, data: unknown): z.infer<Schema> {
+  const parsed = schema.safeParse(data);
+  if (!parsed.success) throw new ViewUnavailable(org, name, "does not match the expected shape");
+  return parsed.data;
 }
 
 export async function fetchView<Schema extends z.ZodType>(
@@ -52,10 +60,11 @@ export async function fetchView<Schema extends z.ZodType>(
   schema: Schema,
 ): Promise<z.infer<Schema>> {
   const url = viewUrl(deps.base, org, name);
-  const response = await loadResponse(deps, url).catch(() => {
-    throw new ViewUnavailable(org, name, "network error");
-  });
-  const parsed = schema.safeParse(await readJson(org, name, response));
-  if (!parsed.success) throw new ViewUnavailable(org, name, "does not match the expected shape");
-  return parsed.data;
+  const cacheKey = new Request(url);
+  const cached = await deps.cache?.match(cacheKey);
+  if (cached) return validate(org, name, schema, parseJson(org, name, await cached.text()));
+  const text = await fetchJsonText(deps, org, name, url);
+  const view = validate(org, name, schema, parseJson(org, name, text));
+  await deps.cache?.put(cacheKey, cacheableJson(text));
+  return view;
 }

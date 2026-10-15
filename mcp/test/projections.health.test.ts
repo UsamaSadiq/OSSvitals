@@ -95,6 +95,7 @@ describe("listRepos", () => {
   it("filters by failing check", () => {
     const result = listRepos(repos, { failing_check: "dependabot.exists" }, firstPage);
     expect(result.total).toBeGreaterThan(0);
+    expect(listRepos(repos, { failing_check: "Dependabot.Exists" }, firstPage).total).toBe(result.total);
     for (const record of result.records) {
       expect(findRepo(repos, record.repo_name)?.checks["dependabot.exists"]).toBe("fail");
     }

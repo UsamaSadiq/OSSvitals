@@ -43,6 +43,7 @@ describe("listApps", () => {
 
   it("filters by status and class", () => {
     expect(listApps(apps, drift, { status: "critical" }).map((entry) => entry.repo)).toEqual(["alpha"]);
+    expect(listApps(apps, drift, { status: "CRITICAL" }).map((entry) => entry.repo)).toEqual(["alpha"]);
     const originals = listApps(apps, drift, { class: "original" }).map((entry) => entry.repo);
     expect(originals).toEqual(["alpha-mcp", "tool"]);
     expect(listApps(apps, drift, { status: "critical", class: "original" })).toEqual([]);

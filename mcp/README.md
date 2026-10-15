@@ -3,10 +3,12 @@
 Read-only remote [MCP](https://modelcontextprotocol.io) server that exposes the published OSSvitals
 views to AI agents. It runs as a Cloudflare Worker (`ossvitals-mcp`) and reads the same public JSON
 files the dashboards render. All data is public, there is no authentication, and no tool can change
-anything.
+anything. If a tenant ever publishes private views, OAuth would sit in front of this Worker; routing
+by tenant would not change.
 
 ## Endpoints
 
+- `https://mcp.ossvitals.org/` - plain-text index of the endpoints
 - `https://mcp.ossvitals.org/mcp` - root endpoint, lists tenants
 - `https://mcp.ossvitals.org/openedx/mcp` - Open edX
 - `https://mcp.ossvitals.org/moneta/mcp` - Moneta

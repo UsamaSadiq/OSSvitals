@@ -4,8 +4,6 @@ import { metaSchema } from "../../../web/src/data/schemas.ts";
 import { tenantFor, tenantOrgs } from "../tenants.ts";
 import { fetchView, type ViewDeps } from "../views.ts";
 
-const MCP_ORIGIN = "https://mcp.ossvitals.org";
-
 export interface TenantListing {
   org: string;
   kind: string;
@@ -17,13 +15,13 @@ export interface TenantListing {
   error?: string;
 }
 
-export async function describeTenant(deps: ViewDeps, org: string): Promise<TenantListing> {
+export async function describeTenant(deps: ViewDeps, origin: string, org: string): Promise<TenantListing> {
   const tenant = tenantFor(org);
   const base = {
     org,
     kind: tenant?.kind ?? "unknown",
     site: tenant?.site ?? "",
-    endpoint: `${MCP_ORIGIN}/${org}/mcp`,
+    endpoint: `${origin}/${org}/mcp`,
   };
   try {
     const meta = await fetchView(deps, org, "meta", metaSchema);
@@ -39,7 +37,7 @@ export async function describeTenant(deps: ViewDeps, org: string): Promise<Tenan
   }
 }
 
-export function registerCommonTools(server: McpServer, deps: ViewDeps): void {
+export function registerCommonTools(server: McpServer, deps: ViewDeps, origin: string): void {
   server.registerTool(
     "list_tenants",
     {
@@ -48,7 +46,7 @@ export function registerCommonTools(server: McpServer, deps: ViewDeps): void {
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async () => {
-      const tenants = await Promise.all(tenantOrgs().map((org) => describeTenant(deps, org)));
+      const tenants = await Promise.all(tenantOrgs().map((org) => describeTenant(deps, origin, org)));
       return { content: [{ type: "text", text: JSON.stringify(tenants) }] };
     },
   );
