@@ -1,0 +1,54 @@
+name: Deploy MCP server
+
+# Checks and deploys the read-only MCP Worker in mcp/. It serves the same published view files the
+# web app reads, so it has no data step of its own. Deploys only from main.
+
+on:
+  pull_request:
+    paths:
+      - mcp/**
+      - web/src/data/schemas.ts
+      - web/src/data/parse.ts
+      - web/src/tenants/moneta/schemas.ts
+      - .github/workflows/deploy-mcp.yml
+  push:
+    branches: [main]
+    paths:
+      - mcp/**
+      - web/src/data/schemas.ts
+      - web/src/data/parse.ts
+      - web/src/tenants/moneta/schemas.ts
+      - .github/workflows/deploy-mcp.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('deploy-mcp-pr-{0}', github.ref) || 'deploy-mcp' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npx wrangler deploy --dry-run
+      - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          wranglerVersion: "4.146.0"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: mcp
+          command: deploy

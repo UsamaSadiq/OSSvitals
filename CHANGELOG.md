@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `streamlit`, `plotly`, `duckdb`, `rapidfuzz` and `pydantic` dependencies.
 
 ### Added
+- MCP server (`mcp/`): a read-only Cloudflare Worker at `mcp.ossvitals.org` that exposes the published views to MCP clients, one endpoint per tenant, with health tools (overview, repos, repo, check, attention) and drift tools (apps, app, conflict forecast).
 - Moneta: per-app `fork_release_tag` and `release_tag` patterns, `behind_release`/`ahead_release` against the latest upstream release, and `affects_fork_release` on advisories (version ranges against the upstream release our fork is based on).
 - Moneta tenant: `config/moneta/` (app inventory, status thresholds, updates), a daily API-only collector (`scripts/collect_moneta.py`, `collect-moneta.yml`) and a weekly conflict forecast (`scripts/collect_moneta_conflicts.py`, `collect-moneta-conflicts.yml`).
 - Moneta web pages: org-wide overview, needs-attention page (each fork with the reasons), filterable apps page (cards and table, CSV export), per-app detail (advisories, sync forecast, trend, badge snippet), app search in the palette.

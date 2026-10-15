@@ -36,6 +36,7 @@ and optionally `pages` (the paths the nav shows; omit it to show every page the 
 5. Freshness needs nothing: `data-freshness.yml` checks every org that has `views/meta.json`, using that file's `stale_threshold_hours`.
 6. Visual and accessibility gates: add a page inventory in `scripts/webaudit/pages.py` (`PAGES_BY_ORG`) and view fixtures in `tests/fixtures/<org>/views/`. Build the web app with `VITE_DEFAULT_ORG=<org>` and run `python scripts/web_audit.py --org <org> --dist <dir> --mode a11y`. Baselines live in `tests/baseline-web/<org>/`; generate them in CI (see below) and add a job to `.github/workflows/web-audit.yml` once the tenant has pages worth guarding.
 7. List the dashboard on `sites/landing/public/index.html` once it is public.
+8. Add the org to `mcp/src/tenants.ts` with its kind (`health` or `drift`) so `mcp.ossvitals.org/<org>/mcp` serves it.
 
 ### Moneta tenant
 
