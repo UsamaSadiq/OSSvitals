@@ -41,11 +41,20 @@ async function connect(path: string): Promise<Client> {
 }
 
 describe("mcp worker", () => {
-  it("initialises, lists exactly list_tenants and returns both tenants", async () => {
+  it("initialises, lists list_tenants and the health tools and returns both tenants", async () => {
     const client = await connect("/openedx/mcp");
     expect(client.getServerVersion()?.name).toBe("ossvitals");
     const { tools } = await client.listTools();
-    expect(tools.map((tool) => tool.name)).toEqual(["list_tenants"]);
+    expect(tools.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining([
+        "list_tenants",
+        "get_overview",
+        "list_repos",
+        "get_repo",
+        "get_check",
+        "list_needing_attention",
+      ]),
+    );
     const result = await client.callTool({ name: "list_tenants", arguments: {} });
     const content = result.content as { type: string; text: string }[];
     const listing = JSON.parse(content[0]?.text ?? "[]") as Record<string, unknown>[];
