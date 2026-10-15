@@ -14,6 +14,32 @@ anything.
 
 Requests are rate limited per client IP (100 per minute); excess requests get `429` with `Retry-After`.
 
+## Tools
+
+Every endpoint has `list_tenants`. The rest depend on the tenant kind set in `src/tenants.ts`.
+
+Health tenants (`openedx`):
+
+| Tool | Arguments | Returns |
+|---|---|---|
+| `get_overview` | none | KPIs with deltas, grade mix, top failing checks, gainers and losers |
+| `list_repos` | `letter`, `tier`, `failing_check`, `owner`, `min_score`, `max_score`, `sort`, `page`, `page_size` | paged repo rows with score, letter, tier, failing count, last push, owner |
+| `get_repo` | `repo` (with or without the `openedx/` prefix) | score, subscores, owners, failing checks with titles and whether a remediation exists |
+| `get_check` | `check` | description, pass rate, remediation snippet and PR template when defined |
+| `list_needing_attention` | `page`, `page_size` | repos flagged by the attention rules with their reasons |
+
+Drift tenants (`moneta`):
+
+| Tool | Arguments | Returns |
+|---|---|---|
+| `list_apps` | `status`, `class` | each tracked repo with its sync status, distances and severe advisory count |
+| `get_app` | `repo` | the app record merged with its drift record, advisories as counts |
+| `get_conflict_forecast` | `repo` | files a sync would conflict on, against upstream head and the latest release |
+
+Responses are compact JSON projections of the published views, never whole files. Free text that
+originates in third-party repositories (descriptions, change notes) is truncated to 300 characters and
+the server instructions tell clients to treat it as data, not instructions. Page size is capped at 50.
+
 ## Connect
 
 Claude Code:
