@@ -459,6 +459,23 @@ describe("Repo Detail page", () => {
     expect(within(row).queryByRole("link", { name: /File issue/ })).toBeNull();
   });
 
+  it("labels a draft fix PR as a draft", async () => {
+    const fixPr = {
+      pr_number: 7,
+      pr_url: "https://github.com/openedx/alpha/pull/7",
+      pr_title: "chore: add dependabot config",
+      author: null,
+      is_draft: true,
+      created_at: null,
+      open_count: 1,
+    };
+    setViews({ detail: detailView(repoEntry({ fix_prs: { "dependabot.exists": fixPr } })) });
+    renderRoute(PATH);
+    const checks = await screen.findByRole("region", { name: "Checks" });
+    const entry = within(checks).getByText("DEPENDABOT.EXISTS").closest("details") as HTMLElement;
+    expect(within(entry).getByText("Draft fix PR · #7", { selector: "summary .fix-badge" })).toBeInTheDocument();
+  });
+
   it("lists failing checks by default with values and remediation links", async () => {
     renderRoute(PATH);
     const checks = await screen.findByRole("region", { name: "Checks" });

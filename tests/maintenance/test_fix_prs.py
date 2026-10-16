@@ -29,6 +29,11 @@ def test_markers_read_both_lines_and_ignore_carriage_returns():
     assert fix_prs.markers(BODY) == ("exists..editorconfig", "openedx/django-config-models")
 
 
+def test_markers_take_the_trailing_pair_over_a_quoted_template():
+    body = "Template:\n```\nOSSvitals-Check: <check>\nOSSvitals-Repo: <org/repo>\n```\n\n" + BODY
+    assert fix_prs.markers(body) == ("exists..editorconfig", "openedx/django-config-models")
+
+
 def test_markers_need_both_lines_at_line_start():
     assert fix_prs.markers("OSSvitals-Check: a.b\n") is None
     assert fix_prs.markers("see OSSvitals-Check: a.b\nOSSvitals-Repo: o/r\n") is None
@@ -64,12 +69,3 @@ def test_records_sort_by_repo_check_and_newest_first():
     ordered = [(entry["check"], entry["pr_number"]) for entry in fix_prs.records(hits)]
 
     assert ordered == [("a.b", 5), ("exists..editorconfig", 9), ("exists..editorconfig", 3)]
-
-
-def test_by_repo_and_check_keeps_newest_and_counts_duplicates():
-    entries = fix_prs.records([_hit(number=3), _hit(number=9)])
-
-    grouped = fix_prs.by_repo_and_check(entries)
-
-    entry = grouped["openedx/django-config-models"]["exists..editorconfig"]
-    assert (entry["pr_number"], entry["open_count"]) == (9, 2)

@@ -13,7 +13,7 @@ import {
   projectRepo,
   validCheckNames,
 } from "../projections/health.ts";
-import { fetchView, type ViewDeps } from "../views.ts";
+import { fetchView, ViewUnavailable, type ViewDeps } from "../views.ts";
 
 const ANNOTATIONS = { readOnlyHint: true, openWorldHint: false };
 const GRADES = ["A", "B", "C", "D", "F"] as const;
@@ -44,6 +44,15 @@ function jsonResult(payload: unknown) {
 
 function errorResult(message: string) {
   return { isError: true, content: [{ type: "text" as const, text: message }] };
+}
+
+async function optionalView<T>(load: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await load();
+  } catch (error) {
+    if (error instanceof ViewUnavailable) return undefined;
+    throw error;
+  }
 }
 
 export function registerHealthTools(server: McpServer, org: string, deps: ViewDeps): void {
@@ -84,8 +93,8 @@ export function registerHealthTools(server: McpServer, org: string, deps: ViewDe
       const record = findRepo(repos, repo);
       if (!record) return errorResult(`Unknown repo ${repo} for ${org}`);
       const checks = await fetchView(deps, org, "checks", VIEW_SCHEMAS.checks);
-      const detail = await fetchView(deps, org, "repo_detail", VIEW_SCHEMAS.repo_detail);
-      return jsonResult(projectRepo(record, checks, detail.repos[record.repo_name]));
+      const detail = await optionalView(() => fetchView(deps, org, "repo_detail", VIEW_SCHEMAS.repo_detail));
+      return jsonResult(projectRepo(record, checks, detail?.repos[record.repo_name]));
     },
   );
 

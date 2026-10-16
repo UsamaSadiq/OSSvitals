@@ -21,13 +21,21 @@ _CHECK_LINE = re.compile(r"^OSSvitals-Check:[ \t]*(\S+)[ \t]*$", re.MULTILINE)
 _REPO_LINE = re.compile(r"^OSSvitals-Repo:[ \t]*(\S+)[ \t]*$", re.MULTILINE)
 
 
+def _last(pattern: re.Pattern[str], text: str) -> str | None:
+    found = pattern.findall(text)
+    return found[-1] if found else None
+
+
 def markers(body: str | None) -> tuple[str, str] | None:
-    """(check, repo) from the marker lines, or None when either is missing."""
+    """(check, repo) from the last marker lines in the body, or None when either is missing.
+
+    The marker is the trailing pair; an earlier pair (a quoted template, a cited PR) must not win.
+    """
     text = (body or "").replace("\r", "")
-    check, repo = _CHECK_LINE.search(text), _REPO_LINE.search(text)
+    check, repo = _last(_CHECK_LINE, text), _last(_REPO_LINE, text)
     if check is None or repo is None:
         return None
-    return check.group(1), repo.group(1)
+    return check, repo
 
 
 def record(pr: dict[str, Any]) -> dict[str, Any] | None:
@@ -57,18 +65,3 @@ def record(pr: dict[str, Any]) -> dict[str, Any] | None:
 def records(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
     kept = [entry for entry in (record(pr) for pr in hits) if entry is not None]
     return sorted(kept, key=lambda item: (item["repo_name"], item["check"], -item["pr_number"]))
-
-
-def by_repo_and_check(entries: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any]]]:
-    """Newest open PR per (repo, check), with how many are open for that pair."""
-    grouped: dict[str, dict[str, dict[str, Any]]] = {}
-    for entry in entries:
-        checks = grouped.setdefault(entry["repo_name"], {})
-        current = checks.get(entry["check"])
-        if current is None:
-            checks[entry["check"]] = {**entry, "open_count": 1}
-        else:
-            current["open_count"] += 1
-            if entry["pr_number"] > current["pr_number"]:
-                checks[entry["check"]] = {**entry, "open_count": current["open_count"]}
-    return grouped

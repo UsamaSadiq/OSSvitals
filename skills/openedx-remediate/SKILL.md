@@ -60,10 +60,12 @@ Load as you go:
    upstream PR already fixing it, or null). Then `get_check` for the chosen
    check to quote its title, `pass_pct` and any dashboard remediation text.
 
-3. **Choose the check.** Intersect `failing_checks` with the catalog, and drop
-   `tox_ini.uses_whitelist_externals` from that list unless the user named it: the dashboard shows
-   it inverted, so it is listed as failing on every repo and precheck will refuse it. If the user
-   named a check that is not failing, say so and stop; a named tox check runs precheck anyway. If no
+3. **Choose the check.** Start from `failing_checks`. Drop every check whose `fix_pr` is not null:
+   if the user named one of those, report the refusal with that PR's URL and stop. Drop
+   `tox_ini.uses_whitelist_externals` unless the user named it: the dashboard shows it inverted, so
+   it is listed as failing on every repo and precheck will refuse it. Intersect what is left with
+   the catalog. If the user named a check that is not failing, say so and stop; a named tox check
+   runs precheck anyway. If no
    check was named, show the supported failing checks with
    the catalog's one-line expectation for each and ask which one; in a non-interactive run take the
    first `fix`-eligible one after step 4.
@@ -92,5 +94,6 @@ Load as you go:
    `--dry-run` never reaches this step; it stops after step 7 with the diff and the rendered body.
 
 9. **Report.** Score and letter before, the check, the verdict, the evidence, and the PR link or the
-   refusal reason. For a refusal that exposes a dashboard bug (the tox inverted boolean), say that it
-   belongs in OSSvitals, not in the repo.
+   refusal reason. A `fix_pr` refusal links the existing PR so the user can review that one instead.
+   For a refusal that exposes a dashboard bug (the tox inverted boolean), say that it belongs in
+   OSSvitals, not in the repo.

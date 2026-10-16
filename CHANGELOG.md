@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `streamlit`, `plotly`, `duckdb`, `rapidfuzz` and `pydantic` dependencies.
 
 ### Added
-- Fix PR tracker: `collect_maintenance.py --collector fix_prs` finds open PRs carrying the `OSSvitals-Check` and `OSSvitals-Repo` marker lines, `repo_detail` carries the newest open PR per failing check, the Repo Detail page shows a "Fix PR open" badge linking to it, and `get_repo` reports it as `fix_pr`.
+- Fix PR tracker: `collect_maintenance.py --collector fix_prs` finds open PRs carrying the `OSSvitals-Check` and `OSSvitals-Repo` marker lines, `repo_detail` carries the newest open PR per failing check, the Repo Detail page shows a "Draft fix PR" or "Fix PR open" badge linking to it, and `get_repo` reports it as `fix_pr`.
 - `skills/openedx-remediate/`: a Claude Code skill that turns one failing Open edX health check into one validated draft PR on the user's fork, with a fix catalog (editorconfig, Makefile aliases, Dependabot, openedx.yaml, tox allowlist), clone-side preconditions that refuse stale or wrong fixes, and the Open edX AI-use disclosure in the PR body.
 - MCP server (`mcp/`): a read-only Cloudflare Worker at `mcp.ossvitals.org` that exposes the published views to MCP clients, one endpoint per tenant, with health tools (overview, repos, repo, check, attention) and drift tools (apps, app, conflict forecast).
 - Moneta: per-app `fork_release_tag` and `release_tag` patterns, `behind_release`/`ahead_release` against the latest upstream release, and `affects_fork_release` on advisories (version ranges against the upstream release our fork is based on).

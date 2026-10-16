@@ -5,8 +5,7 @@ from typing import Any
 
 import pandas as pd
 
-from collectors import fix_prs
-from dashboard.lib import catalog, maintenance
+from dashboard.lib import catalog, fix_prs, maintenance
 from dashboard.lib.checks import category_columns
 from dashboard.lib.repo_detail import catalog_detail, category_card, metric_bars, metric_summary, subscores
 from dashboard.lib.schema import REPO_COL
@@ -33,15 +32,8 @@ def _repo_entry(
         "metric_bars": metric_bars(row),
         "category_cards": [{"name": name, **category_card(row, cols)} for name, cols in categories.items()],
         "catalog": catalog_entry,
-        "fix_prs": {check: _fix_pr_entry(entry) for check, entry in open_fix_prs.items()},
+        "fix_prs": {check: fix_prs.view_entry(entry) for check, entry in open_fix_prs.items()},
     }
-
-
-FIX_PR_FIELDS = ("pr_number", "pr_url", "pr_title", "author", "is_draft", "created_at", "open_count")
-
-
-def _fix_pr_entry(entry: dict[str, Any]) -> dict[str, Any]:
-    return {field: entry.get(field) for field in FIX_PR_FIELDS}
 
 
 def _fix_prs_by_repo(payload: dict[str, Any] | None) -> dict[str, dict[str, dict[str, Any]]]:

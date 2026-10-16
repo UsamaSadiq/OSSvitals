@@ -64,8 +64,8 @@ OSSvitals-Repo: <org/repo>
 
 The two trailing `OSSvitals-*` lines are the machine-readable marker. The dashboard's
 collect-maintenance workflow searches open PRs for them daily (`collectors/fix_prs.py`), keeps the
-ones whose base repository is the marker repo, and shows "Fix PR open" against that check on the
-repo detail page and in `get_repo`. Keep the format stable: last lines of the body, exact key names,
+ones whose base repository is the marker repo, and shows "Draft fix PR" or "Fix PR open" against
+that check on the repo detail page and in `get_repo`. Keep the format stable: last lines of the body, exact key names,
 one space after the colon, check name verbatim (the double dot in `exists..editorconfig` is part of
 the key). A PR opened on a fork is never counted as fixing upstream.
 
