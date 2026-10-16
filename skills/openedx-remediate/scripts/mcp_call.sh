@@ -6,8 +6,11 @@ ENDPOINT="${OSSVITALS_MCP_ENDPOINT:-https://mcp.ossvitals.org/openedx/mcp}"
 TOOL="${1:?tool name required}"
 ARGS="${2:-{\}}"
 
+python3 -I -c 'import json, sys; json.loads(sys.argv[1])' "$ARGS" 2>/dev/null \
+  || { echo "arguments are not valid JSON: $ARGS" >&2; exit 2; }
+
 post() {
-  curl -sS -X POST "$ENDPOINT" \
+  curl -sS --fail-with-body -X POST "$ENDPOINT" \
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json, text/event-stream' \
     -d "$1" | sed -n 's/^data: //p'
@@ -21,11 +24,14 @@ print(json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/call",
 
 post '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"openedx-remediate","version":"0.1"}}}' >/dev/null
 post "$(request)" | python3 -I -c 'import json, sys
-reply = json.loads(sys.stdin.read())
+raw = sys.stdin.read().strip()
+if not raw:
+    sys.exit("MCP transport error: empty or non-SSE response from " + sys.argv[1])
+reply = json.loads(raw)
 if "error" in reply:
     sys.exit("MCP error: " + json.dumps(reply["error"]))
 result = reply["result"]
 text = result["content"][0]["text"]
 if result.get("isError"):
     sys.exit("MCP tool error: " + text)
-print(text)'
+print(text)' "$ENDPOINT"

@@ -39,6 +39,11 @@ command.
 Refuse when there is no Makefile, when the target exists, or when there is no source target to
 alias.
 
+Branch and subject: the dashboard's `pr_templates.yaml` names `chore/dependabot-config` and
+`chore/openedx-yaml` for two of these checks; the skill supersedes those on purpose. Every PR uses
+the `ossvitals/<check-slug>` branch and the subjects in `references/pr-format.md`, and the marker
+lines in the body, not the branch name, are the key a collector should match on.
+
 The validator runs `make -n <target>`, which evaluates parse-time `$(shell ...)` expansions even in
 dry-run mode, so only run it on repos you would run `make` in anyway.
 
@@ -88,9 +93,10 @@ Refuse when `tox.ini` is missing, or when the key is already `allowlist_external
 case the dashboard is showing a false positive: the raw health value `false` means "does not use
 the deprecated key", and `classify()` in `dashboard/lib/checks.py` reads every `false` as a failure.
 Report it as a dashboard bug (this column needs an inverted-boolean rule in `checks.py`), not a repo
-defect. The inversion also means a repo that still uses the deprecated key is shown as passing, so
-this check never appears in `failing_checks`: the fix branch is reachable only when the user names
-the check explicitly.
+defect. Because of the inversion the check appears in `failing_checks` for every repo that does not
+use the key (169 of 169 today) and never for a repo that does, so its presence in `failing_checks`
+is always a false positive and the `pass_pct` the dashboard reports for it is 0 by artifact. The fix
+branch is reachable only when the user names the check explicitly.
 
 ## Not supported, on purpose
 

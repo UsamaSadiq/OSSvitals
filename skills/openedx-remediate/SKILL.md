@@ -57,14 +57,17 @@ Load as you go:
    `score_composite`, `score_letter` and the `failing_checks` list. Then `get_check` for the chosen
    check to quote its title, `pass_pct` and any dashboard remediation text.
 
-3. **Choose the check.** Intersect `failing_checks` with the catalog. If the user named a check that
-   is not failing, say so and stop, except `tox_ini.uses_whitelist_externals`, which the dashboard
-   shows inverted: run precheck on it anyway. If no check was named, show the supported failing checks with
+3. **Choose the check.** Intersect `failing_checks` with the catalog, and drop
+   `tox_ini.uses_whitelist_externals` from that list unless the user named it: the dashboard shows
+   it inverted, so it is listed as failing on every repo and precheck will refuse it. If the user
+   named a check that is not failing, say so and stop; a named tox check runs precheck anyway. If no
+   check was named, show the supported failing checks with
    the catalog's one-line expectation for each and ask which one; in a non-interactive run take the
    first `fix`-eligible one after step 4.
 
-4. **Sync and clone the fork.** `gh repo sync <owner>/<repo>` (creates nothing if the fork is
-   current), then `gh repo clone <owner>/<repo> <scratch>/<repo> -- --depth 50` into the session
+4. **Fork, sync and clone.** `gh repo fork openedx/<repo> --clone=false` (a no-op when the fork
+   exists), `gh repo sync <owner>/<repo>`, then `gh repo clone <owner>/<repo> <scratch>/<repo> --
+   --depth 50` into the session
    scratchpad. Confirm the fork head equals the upstream head
    (`gh api repos/<x>/<repo>/commits/<default>`); if sync failed, stop and say so. Branch per
    `references/pr-format.md`.

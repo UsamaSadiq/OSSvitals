@@ -66,7 +66,10 @@ def validate_make_alias(repo: Path, target: str) -> tuple[list[str], list[str]]:
     phony = " ".join(re.findall(r"^\.PHONY:(.*)$", joined_continuations(makefile), re.MULTILINE))
     if target not in phony.split():
         errors.append(f"{target} is not listed in .PHONY")
-    dry_run = subprocess.run(["make", "-n", target], cwd=repo, capture_output=True, text=True)
+    try:
+        dry_run = subprocess.run(["make", "-n", target], cwd=repo, capture_output=True, text=True)
+    except FileNotFoundError:
+        return [], errors + ["make is not installed"]
     if dry_run.returncode != 0:
         errors.append(f"make -n {target} failed: {dry_run.stderr.strip()[:300]}")
     return [f"make -n {target} exit {dry_run.returncode}"], errors
