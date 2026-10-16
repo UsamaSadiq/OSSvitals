@@ -86,9 +86,11 @@ since tox 3.18). Nothing else changes.
 
 Refuse when `tox.ini` is missing, or when the key is already `allowlist_externals`. In the second
 case the dashboard is showing a false positive: the raw health value `false` means "does not use
-the deprecated key", and the scoring treats `false` as a failure for this column. Report it as a
-dashboard bug (inverted boolean for `tox_ini.uses_whitelist_externals` in
-`dashboard/lib/scoring.py`), not a repo defect.
+the deprecated key", and `classify()` in `dashboard/lib/checks.py` reads every `false` as a failure.
+Report it as a dashboard bug (this column needs an inverted-boolean rule in `checks.py`), not a repo
+defect. The inversion also means a repo that still uses the deprecated key is shown as passing, so
+this check never appears in `failing_checks`: the fix branch is reachable only when the user names
+the check explicitly.
 
 ## Not supported, on purpose
 
@@ -99,4 +101,5 @@ dashboard bug (inverted boolean for `tox_ini.uses_whitelist_externals` in
   services without a setup.py are not wrong.
 - `dependabot.has_ecosystem.*`, `dependencies.*.count`, `django_packages.*`: measurements, not
   defects.
-- `github_actions`: currently fails on no repo.
+- `github_actions`: not surfaced as a check column (no dot in the name), so it never appears in
+  `failing_checks`.

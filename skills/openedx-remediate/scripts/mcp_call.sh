@@ -13,10 +13,19 @@ post() {
     -d "$1" | sed -n 's/^data: //p'
 }
 
+request() {
+  python3 -I -c 'import json, sys
+print(json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                  "params": {"name": sys.argv[1], "arguments": json.loads(sys.argv[2])}}))' "$TOOL" "$ARGS"
+}
+
 post '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"openedx-remediate","version":"0.1"}}}' >/dev/null
-post "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"$TOOL\",\"arguments\":$ARGS}}" \
-  | python3 -I -c 'import json,sys
+post "$(request)" | python3 -I -c 'import json, sys
 reply = json.loads(sys.stdin.read())
 if "error" in reply:
     sys.exit("MCP error: " + json.dumps(reply["error"]))
-print(reply["result"]["content"][0]["text"])'
+result = reply["result"]
+text = result["content"][0]["text"]
+if result.get("isError"):
+    sys.exit("MCP tool error: " + text)
+print(text)'

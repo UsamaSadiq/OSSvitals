@@ -62,10 +62,10 @@ OSSvitals-Check: <check>
 OSSvitals-Repo: <org/repo>
 ```
 
-The two trailing `OSSvitals-*` lines are the machine-readable marker: the dashboard collector finds
-fork PRs by them and shows the PR against the failing check. Keep them as the last lines, exact
-key names, one space after the colon, check name verbatim (the double dot in `exists..editorconfig`
-is part of the key).
+The two trailing `OSSvitals-*` lines are a machine-readable marker reserved for a dashboard
+collector that will match PRs to failing checks; nothing reads them yet, so keep the format stable.
+Last lines of the body, exact key names, one space after the colon, check name verbatim (the double
+dot in `exists..editorconfig` is part of the key).
 
 The dashboard repo URL is `https://openedx.ossvitals.org/repo_detail?repo=<org>%2F<repo>`
 (`web/src/components/repoDetailPath.ts` builds it).

@@ -111,7 +111,7 @@ def decide(check: str, facts: dict) -> tuple[str, str, str]:
             return "refuse", "no tox.ini; the check does not apply", ""
         if facts["tox_uses_whitelist_externals"]:
             return "fix", "tox.ini still uses the deprecated whitelist_externals key", "rename whitelist_externals to allowlist_externals"
-        return "refuse", "tox.ini does not use whitelist_externals; the dashboard reads the raw false as a failure (inverted boolean bug), nothing to change in this repo", ""
+        return "refuse", "tox.ini does not use whitelist_externals; dashboard/lib/checks.py classifies the raw false as a failure (inverted boolean), nothing to change in this repo", ""
 
     return "unsupported", f"{check} is not in the fix catalog", ""
 

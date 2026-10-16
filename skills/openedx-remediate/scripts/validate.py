@@ -13,16 +13,35 @@ import sys
 from pathlib import Path
 
 
+class YamlProblem(Exception):
+    pass
+
+
 def load_yaml(path: Path):
     text = path.read_text(encoding="utf-8")
     try:
         import yaml  # type: ignore
-
-        return yaml.safe_load(text)
     except ImportError:
-        script = "require 'yaml'; require 'json'; puts JSON.generate(YAML.safe_load(File.read(ARGV[0])))"
+        return load_yaml_with_ruby(path)
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError as error:
+        raise YamlProblem(f"{path.name} does not parse: {error}") from error
+
+
+def load_yaml_with_ruby(path: Path):
+    script = "require 'yaml'; require 'json'; puts JSON.generate(YAML.safe_load(File.read(ARGV[0])))"
+    try:
         result = subprocess.run(["ruby", "-e", script, str(path)], capture_output=True, text=True, check=True)
-        return json.loads(result.stdout)
+    except FileNotFoundError as error:
+        raise YamlProblem("no YAML parser available: install PyYAML or ruby") from error
+    except subprocess.CalledProcessError as error:
+        raise YamlProblem(f"{path.name} does not parse: {error.stderr.strip().splitlines()[0][:300]}") from error
+    return json.loads(result.stdout)
+
+
+def joined_continuations(makefile: str) -> str:
+    return re.sub(r"\\\n\s*", " ", makefile)
 
 
 def validate_editorconfig(repo: Path) -> tuple[list[str], list[str]]:
@@ -44,7 +63,7 @@ def validate_make_alias(repo: Path, target: str) -> tuple[list[str], list[str]]:
     errors = []
     if not re.search(rf"^{re.escape(target)}:", makefile, re.MULTILINE):
         errors.append(f"Makefile has no {target} target")
-    phony = " ".join(re.findall(r"^\.PHONY:(.*)$", makefile, re.MULTILINE))
+    phony = " ".join(re.findall(r"^\.PHONY:(.*)$", joined_continuations(makefile), re.MULTILINE))
     if target not in phony.split():
         errors.append(f"{target} is not listed in .PHONY")
     dry_run = subprocess.run(["make", "-n", target], cwd=repo, capture_output=True, text=True)
@@ -57,7 +76,10 @@ def validate_dependabot(repo: Path) -> tuple[list[str], list[str]]:
     path = repo / ".github" / "dependabot.yml"
     if not path.is_file():
         return [], [".github/dependabot.yml is missing"]
-    data = load_yaml(path)
+    try:
+        data = load_yaml(path)
+    except YamlProblem as problem:
+        return [], [str(problem)]
     errors = []
     if not isinstance(data, dict) or data.get("version") != 2:
         errors.append("version must be 2")
@@ -66,12 +88,16 @@ def validate_dependabot(repo: Path) -> tuple[list[str], list[str]]:
         errors.append("updates must be a non-empty list")
         return [], errors
     for index, update in enumerate(updates):
+        if not isinstance(update, dict):
+            errors.append(f"updates[{index}] is not a mapping")
+            continue
         for key in ("package-ecosystem", "directory", "schedule"):
             if key not in update:
                 errors.append(f"updates[{index}] lacks {key}")
-        if "interval" not in (update.get("schedule") or {}):
+        schedule = update.get("schedule")
+        if not isinstance(schedule, dict) or "interval" not in schedule:
             errors.append(f"updates[{index}].schedule lacks interval")
-    ecosystems = [update.get("package-ecosystem") for update in updates]
+    ecosystems = [update.get("package-ecosystem") for update in updates if isinstance(update, dict)]
     return [f"dependabot.yml version 2 with ecosystems {ecosystems}"], errors
 
 
@@ -79,7 +105,10 @@ def validate_openedx_yaml(repo: Path) -> tuple[list[str], list[str]]:
     path = repo / "openedx.yaml"
     if not path.is_file():
         return [], ["openedx.yaml is missing"]
-    data = load_yaml(path)
+    try:
+        data = load_yaml(path)
+    except YamlProblem as problem:
+        return [], [str(problem)]
     if not isinstance(data, dict):
         return [], ["openedx.yaml is not a mapping"]
     errors = [] if ("oeps" in data or "tags" in data) else ["openedx.yaml needs oeps or tags"]
