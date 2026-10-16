@@ -115,7 +115,7 @@ def decide(check: str, facts: dict) -> tuple[str, str, str]:
         if not facts["tox_ini_exists"]:
             return "refuse", "no tox.ini; the check does not apply", ""
         if facts["tox_uses_whitelist_externals"]:
-            return "fix", "tox.ini still uses the deprecated whitelist_externals key", "rename whitelist_externals to allowlist_externals"
+            return "fix", "tox.ini still uses the deprecated whitelist_externals key", "rename whitelist_externals to allowlist_externals and reword any comment that still contains that text"
         if facts["tox_mentions_whitelist_externals"]:
             return "fix", "tox.ini only mentions whitelist_externals in a comment, which the upstream substring check still flags", "reword the comment so the text whitelist_externals no longer appears"
         return "refuse", "the text whitelist_externals appears nowhere in tox.ini; upstream matches the substring, so the dashboard snapshot is stale", ""
