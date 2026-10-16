@@ -31,6 +31,8 @@ claude mcp add --transport http ossvitals https://mcp.ossvitals.org/openedx/mcp
 
 Tools, limits and local development are described in [mcp/README.md](mcp/README.md).
 
+To act on what the dashboard reports, `skills/openedx-remediate/` is a Claude Code skill that turns one failing check on an Open edX repository into one validated draft pull request on your own fork, refusing with evidence when the fix would be wrong for that repo. Install it with `ln -s "$PWD/skills/openedx-remediate" ~/.claude/skills/openedx-remediate` and see [skills/openedx-remediate/SKILL.md](skills/openedx-remediate/SKILL.md).
+
 ## Contributing
 Contributions are accepted under AGPL-3.0-or-later with a DCO sign-off. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
