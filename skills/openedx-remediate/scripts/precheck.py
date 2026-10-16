@@ -64,6 +64,7 @@ def collect_facts(repo: Path) -> dict:
         "makefile_exists": bool(makefile),
         "make_targets": make_targets(makefile),
         "tox_ini_exists": bool(tox_ini),
+        "tox_mentions_whitelist_externals": "whitelist_externals" in tox_ini,
         "tox_uses_whitelist_externals": uses_key(tox_ini, "whitelist_externals"),
         "tox_uses_allowlist_externals": uses_key(tox_ini, "allowlist_externals"),
     }
@@ -114,8 +115,10 @@ def decide(check: str, facts: dict) -> tuple[str, str, str]:
         if not facts["tox_ini_exists"]:
             return "refuse", "no tox.ini; the check does not apply", ""
         if facts["tox_uses_whitelist_externals"]:
-            return "fix", "tox.ini still uses the deprecated whitelist_externals key", "rename whitelist_externals to allowlist_externals"
-        return "refuse", "tox.ini does not use whitelist_externals; dashboard/lib/checks.py classifies the raw false as a failure (inverted boolean), nothing to change in this repo", ""
+            return "fix", "tox.ini still uses the deprecated whitelist_externals key", "rename whitelist_externals to allowlist_externals and reword any comment that still contains that text"
+        if facts["tox_mentions_whitelist_externals"]:
+            return "fix", "tox.ini only mentions whitelist_externals in a comment, which the upstream substring check still flags", "reword the comment so the text whitelist_externals no longer appears"
+        return "refuse", "the text whitelist_externals appears nowhere in tox.ini; upstream matches the substring, so the dashboard snapshot is stale", ""
 
     return "unsupported", f"{check} is not in the fix catalog", ""
 

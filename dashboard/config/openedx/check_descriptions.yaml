@@ -1,3 +1,6 @@
+# Columns whose raw value is True when a defect is present. Loaders flip them so True means healthy.
+inverted:
+  - tox_ini.uses_whitelist_externals
 checks:
   dependabot.exists:
     title: "Dependabot Config"
@@ -61,3 +64,19 @@ checks:
   tox_tox_section:
     title: "tox [tox] section"
     description: "tox.ini defines a global [tox] section."
+  exists..editorconfig:
+    title: ".editorconfig"
+    description: "Shared editor settings so every editor applies the same indentation, line endings and charset."
+    source_url: "https://github.com/openedx/.github/blob/master/.editorconfig"
+  makefile.test-python:
+    title: "Make target: test-python"
+    description: "A test-python target in the Makefile, the Open edX convention for running the Python test suite."
+    source_url: "https://github.com/openedx/edx-cookiecutters"
+  makefile.quality-python:
+    title: "Make target: quality-python"
+    description: "A quality-python target in the Makefile, the Open edX convention for running Python linting."
+    source_url: "https://github.com/openedx/edx-cookiecutters"
+  tox_ini.uses_whitelist_externals:
+    title: "tox allowlist_externals"
+    description: "Whether tox.ini avoids the deprecated whitelist_externals key. The upstream check records True when the text whitelist_externals appears anywhere in the file, comments included, so the dashboard reads this column inverted: a pass means the text is absent."
+    source_url: "https://tox.wiki/en/latest/config.html#allowlist_externals"

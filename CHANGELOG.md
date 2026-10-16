@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `tox_ini.uses_whitelist_externals` was scored as a plain boolean although the upstream check records True when the deprecated key is still used, so every repo that had already migrated was listed as failing. `check_descriptions.yaml` now declares the column under `inverted` and both loaders flip it once, so a failure means the key is really present.
 - Moneta fork releases no longer pick up upstream tags (default `v2x.y.z` pattern), and a multi-line upstream such as Twenty counts one release line.
 - The accessibility report crashed instead of listing findings (`_sort_key` was undefined).
 
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `streamlit`, `plotly`, `duckdb`, `rapidfuzz` and `pydantic` dependencies.
 
 ### Added
+- Remediation guidance and descriptions for `exists..editorconfig`, `makefile.test-python`, `makefile.quality-python` and `tox_ini.uses_whitelist_externals`, the checks the remediation skill can fix.
 - Fix PR tracker: `collect_maintenance.py --collector fix_prs` finds open PRs carrying the `OSSvitals-Check` and `OSSvitals-Repo` marker lines, `repo_detail` carries the newest open PR per failing check, the Repo Detail page shows a "Draft fix PR" or "Fix PR open" badge linking to it, and `get_repo` reports it as `fix_pr`.
 - `skills/openedx-remediate/`: a Claude Code skill that turns one failing Open edX health check into one validated draft PR on the user's fork, with a fix catalog (editorconfig, Makefile aliases, Dependabot, openedx.yaml, tox allowlist), clone-side preconditions that refuse stale or wrong fixes, and the Open edX AI-use disclosure in the PR body.
 - MCP server (`mcp/`): a read-only Cloudflare Worker at `mcp.ossvitals.org` that exposes the published views to MCP clients, one endpoint per tenant, with health tools (overview, repos, repo, check, attention) and drift tools (apps, app, conflict forecast).

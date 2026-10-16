@@ -90,16 +90,15 @@ scoring config records this as a known limitation. The right fix there is to the
 ## tox_ini.uses_whitelist_externals
 
 Fix: rename `whitelist_externals` to `allowlist_externals` in `tox.ini` (the old name is deprecated
-since tox 3.18). Nothing else changes.
+since tox 3.18), and reword any comment that still contains the text `whitelist_externals`. The
+upstream check is a substring match over the whole file, comments included, so a leftover mention
+keeps it failing.
 
-Refuse when `tox.ini` is missing, or when the key is already `allowlist_externals`. In the second
-case the dashboard is showing a false positive: the raw health value `false` means "does not use
-the deprecated key", and `classify()` in `dashboard/lib/checks.py` reads every `false` as a failure.
-Report it as a dashboard bug (this column needs an inverted-boolean rule in `checks.py`), not a repo
-defect. Because of the inversion the check appears in `failing_checks` for every repo that does not
-use the key (169 of 169 today) and never for a repo that does, so its presence in `failing_checks`
-is always a false positive and the `pass_pct` the dashboard reports for it is 0 by artifact. The fix
-branch is reachable only when the user names the check explicitly.
+Refuse when `tox.ini` is missing, or when the text `whitelist_externals` appears nowhere in it, which
+means the dashboard snapshot is stale for this repo. The upstream health check records `True` when
+that text appears anywhere in the file; the dashboard lists the column under `inverted` in
+`check_descriptions.yaml` and flips it at load time, so a failing `tox_ini.uses_whitelist_externals`
+means the text really is there.
 
 ## Not supported, on purpose
 

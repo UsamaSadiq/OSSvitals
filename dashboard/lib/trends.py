@@ -10,7 +10,7 @@ from typing import Any
 import pandas as pd
 import requests
 
-from dashboard.lib import fixtures
+from dashboard.lib import fixtures, polarity
 from dashboard.lib.config import DASHBOARD_DIR, DEFAULT_ORG, get_config
 from dashboard.lib.schema import REPO_COL, TIMESTAMP_COL, parse_snapshot_date
 
@@ -93,7 +93,7 @@ def load_history(days: int | None = None, org: str = DEFAULT_ORG) -> list[Snapsh
         stamp = parse_snapshot_date(group[TIMESTAMP_COL].iloc[0])
         if stamp is None:
             continue
-        snapshots.append(Snapshot(timestamp=stamp, df=group.reset_index(drop=True)))
+        snapshots.append(Snapshot(timestamp=stamp, df=polarity.normalise(group.reset_index(drop=True), org)))
 
     snapshots.sort(key=lambda snapshot: snapshot.timestamp)
     if history_days and snapshots:
