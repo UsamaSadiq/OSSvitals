@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 import requests
 
-from dashboard.lib import fixtures
+from dashboard.lib import fixtures, polarity
 from dashboard.lib.config import DASHBOARD_DIR, DEFAULT_ORG, get_config
 from dashboard.lib.schema import LAST_PUSH_COL, REPO_COL, TIMESTAMP_COL, soft_assert_columns
 from dashboard.lib.trends import Snapshot, load_history as load_trend_history
@@ -75,7 +75,11 @@ def _load_from_cache(org: str) -> pd.DataFrame:
 
 
 def load_snapshot(org: str = DEFAULT_ORG) -> pd.DataFrame:
-    """Fetch current snapshot with schema checks and fallback to last-known-good."""
+    """Fetch current snapshot with schema checks and fallback to last-known-good, inverted columns normalised."""
+    return polarity.normalise(_load_raw_snapshot(org), org)
+
+
+def _load_raw_snapshot(org: str) -> pd.DataFrame:
     cfg = get_config("data_source", org)
 
     # Resolved before the try, and deliberately outside it. A misconfigured

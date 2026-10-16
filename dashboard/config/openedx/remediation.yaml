@@ -62,3 +62,64 @@ checks:
       Proposed fix is to add a baseline CI workflow under `.github/workflows`.
 
       Filed via the Open edX Repository Health Dashboard ({dashboard_url}) - please review and edit before submitting.
+  exists..editorconfig:
+    title: "Add the shared .editorconfig"
+    description: "The edx-lint generated .editorconfig makes every editor agree on indentation, line endings and charset."
+    source_url: "https://github.com/openedx/.github/blob/master/.editorconfig"
+    snippet: |
+      [*]
+      end_of_line = lf
+      insert_final_newline = true
+      charset = utf-8
+      indent_style = space
+      indent_size = 4
+      max_line_length = 120
+      trim_trailing_whitespace = true
+    applies_to_tiers: ["critical", "important", "standard"]
+    issue_body_template: |
+      This repository currently fails the `exists..editorconfig` health check.
+
+      Proposed fix: copy the edx-lint generated `.editorconfig` from openedx/.github unchanged (hash comment included), so `edx_lint check` recognises it. Repo-specific tweaks belong in `.editorconfig_tweaks`.
+
+      Filed via the Open edX Repository Health Dashboard ({dashboard_url}) - please review and edit before submitting.
+  makefile.test-python:
+    title: "Add a test-python make target"
+    description: "The Open edX repo health checks look for a test-python target; an alias of the existing test target satisfies it without changing how tests run."
+    source_url: "https://github.com/openedx/edx-cookiecutters/blob/master/cookiecutter-django-app/%7B%7Bcookiecutter.repo_name%7D%7D/Makefile"
+    snippet: |
+      test-python: test ## Alias kept for the Open edX repo health checks
+    applies_to_tiers: ["critical", "important", "standard"]
+    issue_body_template: |
+      This repository currently fails the `makefile.test-python` health check.
+
+      Proposed fix: add `test-python` as an alias of the existing test target and list it in `.PHONY`.
+
+      Filed via the Open edX Repository Health Dashboard ({dashboard_url}) - please review and edit before submitting.
+  makefile.quality-python:
+    title: "Add a quality-python make target"
+    description: "The Open edX repo health checks look for a quality-python target; an alias of the existing quality target satisfies it without changing how linting runs."
+    source_url: "https://github.com/openedx/edx-cookiecutters/blob/master/cookiecutter-django-app/%7B%7Bcookiecutter.repo_name%7D%7D/Makefile"
+    snippet: |
+      quality-python: quality ## Alias kept for the Open edX repo health checks
+    applies_to_tiers: ["critical", "important", "standard"]
+    issue_body_template: |
+      This repository currently fails the `makefile.quality-python` health check.
+
+      Proposed fix: add `quality-python` as an alias of the existing quality target and list it in `.PHONY`.
+
+      Filed via the Open edX Repository Health Dashboard ({dashboard_url}) - please review and edit before submitting.
+  tox_ini.uses_whitelist_externals:
+    title: "Rename whitelist_externals to allowlist_externals"
+    description: "tox deprecated whitelist_externals in 3.18 in favour of allowlist_externals; the key is a straight rename."
+    source_url: "https://tox.wiki/en/latest/config.html#allowlist_externals"
+    snippet: |
+      [testenv]
+      allowlist_externals =
+          make
+    applies_to_tiers: ["critical", "important", "standard"]
+    issue_body_template: |
+      This repository currently fails the `tox_ini.uses_whitelist_externals` health check.
+
+      Proposed fix: rename `whitelist_externals` to `allowlist_externals` in `tox.ini`. Nothing else changes.
+
+      Filed via the Open edX Repository Health Dashboard ({dashboard_url}) - please review and edit before submitting.

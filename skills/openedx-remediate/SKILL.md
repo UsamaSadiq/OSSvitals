@@ -5,7 +5,7 @@ description: >
   pull request on the user's own fork. Reads the failing checks through the OSSvitals MCP server
   (openedx tenant), inspects the real clone before deciding, refuses with evidence when the dashboard
   is stale or the fix would be wrong for that repo (Renovate present, catalog-info.yaml present,
-  inverted-boolean false positive), applies the fix from a small catalog, validates it, and opens a
+  a fix PR already open), applies the fix from a small catalog, validates it, and opens a
   draft PR with per-check evidence, a machine-readable OSSvitals marker, and the AI-use disclosure
   the Open edX AI policy requires. Use when the user says "fix the <check> on <repo>", "remediate
   <repo>", "open a health PR for <repo>", or names an openedx repo and a health check.
@@ -61,11 +61,8 @@ Load as you go:
    check to quote its title, `pass_pct` and any dashboard remediation text.
 
 3. **Choose the check.** Start from `failing_checks`. Drop every check whose `fix_pr` is not null:
-   if the user named one of those, report the refusal with that PR's URL and stop. Drop
-   `tox_ini.uses_whitelist_externals` unless the user named it: the dashboard shows it inverted, so
-   it is listed as failing on every repo and precheck will refuse it. Intersect what is left with
-   the catalog. If the user named a check that is not failing, say so and stop; a named tox check
-   runs precheck anyway. If no
+   if the user named one of those, report the refusal with that PR's URL and stop. Intersect what
+   is left with the catalog. If the user named a check that is not failing, say so and stop. If no
    check was named, show the supported failing checks with
    the catalog's one-line expectation for each and ask which one; in a non-interactive run take the
    first `fix`-eligible one after step 4.
@@ -95,5 +92,3 @@ Load as you go:
 
 9. **Report.** Score and letter before, the check, the verdict, the evidence, and the PR link or the
    refusal reason. A `fix_pr` refusal links the existing PR so the user can review that one instead.
-   For a refusal that exposes a dashboard bug (the tox inverted boolean), say that it belongs in
-   OSSvitals, not in the repo.
