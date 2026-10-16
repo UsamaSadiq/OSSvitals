@@ -126,7 +126,7 @@ def validate_tox(repo: Path) -> tuple[list[str], list[str]]:
     if not path.is_file():
         return [], ["tox.ini is missing"]
     text = path.read_text(encoding="utf-8")
-    errors = ["tox.ini still contains whitelist_externals"] if re.search(r"^\s*whitelist_externals\s*=", text, re.MULTILINE) else []
+    errors = ["tox.ini still contains the text whitelist_externals (upstream matches the substring, comments included)"] if "whitelist_externals" in text else []
     parser = configparser.ConfigParser(interpolation=None, strict=False)
     try:
         parser.read_string(text)

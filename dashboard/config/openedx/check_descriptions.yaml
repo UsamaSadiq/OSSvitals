@@ -78,5 +78,5 @@ checks:
     source_url: "https://github.com/openedx/edx-cookiecutters"
   tox_ini.uses_whitelist_externals:
     title: "tox allowlist_externals"
-    description: "Whether tox.ini avoids the deprecated whitelist_externals key. The upstream check records True when the deprecated key is still used, so the dashboard reads this column inverted: a pass means the key is absent."
+    description: "Whether tox.ini avoids the deprecated whitelist_externals key. The upstream check records True when the text whitelist_externals appears anywhere in the file, comments included, so the dashboard reads this column inverted: a pass means the text is absent."
     source_url: "https://tox.wiki/en/latest/config.html#allowlist_externals"

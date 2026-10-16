@@ -90,13 +90,15 @@ scoring config records this as a known limitation. The right fix there is to the
 ## tox_ini.uses_whitelist_externals
 
 Fix: rename `whitelist_externals` to `allowlist_externals` in `tox.ini` (the old name is deprecated
-since tox 3.18). Nothing else changes.
+since tox 3.18), and reword any comment that still contains the text `whitelist_externals`. The
+upstream check is a substring match over the whole file, comments included, so a leftover mention
+keeps it failing.
 
-Refuse when `tox.ini` is missing, or when the key is already `allowlist_externals`, which means the
-dashboard snapshot is stale for this repo. The upstream health check records `True` when the
-deprecated key is still used; the dashboard lists that column under `inverted` in
+Refuse when `tox.ini` is missing, or when the text `whitelist_externals` appears nowhere in it, which
+means the dashboard snapshot is stale for this repo. The upstream health check records `True` when
+that text appears anywhere in the file; the dashboard lists the column under `inverted` in
 `check_descriptions.yaml` and flips it at load time, so a failing `tox_ini.uses_whitelist_externals`
-means the key really is present.
+means the text really is there.
 
 ## Not supported, on purpose
 
