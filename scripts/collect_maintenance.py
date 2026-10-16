@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-from collectors import catalog, github, publish, redundant_prs, upgrade_jobs, waves
+from collectors import catalog, fix_prs, github, publish, redundant_prs, upgrade_jobs, waves
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import DEFAULT_ORG, get_config
 
@@ -17,8 +17,9 @@ WAVES_DIR = "waves"
 REDUNDANT_PRS_FILE = "redundant_prs.json"
 CATALOG_FILE = "catalog.json"
 CATALOG_PATH = "catalog-info.yaml"
+FIX_PRS_FILE = "fix_prs.json"
 TREE_WORKERS = 8
-COLLECTORS = ("upgrade_jobs", "waves", "redundant_prs", "catalog")
+COLLECTORS = ("upgrade_jobs", "waves", "redundant_prs", "catalog", "fix_prs")
 
 
 @dataclass(frozen=True)
@@ -164,6 +165,19 @@ def collect_catalog(out_dir: Path, repo_filter: list[str], target: Target) -> in
     return 0
 
 
+def collect_fix_prs(out_dir: Path, repo_filter: list[str], target: Target) -> int:
+    generated_at = now_utc()
+    hits = github.search_open_prs_by_body(target.github_org, fix_prs.MARKER_SEARCH)
+    found = [
+        entry for entry in fix_prs.records(hits)
+        if not repo_filter or entry["repo_name"].split("/", 1)[1] in repo_filter
+    ]
+    content = publish.payload(found, generated_at=generated_at, source=fix_prs.SOURCE, candidates=len(hits))
+    publish.write(out_dir / FIX_PRS_FILE, content)
+    print(f"Fix PRs: {len(found)} open remediation PRs from {len(hits)} candidates")
+    return 0
+
+
 def main() -> int:
     args = _parse_args()
     selected = args.collector or list(COLLECTORS)
@@ -172,6 +186,7 @@ def main() -> int:
         "waves": collect_waves,
         "redundant_prs": collect_redundant_prs,
         "catalog": collect_catalog,
+        "fix_prs": collect_fix_prs,
     }
     target = _target(args.org)
     results = [runners[name](args.out_dir, args.repo, target) for name in selected]

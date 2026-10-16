@@ -16,6 +16,7 @@ import attentionJson from "./fixtures/openedx/views/attention.json";
 import checksJson from "./fixtures/openedx/views/checks.json";
 import overviewJson from "./fixtures/openedx/views/overview.json";
 import reposJson from "./fixtures/openedx/views/repos.json";
+import repoDetailJson from "./fixtures/openedx/views/repo_detail.json";
 
 const overview = VIEW_SCHEMAS.overview.parse(overviewJson);
 const repos = VIEW_SCHEMAS.repos.parse(reposJson);
@@ -142,9 +143,22 @@ describe("projectRepo", () => {
       title: "Dependabot Config",
       category: "Dependencies",
       has_remediation: true,
+      fix_pr: null,
     });
     const total = projected.failing_checks.length + projected.passing_count + projected.unknown_count;
     expect(total).toBe(Object.keys(record.checks).length);
+  });
+
+  it("attaches the open fix PR from the detail entry to its failing check", () => {
+    const record = findRepo(repos, "course-discovery");
+    if (!record) throw new Error("fixture missing");
+    const fixPr = { pr_number: 7, pr_url: "https://github.com/openedx/course-discovery/pull/7", pr_title: "chore: add dependabot config", author: "someone", is_draft: true, created_at: null, open_count: 2 };
+    const base = VIEW_SCHEMAS.repo_detail.parse(repoDetailJson).repos["openedx/course-discovery"];
+    if (!base) throw new Error("fixture missing");
+    const detail = { ...base, fix_prs: { "dependabot.exists": fixPr } };
+    const projected = projectRepo(record, checks, detail);
+    const dependabot = projected.failing_checks.find((entry) => entry.check === "dependabot.exists");
+    expect(dependabot?.fix_pr).toEqual({ number: 7, url: fixPr.pr_url, title: fixPr.pr_title, author: "someone", is_draft: true, open_count: 2 });
   });
 });
 

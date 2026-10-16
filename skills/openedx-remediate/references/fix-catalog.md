@@ -7,6 +7,9 @@ so read this file for the judgement behind them, not as a second source of truth
 A refusal is a successful outcome. Report it with the facts precheck printed; never force a fix
 through a precondition. Dashboard data can lag the repo by weeks, so the clone always wins.
 
+Before any precheck, refuse a check whose `fix_pr` in `get_repo` is not null: someone already has an
+open PR for it, and the report should link that PR instead of opening another.
+
 ## exists..editorconfig
 
 Fix: copy the edx-lint generated `.editorconfig` that `openedx/.github` ships, unchanged, hash

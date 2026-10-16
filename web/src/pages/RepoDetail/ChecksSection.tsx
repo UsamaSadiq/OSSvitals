@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FixPr } from "../../data/schemas";
 import { useSearchParams } from "react-router";
 import { EmptyState } from "../../components/EmptyState";
 import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
@@ -46,7 +47,9 @@ function FilterRadios({ value }: { value: FilterChoice }) {
   );
 }
 
-function CheckGroupList({ repo, category, rows }: { repo: string; category: string; rows: readonly CheckRow[] }) {
+type FixPrs = Record<string, FixPr>;
+
+function CheckGroupList({ repo, category, rows, fixPrs }: { repo: string; category: string; rows: readonly CheckRow[]; fixPrs: FixPrs }) {
   const { featureFlags } = useSiteMeta();
   return (
     <section className="check-group" aria-label={category}>
@@ -55,14 +58,28 @@ function CheckGroupList({ repo, category, rows }: { repo: string; category: stri
       </h3>
       <ul className="check-list">
         {rows.map((row) => (
-          <CheckEntry key={row.record.check} repo={repo} row={row} allowPr={featureFlags.enablePrTemplateGenerator} />
+          <CheckEntry
+            key={row.record.check}
+            repo={repo}
+            row={row}
+            allowPr={featureFlags.enablePrTemplateGenerator}
+            fixPr={fixPrs[row.record.check] ?? null}
+          />
         ))}
       </ul>
     </section>
   );
 }
 
-function CheckList({ repo, rows, order, searching }: { repo: string; rows: readonly CheckRow[]; order: readonly string[]; searching: boolean }) {
+interface CheckListProps {
+  repo: string;
+  rows: readonly CheckRow[];
+  order: readonly string[];
+  searching: boolean;
+  fixPrs: FixPrs;
+}
+
+function CheckList({ repo, rows, order, searching, fixPrs }: CheckListProps) {
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -75,7 +92,7 @@ function CheckList({ repo, rows, order, searching }: { repo: string; rows: reado
   return (
     <div>
       {groupByCategory(rows, order).map((group) => (
-        <CheckGroupList key={group.category} repo={repo} category={group.category} rows={group.rows} />
+        <CheckGroupList key={group.category} repo={repo} category={group.category} rows={group.rows} fixPrs={fixPrs} />
       ))}
     </div>
   );
@@ -85,9 +102,10 @@ interface ChecksSectionProps {
   repo: string;
   rows: readonly CheckRow[];
   categories: readonly string[];
+  fixPrs?: FixPrs;
 }
 
-export function ChecksSection({ repo, rows, categories }: ChecksSectionProps) {
+export function ChecksSection({ repo, rows, categories, fixPrs = {} }: ChecksSectionProps) {
   const filter = useQueryValue(FILTER_PARAM, FILTER_OPTIONS, DEFAULT_FILTER) as FilterChoice;
   const category = useQueryValue(CATEGORY_PARAM, categories, ALL);
   const [query, setQuery] = useState("");
@@ -103,7 +121,7 @@ export function ChecksSection({ repo, rows, categories }: ChecksSectionProps) {
         </div>
       </div>
       <p className="caption">{shownCaption(shown.length, rows.length)}</p>
-      <CheckList repo={repo} rows={shown} order={categories} searching={query.trim() !== ""} />
+      <CheckList repo={repo} rows={shown} order={categories} searching={query.trim() !== ""} fixPrs={fixPrs} />
     </section>
   );
 }

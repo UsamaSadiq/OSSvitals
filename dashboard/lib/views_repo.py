@@ -5,7 +5,7 @@ from typing import Any
 
 import pandas as pd
 
-from dashboard.lib import catalog
+from dashboard.lib import catalog, fix_prs, maintenance
 from dashboard.lib.checks import category_columns
 from dashboard.lib.repo_detail import catalog_detail, category_card, metric_bars, metric_summary, subscores
 from dashboard.lib.schema import REPO_COL
@@ -24,6 +24,7 @@ def _repo_entry(
     categories: dict[str, list[str]],
     catalog_entry: dict[str, Any] | None,
     subscore_help: dict[str, str],
+    open_fix_prs: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     return {
         "summary": metric_summary(row),
@@ -31,7 +32,12 @@ def _repo_entry(
         "metric_bars": metric_bars(row),
         "category_cards": [{"name": name, **category_card(row, cols)} for name, cols in categories.items()],
         "catalog": catalog_entry,
+        "fix_prs": {check: fix_prs.view_entry(entry) for check, entry in open_fix_prs.items()},
     }
+
+
+def _fix_prs_by_repo(payload: dict[str, Any] | None) -> dict[str, dict[str, dict[str, Any]]]:
+    return fix_prs.by_repo_and_check(payload["records"]) if payload else {}
 
 
 def build_repo_detail(ctx: BuildContext) -> dict[str, Any]:
@@ -40,13 +46,18 @@ def build_repo_detail(ctx: BuildContext) -> dict[str, Any]:
     entries = _catalog_by_repo(payload)
     categories = {name: cols for name, cols in category_columns(scored.columns).items() if cols}
     subscore_help = ctx.config("strings").get("subscore_help", {})
+    fix_payload = ctx.maintenance.get(maintenance.FIX_PRS)
+    open_fix_prs = _fix_prs_by_repo(fix_payload)
     return envelope(
         ctx,
-        "scores, checks and catalog-info.yaml snapshot",
+        "scores, checks, catalog-info.yaml snapshot and open remediation PRs",
         catalog_available=payload is not None,
         catalog_collected_at=payload["metadata"].get("generated_at") if payload else None,
+        fix_prs_collected_at=fix_payload["metadata"].get("generated_at") if fix_payload else None,
         repos={
-            str(row[REPO_COL]): _repo_entry(row, categories, entries.get(str(row[REPO_COL])), subscore_help)
+            str(row[REPO_COL]): _repo_entry(
+                row, categories, entries.get(str(row[REPO_COL])), subscore_help, open_fix_prs.get(str(row[REPO_COL]), {})
+            )
             for _, row in scored.iterrows()
         },
     )

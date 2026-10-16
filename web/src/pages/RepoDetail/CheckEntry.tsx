@@ -1,4 +1,5 @@
 import { CodeText } from "../../components/CodeText";
+import type { FixPr } from "../../data/schemas";
 import { githubIssueUrl, githubPrCompareUrl, type PrTemplate } from "./checkLinks";
 import { descriptionText, hasFix, stateLabel, type CheckRecord, type CheckRow } from "./checkRows";
 import { StatusChip } from "./StatusChip";
@@ -34,7 +35,7 @@ function fixLinks(repo: string, record: CheckRecord, remediation: Remediation, a
   };
 }
 
-function RemediationBlock({ remediation, links }: { remediation: Remediation; links: FixLinks }) {
+function RemediationBlock({ remediation, links }: { remediation: Remediation; links: FixLinks | null }) {
   return (
     <>
       <p>
@@ -55,15 +56,25 @@ function RemediationBlock({ remediation, links }: { remediation: Remediation; li
           </a>
         </p>
       )}
-      <div className="check-actions">
-        <ExternalButton href={links.issueUrl} label="File issue on this repo" />
-        {links.prUrl && <ExternalButton href={links.prUrl} label="Open PR with fix" />}
-      </div>
+      {links && (
+        <div className="check-actions">
+          <ExternalButton href={links.issueUrl} label="File issue on this repo" />
+          {links.prUrl && <ExternalButton href={links.prUrl} label="Open PR with fix" />}
+        </div>
+      )}
     </>
   );
 }
 
-function RowActions({ title, links }: { title: string; links: FixLinks }) {
+function RowActions({ title, links, fixPr }: { title: string; links: FixLinks | null; fixPr: FixPr | null }) {
+  if (fixPr) {
+    return (
+      <div className="check-row__actions">
+        <ExternalButton href={fixPr.pr_url} label={`View PR #${fixPr.pr_number}`} ariaLabel={`View fix PR #${fixPr.pr_number} for ${title}`} />
+      </div>
+    );
+  }
+  if (!links) return null;
   return (
     <div className="check-row__actions">
       <ExternalButton href={links.issueUrl} label="File issue" ariaLabel={`File issue for ${title}`} />
@@ -72,10 +83,36 @@ function RowActions({ title, links }: { title: string; links: FixLinks }) {
   );
 }
 
-export function CheckEntry({ repo, row, allowPr }: { repo: string; row: CheckRow; allowPr: boolean }) {
+export function fixPrLabel(fixPr: FixPr): string {
+  const state = fixPr.is_draft ? "Draft fix PR" : "Fix PR open";
+  const extra = fixPr.open_count > 1 ? ` (+${fixPr.open_count - 1} more)` : "";
+  return `${state} · #${fixPr.pr_number}${extra}`;
+}
+
+function FixPrNote({ fixPr }: { fixPr: FixPr }) {
+  return (
+    <p>
+      <strong>Fix in progress:</strong>{" "}
+      <a href={fixPr.pr_url} target="_blank" rel="noreferrer">
+        {fixPr.pr_title}
+      </a>
+      {fixPr.author ? ` by ${fixPr.author}` : ""}. Review that one instead of opening another.
+    </p>
+  );
+}
+
+interface CheckEntryProps {
+  repo: string;
+  row: CheckRow;
+  allowPr: boolean;
+  fixPr?: FixPr | null;
+}
+
+export function CheckEntry({ repo, row, allowPr, fixPr = null }: CheckEntryProps) {
   const { record, state, value } = row;
   const remediation = hasFix(row) ? record.remediation : null;
   const links = remediation ? fixLinks(repo, record, remediation, allowPr) : null;
+  const openFix = state === "fail" ? fixPr : null;
   return (
     <li className="check-row">
       <details className="check-entry">
@@ -83,7 +120,11 @@ export function CheckEntry({ repo, row, allowPr }: { repo: string; row: CheckRow
           <span className="check-entry__line">
             <StatusChip status={state} label={stateLabel(state)} />
             <span className="check-entry__title">{record.title}</span>
-            {remediation && <span className="fix-badge">Fix available</span>}
+            {openFix ? (
+              <span className="fix-badge fix-badge--open">{fixPrLabel(openFix)}</span>
+            ) : (
+              remediation && <span className="fix-badge">Fix available</span>
+            )}
           </span>
         </summary>
         <div className="check-entry__body">
@@ -91,10 +132,11 @@ export function CheckEntry({ repo, row, allowPr }: { repo: string; row: CheckRow
             <code>{record.check}</code> · <CodeText text={descriptionText(record)} />
           </p>
           <Value value={value} />
-          {remediation && links && <RemediationBlock remediation={remediation} links={links} />}
+          {openFix && <FixPrNote fixPr={openFix} />}
+          {remediation && <RemediationBlock remediation={remediation} links={openFix ? null : links} />}
         </div>
       </details>
-      {links && <RowActions title={record.title} links={links} />}
+      <RowActions title={record.title} links={links} fixPr={openFix} />
     </li>
   );
 }

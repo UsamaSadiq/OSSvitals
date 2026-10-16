@@ -6,14 +6,15 @@ import attention from "./fixtures/openedx/views/attention.json";
 import checks from "./fixtures/openedx/views/checks.json";
 import overview from "./fixtures/openedx/views/overview.json";
 import repos from "./fixtures/openedx/views/repos.json";
+import repoDetail from "./fixtures/openedx/views/repo_detail.json";
 
 const BASE = "https://{org}.test/data/{org}/views";
-const VIEWS: Record<string, unknown> = { attention, checks, overview, repos };
+const VIEWS: Record<string, unknown> = { attention, checks, overview, repos, repo_detail: repoDetail };
 
-function fakeFetch(calls: string[] = []): typeof fetch {
+function fakeFetch(calls: string[] = [], missing: string[] = []): typeof fetch {
   return async (input) => {
     const view = /\/views\/(\w+)\.json$/.exec(String(input))?.[1];
-    const body = view ? VIEWS[view] : undefined;
+    const body = view && !missing.includes(view) ? VIEWS[view] : undefined;
     if (!view || body === undefined) return new Response("missing", { status: 404 });
     calls.push(view);
     return Response.json(body);
@@ -81,13 +82,23 @@ describe("health tools", () => {
     await client.close();
   });
 
-  it("get_repo resolves a bare name with two view fetches", async () => {
+  it("get_repo resolves a bare name with three view fetches", async () => {
     const calls: string[] = [];
     const client = await connect(fakeFetch(calls));
     const { json } = await call(client, "get_repo", { repo: "Credentials" });
     expect(json.repo_name).toBe("openedx/credentials");
     expect(json.failing_checks[0]).toHaveProperty("title");
-    expect(new Set(calls)).toEqual(new Set(["repos", "checks"]));
+    expect(new Set(calls)).toEqual(new Set(["repos", "checks", "repo_detail"]));
+    expect(json.failing_checks[0]).toHaveProperty("fix_pr", null);
+    await client.close();
+  });
+
+  it("get_repo still answers when repo_detail is unavailable", async () => {
+    const client = await connect(fakeFetch([], ["repo_detail"]));
+    const { isError, json } = await call(client, "get_repo", { repo: "credentials" });
+    expect(isError).toBe(false);
+    expect(json.repo_name).toBe("openedx/credentials");
+    expect(json.failing_checks[0]).toHaveProperty("fix_pr", null);
     await client.close();
   });
 

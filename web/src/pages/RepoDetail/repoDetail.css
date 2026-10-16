@@ -403,6 +403,11 @@
   white-space: nowrap;
 }
 
+.fix-badge--open {
+  border-color: color-mix(in srgb, var(--success) 55%, transparent);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+}
+
 @media (max-width: 599px) {
   .check-row {
     grid-template-columns: minmax(0, 1fr);

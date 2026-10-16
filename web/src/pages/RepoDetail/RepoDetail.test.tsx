@@ -83,6 +83,7 @@ function repoEntry(overrides: Partial<RepoEntry> = {}): RepoEntry {
       { name: "Documentation", pass: 0, fail: 0, na: 2, pass_rate: null, level: "unknown" },
     ],
     catalog: CATALOG,
+    fix_prs: {},
     ...overrides,
   };
 }
@@ -92,6 +93,7 @@ function detailView(entry: RepoEntry = repoEntry(), catalogAvailable = true): Re
     metadata: metadata("repo_detail"),
     catalog_available: catalogAvailable,
     catalog_collected_at: "2026-10-03T14:00:01.000711+00:00",
+    fix_prs_collected_at: null,
     repos: { [REPO]: entry, "openedx/beta": repoEntry({ catalog: null }) },
   };
 }
@@ -433,6 +435,45 @@ describe("Repo Detail page", () => {
     expect(within(readme).queryByText(/since/)).toBeNull();
     const docs = within(cards).getByRole("group", { name: "Documentation" });
     expect(within(docs).getByText("no data")).toHaveClass("status-chip--unknown");
+  });
+
+  it("shows the open fix PR on a failing check instead of the fix links", async () => {
+    const fixPr = {
+      pr_number: 481,
+      pr_url: "https://github.com/openedx/alpha/pull/481",
+      pr_title: "chore: add dependabot config",
+      author: "someone",
+      is_draft: false,
+      created_at: "2026-10-16T13:00:00Z",
+      open_count: 2,
+    };
+    setViews({ detail: detailView(repoEntry({ fix_prs: { "dependabot.exists": fixPr } })) });
+    renderRoute(PATH);
+    const checks = await screen.findByRole("region", { name: "Checks" });
+    const entry = within(checks).getByText("DEPENDABOT.EXISTS").closest("details") as HTMLElement;
+    expect(within(entry).getByText("Fix PR open · #481 (+1 more)", { selector: "summary .fix-badge" })).toBeInTheDocument();
+    expect(within(entry).queryByText("Fix available")).toBeNull();
+    expect(within(entry).getByRole("link", { name: "chore: add dependabot config" })).toHaveAttribute("href", fixPr.pr_url);
+    const row = entry.closest("li") as HTMLElement;
+    expect(within(row).getByRole("link", { name: "View fix PR #481 for DEPENDABOT.EXISTS" })).toHaveAttribute("href", fixPr.pr_url);
+    expect(within(row).queryByRole("link", { name: /File issue/ })).toBeNull();
+  });
+
+  it("labels a draft fix PR as a draft", async () => {
+    const fixPr = {
+      pr_number: 7,
+      pr_url: "https://github.com/openedx/alpha/pull/7",
+      pr_title: "chore: add dependabot config",
+      author: null,
+      is_draft: true,
+      created_at: null,
+      open_count: 1,
+    };
+    setViews({ detail: detailView(repoEntry({ fix_prs: { "dependabot.exists": fixPr } })) });
+    renderRoute(PATH);
+    const checks = await screen.findByRole("region", { name: "Checks" });
+    const entry = within(checks).getByText("DEPENDABOT.EXISTS").closest("details") as HTMLElement;
+    expect(within(entry).getByText("Draft fix PR · #7", { selector: "summary .fix-badge" })).toBeInTheDocument();
   });
 
   it("lists failing checks by default with values and remediation links", async () => {

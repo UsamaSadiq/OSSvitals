@@ -337,3 +337,24 @@ def test_meta_exports_org_copy_for_the_web_app(built):
     assert branding["catalog"]["name"] == "Backstage"
     assert meta["github_org"] == "openedx"
     assert meta["unmaintained_group"] == "openedx-unmaintained"
+
+
+def test_repo_detail_carries_the_newest_open_fix_pr_per_check(built):
+    _, files = built
+    detail = files["repo_detail.json"]
+    entry = detail["repos"]["openedx/auth-backends"]["fix_prs"]["exists..editorconfig"]
+
+    assert detail["fix_prs_collected_at"] == "2026-10-16T14:00:00+00:00"
+    assert (entry["pr_number"], entry["open_count"], entry["is_draft"]) == (12, 2, True)
+    assert entry["pr_url"] == "https://github.com/openedx/auth-backends/pull/12"
+    assert detail["repos"]["openedx/django-user-tasks"]["fix_prs"] == {}
+
+
+def test_repo_detail_without_fix_prs_file_is_empty(tmp_path, monkeypatch):
+    monkeypatch.setenv(fixtures.FIXTURE_DIR_ENV, str(FIXTURE_DIR))
+    out_dir = tmp_path / "views"
+    write_views(BuildContext(data=score_org(), generated_at=GENERATED_AT, maintenance={}), out_dir)
+    detail = json.loads((out_dir / "repo_detail.json").read_text())
+
+    assert detail["fix_prs_collected_at"] is None
+    assert all(entry["fix_prs"] == {} for entry in detail["repos"].values())

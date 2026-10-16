@@ -3,6 +3,8 @@ import { truncate } from "../text.ts";
 
 type RepoRecord = View<"repos">["records"][number];
 type CheckRecord = View<"checks">["records"][number];
+type DetailEntry = View<"repo_detail">["repos"][string];
+type FixPr = DetailEntry["fix_prs"][string];
 
 export const DEFAULT_PAGE_SIZE = 25;
 export const MAX_PAGE_SIZE = 50;
@@ -162,8 +164,21 @@ function describeFailingCheck(check: string, checks: ReadonlyMap<string, CheckRe
   };
 }
 
-export function projectRepo(repo: RepoRecord, checksView: View<"checks">) {
+function projectFixPr(fixPr: FixPr | undefined) {
+  if (!fixPr) return null;
+  return {
+    number: fixPr.pr_number,
+    url: fixPr.pr_url,
+    title: truncate(fixPr.pr_title, FREE_TEXT_MAX),
+    author: fixPr.author,
+    is_draft: fixPr.is_draft,
+    open_count: fixPr.open_count,
+  };
+}
+
+export function projectRepo(repo: RepoRecord, checksView: View<"checks">, detail?: DetailEntry) {
   const checks = new Map(checksView.records.map((record) => [record.check, record]));
+  const fixPrs = detail?.fix_prs ?? {};
   return {
     repo_name: repo.repo_name,
     score_composite: repo.score_composite,
@@ -172,7 +187,7 @@ export function projectRepo(repo: RepoRecord, checksView: View<"checks">) {
     subscores: { structural: repo.score_structural ?? null, activity: repo.score_activity ?? null },
     last_push: lastPush(repo),
     owners: ownershipDetails(repo),
-    failing_checks: failingChecks(repo).map((check) => describeFailingCheck(check, checks)),
+    failing_checks: failingChecks(repo).map((check) => ({ ...describeFailingCheck(check, checks), fix_pr: projectFixPr(fixPrs[check]) })),
     passing_count: countState(repo, "pass"),
     unknown_count: countState(repo, "unknown"),
   };

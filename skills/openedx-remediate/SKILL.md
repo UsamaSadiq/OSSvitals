@@ -36,6 +36,8 @@ Load as you go:
   The PR is still a draft; the user marks it ready after reviewing, as the Open edX AI policy expects.
 - **The clone outranks the dashboard.** Every fix is gated on `precheck.py`. A `refuse` verdict is a
   finished, reportable outcome, not an obstacle. Quote its reason and facts in the report.
+- **Never fix what is already being fixed.** When `get_repo` reports a `fix_pr` for the check, refuse
+  and cite that PR; a second one only costs the maintainer a duplicate review.
 - **Catalog only.** A check outside `references/fix-catalog.md` is reported as unsupported with the
   catalog's reason. Do not improvise a fix for it.
 - **Validate before commit.** `validate.py` must print `"ok": true`. If it does not, fix or abandon;
@@ -54,13 +56,16 @@ Load as you go:
 
 2. **Read the dashboard through MCP.** Use ToolSearch for a tool named like `*ossvitals*get_repo`;
    if none is loaded, use `bash scripts/mcp_call.sh get_repo '{"repo":"openedx/<name>"}'`. Keep
-   `score_composite`, `score_letter` and the `failing_checks` list. Then `get_check` for the chosen
+   `score_composite`, `score_letter` and the `failing_checks` list, each with its `fix_pr` (an open
+   upstream PR already fixing it, or null). Then `get_check` for the chosen
    check to quote its title, `pass_pct` and any dashboard remediation text.
 
-3. **Choose the check.** Intersect `failing_checks` with the catalog, and drop
-   `tox_ini.uses_whitelist_externals` from that list unless the user named it: the dashboard shows
-   it inverted, so it is listed as failing on every repo and precheck will refuse it. If the user
-   named a check that is not failing, say so and stop; a named tox check runs precheck anyway. If no
+3. **Choose the check.** Start from `failing_checks`. Drop every check whose `fix_pr` is not null:
+   if the user named one of those, report the refusal with that PR's URL and stop. Drop
+   `tox_ini.uses_whitelist_externals` unless the user named it: the dashboard shows it inverted, so
+   it is listed as failing on every repo and precheck will refuse it. Intersect what is left with
+   the catalog. If the user named a check that is not failing, say so and stop; a named tox check
+   runs precheck anyway. If no
    check was named, show the supported failing checks with
    the catalog's one-line expectation for each and ask which one; in a non-interactive run take the
    first `fix`-eligible one after step 4.
@@ -89,5 +94,6 @@ Load as you go:
    `--dry-run` never reaches this step; it stops after step 7 with the diff and the rendered body.
 
 9. **Report.** Score and letter before, the check, the verdict, the evidence, and the PR link or the
-   refusal reason. For a refusal that exposes a dashboard bug (the tox inverted boolean), say that it
-   belongs in OSSvitals, not in the repo.
+   refusal reason. A `fix_pr` refusal links the existing PR so the user can review that one instead.
+   For a refusal that exposes a dashboard bug (the tox inverted boolean), say that it belongs in
+   OSSvitals, not in the repo.

@@ -44,7 +44,7 @@ function useRepoRates(repo: string): RepoRates | null {
   }, [history, repo]);
 }
 
-function Checks({ repo, record, cardNames }: { repo: string; record: RepoRecord; cardNames: readonly string[] }) {
+function Checks({ repo, record, cardNames, fixPrs }: { repo: string; record: RepoRecord; cardNames: readonly string[]; fixPrs: RepoDetail["fix_prs"] }) {
   const checks = useView("checks");
   const rawValues = useView("repo_checks");
   const error = checks.error ?? rawValues.error;
@@ -52,7 +52,7 @@ function Checks({ repo, record, cardNames }: { repo: string; record: RepoRecord;
   if (checks.status !== "ready" || rawValues.status !== "ready") return <Loading label="Loading checks…" />;
   const rows = checkRows(checks.data.records, rawValues.data.repos[repo] ?? {}, record.checks);
   if (rows.length === 0) return null;
-  return <ChecksSection key={repo} repo={repo} rows={rows} categories={categoryOptions(cardNames, rows)} />;
+  return <ChecksSection key={repo} repo={repo} rows={rows} categories={categoryOptions(cardNames, rows)} fixPrs={fixPrs} />;
 }
 
 function Anchor({ id, children }: { id: string; children: ReactNode }) {
@@ -86,7 +86,7 @@ export function RepoBody({ repo, record, detail, detailView }: RepoBodyProps) {
         <CategoryCards cards={detail.category_cards} rates={rates} />
       </Anchor>
       <Anchor id={SECTION_IDS.checks}>
-        <Checks repo={repo} record={record} cardNames={detail.category_cards.map((card) => card.name)} />
+        <Checks repo={repo} record={record} cardNames={detail.category_cards.map((card) => card.name)} fixPrs={detail.fix_prs ?? {}} />
       </Anchor>
     </>
   );
