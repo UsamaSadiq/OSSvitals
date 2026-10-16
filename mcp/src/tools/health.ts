@@ -75,7 +75,7 @@ export function registerHealthTools(server: McpServer, org: string, deps: ViewDe
     "get_repo",
     {
       description:
-        "Details for one repository (owner/name or bare name): scores, owners and failing checks with remediation availability.",
+        "Details for one repository (owner/name or bare name): scores, owners and failing checks with remediation availability and any open fix PR.",
       inputSchema: getRepoInput,
       annotations: ANNOTATIONS,
     },
@@ -84,7 +84,8 @@ export function registerHealthTools(server: McpServer, org: string, deps: ViewDe
       const record = findRepo(repos, repo);
       if (!record) return errorResult(`Unknown repo ${repo} for ${org}`);
       const checks = await fetchView(deps, org, "checks", VIEW_SCHEMAS.checks);
-      return jsonResult(projectRepo(record, checks));
+      const detail = await fetchView(deps, org, "repo_detail", VIEW_SCHEMAS.repo_detail);
+      return jsonResult(projectRepo(record, checks, detail.repos[record.repo_name]));
     },
   );
 

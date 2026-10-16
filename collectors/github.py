@@ -111,6 +111,33 @@ def search_open_prs_by_author(org: str, author: str, title: str) -> list[dict[st
     ) or []
 
 
+MARKER_PR_QUERY = (
+    "query($q:String!,$after:String){search(query:$q,type:ISSUE,first:100,after:$after)"
+    "{issueCount pageInfo{hasNextPage endCursor} nodes{... on PullRequest{number url title body isDraft createdAt updatedAt"
+    " author{login} baseRepository{nameWithOwner} headRepository{nameWithOwner}}}}}"
+)
+MARKER_PAGE_LIMIT = 10
+
+
+def search_open_prs_by_body(org: str, search: str) -> list[dict[str, Any]]:
+    """Open PRs in ``org`` matching a body search, with draft state and base/head repos."""
+    query = f"{search} org:{org}"
+    nodes: list[dict[str, Any]] = []
+    after: str | None = None
+    for _ in range(MARKER_PAGE_LIMIT):
+        time.sleep(SEARCH_PAUSE_SECONDS)
+        args = ["api", "graphql", "-f", f"query={MARKER_PR_QUERY}", "-f", f"q={query}"]
+        if after:
+            args += ["-f", f"after={after}"]
+        page = (gh_json(*args) or {}).get("data", {}).get("search") or {}
+        nodes.extend(node for node in page.get("nodes", []) if node)
+        info = page.get("pageInfo") or {}
+        if not info.get("hasNextPage"):
+            break
+        after = info.get("endCursor")
+    return nodes
+
+
 def merged_prs(full_name: str, search: str) -> list[dict[str, Any]]:
     return gh_json(
         "pr", "list", "--repo", full_name, "--state", "merged", "--limit", "20",

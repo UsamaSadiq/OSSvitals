@@ -26,7 +26,7 @@ Health tenants (`openedx`):
 |---|---|---|
 | `get_overview` | none | KPIs with deltas, grade mix, top failing checks, gainers and losers |
 | `list_repos` | `letter`, `tier`, `failing_check`, `owner`, `min_score`, `max_score`, `sort`, `page`, `page_size` | paged repo rows with score, letter, tier, failing count, last push, owner |
-| `get_repo` | `repo` (with or without the `openedx/` prefix) | score, subscores, owners, failing checks with titles and whether a remediation exists |
+| `get_repo` | `repo` (with or without the `openedx/` prefix) | score, subscores, owners, failing checks with titles, whether a remediation exists, and `fix_pr` (the newest open upstream PR carrying the OSSvitals marker for that check, or null) |
 | `get_check` | `check` | description, pass rate, remediation snippet and PR template when defined |
 | `list_needing_attention` | `page`, `page_size` | repos flagged by the attention rules with their reasons |
 

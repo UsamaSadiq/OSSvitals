@@ -36,6 +36,8 @@ Load as you go:
   The PR is still a draft; the user marks it ready after reviewing, as the Open edX AI policy expects.
 - **The clone outranks the dashboard.** Every fix is gated on `precheck.py`. A `refuse` verdict is a
   finished, reportable outcome, not an obstacle. Quote its reason and facts in the report.
+- **Never fix what is already being fixed.** When `get_repo` reports a `fix_pr` for the check, refuse
+  and cite that PR; a second one only costs the maintainer a duplicate review.
 - **Catalog only.** A check outside `references/fix-catalog.md` is reported as unsupported with the
   catalog's reason. Do not improvise a fix for it.
 - **Validate before commit.** `validate.py` must print `"ok": true`. If it does not, fix or abandon;
@@ -54,7 +56,8 @@ Load as you go:
 
 2. **Read the dashboard through MCP.** Use ToolSearch for a tool named like `*ossvitals*get_repo`;
    if none is loaded, use `bash scripts/mcp_call.sh get_repo '{"repo":"openedx/<name>"}'`. Keep
-   `score_composite`, `score_letter` and the `failing_checks` list. Then `get_check` for the chosen
+   `score_composite`, `score_letter` and the `failing_checks` list, each with its `fix_pr` (an open
+   upstream PR already fixing it, or null). Then `get_check` for the chosen
    check to quote its title, `pass_pct` and any dashboard remediation text.
 
 3. **Choose the check.** Intersect `failing_checks` with the catalog, and drop

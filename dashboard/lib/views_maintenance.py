@@ -29,6 +29,7 @@ def maintenance_keys(waves_config: dict[str, Any]) -> list[str]:
         catalog.CATALOG_FILE,
         maintenance.UPGRADE_JOBS,
         maintenance.REDUNDANT_PRS,
+        maintenance.FIX_PRS,
         *(maintenance.wave_file(wave_id) for wave_id in waves_config),
     ]
 

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 SCHEMA_VERSION = 1
 UPGRADE_JOBS = "upgrade_jobs.json"
 REDUNDANT_PRS = "redundant_prs.json"
+FIX_PRS = "fix_prs.json"
 FIXTURE_SUBDIR = "maintenance"
 
 

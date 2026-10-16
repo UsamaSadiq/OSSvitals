@@ -458,9 +458,21 @@ const catalogDetailSchema = z.object({
   findings: z.array(z.object({ severity: z.string(), label: z.string() })),
 });
 
+const fixPrSchema = z.object({
+  pr_number: int,
+  pr_url: z.string(),
+  pr_title: z.string(),
+  author: z.string().nullable(),
+  is_draft: z.boolean(),
+  created_at: isoString.nullable(),
+  open_count: int,
+});
+export type FixPr = z.infer<typeof fixPrSchema>;
+
 export const repoDetailSchema = view({
   catalog_available: z.boolean(),
   catalog_collected_at: isoString.nullable(),
+  fix_prs_collected_at: isoString.nullable().default(null),
   repos: z.record(
     z.string(),
     z.object({
@@ -479,6 +491,7 @@ export const repoDetailSchema = view({
         z.object({ name: z.string(), pass: int, fail: int, na: int, pass_rate: nullableNumber, level: levelSchema }),
       ),
       catalog: catalogDetailSchema.nullable(),
+      fix_prs: z.record(z.string(), fixPrSchema).default({}),
     }),
   ),
 });
