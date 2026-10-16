@@ -49,7 +49,10 @@ def validate_editorconfig(repo: Path) -> tuple[list[str], list[str]]:
     if not path.is_file():
         return [], [".editorconfig is missing"]
     parser = configparser.ConfigParser(interpolation=None, strict=False)
-    parser.read_string(path.read_text(encoding="utf-8"))
+    try:
+        parser.read_string(path.read_text(encoding="utf-8"))
+    except configparser.Error as error:
+        return [], [f".editorconfig does not parse: {error}"]
     sections = parser.sections()
     errors = [] if "*" in sections else ["no [*] section"]
     for key in ("end_of_line", "insert_final_newline", "charset", "indent_style"):
@@ -123,7 +126,7 @@ def validate_tox(repo: Path) -> tuple[list[str], list[str]]:
     if not path.is_file():
         return [], ["tox.ini is missing"]
     text = path.read_text(encoding="utf-8")
-    errors = ["tox.ini still contains whitelist_externals"] if "whitelist_externals" in text else []
+    errors = ["tox.ini still contains whitelist_externals"] if re.search(r"^\s*whitelist_externals\s*=", text, re.MULTILINE) else []
     parser = configparser.ConfigParser(interpolation=None, strict=False)
     try:
         parser.read_string(text)

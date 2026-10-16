@@ -24,6 +24,10 @@ def read(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
 
 
+def uses_key(ini_text: str, key: str) -> bool:
+    return re.search(rf"^\s*{key}\s*=", ini_text, re.MULTILINE) is not None
+
+
 def make_targets(makefile: str) -> list[str]:
     return re.findall(r"^([A-Za-z0-9_.-]+):", makefile, re.MULTILINE)
 
@@ -60,8 +64,8 @@ def collect_facts(repo: Path) -> dict:
         "makefile_exists": bool(makefile),
         "make_targets": make_targets(makefile),
         "tox_ini_exists": bool(tox_ini),
-        "tox_uses_whitelist_externals": "whitelist_externals" in tox_ini,
-        "tox_uses_allowlist_externals": "allowlist_externals" in tox_ini,
+        "tox_uses_whitelist_externals": uses_key(tox_ini, "whitelist_externals"),
+        "tox_uses_allowlist_externals": uses_key(tox_ini, "allowlist_externals"),
     }
 
 
