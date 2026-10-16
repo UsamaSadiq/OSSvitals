@@ -103,17 +103,16 @@ checks:
       Filed via the Open edX Repository Health Dashboard ({dashboard_url}) - please review and edit before submitting.
   tox_ini.uses_whitelist_externals:
     title: "Rename whitelist_externals to allowlist_externals"
-    description: "tox deprecated whitelist_externals in 3.18 in favour of allowlist_externals; the key is a straight rename."
+    description: "tox deprecated whitelist_externals in 3.18 in favour of allowlist_externals. Rename the key and reword any comment that still names the old one, since the upstream check matches the text anywhere in the file."
     source_url: "https://tox.wiki/en/latest/config.html#allowlist_externals"
     snippet: |
       [testenv]
       allowlist_externals =
           make
-      # and reword any comment that still says whitelist_externals: the upstream check matches the substring
     applies_to_tiers: ["critical", "important", "standard"]
     issue_body_template: |
       This repository currently fails the `tox_ini.uses_whitelist_externals` health check.
 
-      Proposed fix: rename `whitelist_externals` to `allowlist_externals` in `tox.ini`. Nothing else changes.
+      Proposed fix: rename `whitelist_externals` to `allowlist_externals` in `tox.ini`, and reword any comment that still names the old key: the upstream check matches the substring anywhere in the file.
 
       Filed via the Open edX Repository Health Dashboard ({dashboard_url}) - please review and edit before submitting.
