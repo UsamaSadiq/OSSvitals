@@ -27,9 +27,13 @@ Load as you go:
 
 - **One check per PR.** Each check gets its own branch cut from the synced base branch, never
   stacked on another fix. Asked for several checks, loop the whole flow per check.
-- **Never push to `openedx/*`.** Clone, branch, push and open the PR on `<owner>/<repo>` where
-  `<owner>` is the GitHub user (`gh api user -q .login`) or the owner the user names. Base is the
-  fork's default branch.
+- **Never push to `openedx/*`.** Clone, branch and push on `<owner>/<repo>` where `<owner>` is the
+  GitHub user (`gh api user -q .login`) or the owner the user names. By default the PR is opened on
+  the fork too, base the fork's default branch.
+- **`--upstream` opens the PR against `openedx/<repo>` instead**, head `<owner>:<branch>`, base the
+  upstream default branch. Off by default. Before `gh pr create`, show the title, the body and the
+  target repo and wait for the user to confirm; never open an upstream PR in a non-interactive run.
+  The PR is still a draft; the user marks it ready after reviewing, as the Open edX AI policy expects.
 - **The clone outranks the dashboard.** Every fix is gated on `precheck.py`. A `refuse` verdict is a
   finished, reportable outcome, not an obstacle. Quote its reason and facts in the report.
 - **Catalog only.** A check outside `references/fix-catalog.md` is reported as unsupported with the
@@ -46,7 +50,7 @@ Load as you go:
 ## Flow
 
 1. **Resolve inputs.** `repo` as `openedx/<name>` (accept the bare name). Optional `check`. Fork
-   owner, default the logged-in GitHub user. Flags `--dry-run`, `--coauthor`.
+   owner, default the logged-in GitHub user. Flags `--dry-run`, `--coauthor`, `--upstream`.
 
 2. **Read the dashboard through MCP.** Use ToolSearch for a tool named like `*ossvitals*get_repo`;
    if none is loaded, use `scripts/mcp_call.sh get_repo '{"repo":"openedx/<name>"}'`. Keep
@@ -75,8 +79,10 @@ Load as you go:
    PR body.
 
 8. **Commit and open the draft PR** per `references/pr-format.md`: conventional-commit subject, push
-   the branch to the fork, `gh pr create --draft --repo <owner>/<repo> --base <default> --head
-   <branch>`. With `--dry-run`, print the body and stop before pushing.
+   the branch to the fork, then `gh pr create --draft --repo <owner>/<repo> --base <default> --head
+   <branch>`. With `--upstream`, show title, body and target, get the user's confirmation, then
+   `gh pr create --draft --repo openedx/<repo> --base <upstream default> --head <owner>:<branch>`.
+   With `--dry-run`, print the body and stop before pushing.
 
 9. **Report.** Score and letter before, the check, the verdict, the evidence, and the PR link or the
    refusal reason. For a refusal that exposes a dashboard bug (the tox inverted boolean), say that it

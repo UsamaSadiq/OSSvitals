@@ -25,7 +25,15 @@ Add `Co-authored-by: Claude <claude@anthropic.com>` only when the user passed `-
 
 ## Pull request
 
-Draft, on the fork, base the fork's default branch. Title is the commit subject.
+Draft. Title is the commit subject. Target depends on the flag:
+
+| mode | `--repo` | `--base` | `--head` |
+|---|---|---|---|
+| default | `<owner>/<repo>` | fork default branch | `<branch>` |
+| `--upstream` | `openedx/<repo>` | upstream default branch | `<owner>:<branch>` |
+
+`--upstream` needs the user's explicit confirmation after seeing the rendered body. The body is the
+same in both modes; upstream maintainers see the disclosure and the marker lines too.
 
 Body template. Fill every placeholder; delete nothing except the optional line marked so.
 
