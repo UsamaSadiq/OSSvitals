@@ -15,6 +15,7 @@ def _hit(**overrides):
         "url": "https://github.com/openedx/django-config-models/pull/481",
         "title": "chore: add the edx-lint editorconfig",
         "body": BODY,
+        "state": "OPEN",
         "isDraft": True,
         "createdAt": "2026-10-16T13:00:00Z",
         "updatedAt": "2026-10-16T13:05:00Z",
@@ -57,10 +58,11 @@ def test_record_keeps_a_pr_whose_base_is_the_marker_repo():
     }
 
 
-def test_record_drops_a_fork_pr_and_a_body_without_markers():
+def test_record_drops_a_fork_pr_a_body_without_markers_and_a_merged_pr():
     on_fork = _hit(baseRepository={"nameWithOwner": "UsamaSadiq/django-config-models"})
     assert fix_prs.record(on_fork) is None
     assert fix_prs.record(_hit(body="no markers here")) is None
+    assert fix_prs.record(_hit(state="MERGED")) is None
 
 
 def test_records_sort_by_repo_check_and_newest_first():

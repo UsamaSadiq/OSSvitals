@@ -113,7 +113,7 @@ def search_open_prs_by_author(org: str, author: str, title: str) -> list[dict[st
 
 MARKER_PR_QUERY = (
     "query($q:String!,$after:String){search(query:$q,type:ISSUE,first:100,after:$after)"
-    "{issueCount pageInfo{hasNextPage endCursor} nodes{... on PullRequest{number url title body isDraft createdAt updatedAt"
+    "{issueCount pageInfo{hasNextPage endCursor} nodes{... on PullRequest{number url title body state isDraft createdAt updatedAt"
     " author{login} baseRepository{nameWithOwner} headRepository{nameWithOwner}}}}}"
 )
 MARKER_PAGE_LIMIT = 10

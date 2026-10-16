@@ -41,7 +41,7 @@ def markers(body: str | None) -> tuple[str, str] | None:
 def record(pr: dict[str, Any]) -> dict[str, Any] | None:
     """A publishable record for a search hit, or None when it does not qualify."""
     found = markers(pr.get("body"))
-    if found is None:
+    if found is None or pr.get("state") != "OPEN":
         return None
     check, repo = found
     base = (pr.get("baseRepository") or {}).get("nameWithOwner")
