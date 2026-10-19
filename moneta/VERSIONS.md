@@ -13,6 +13,6 @@ Generated 2026-10-19. Generated from public GitHub data. "Latest release" is the
 | plane | v26.10.5 | v1.4.2 | AGPL-3.0 | lagging |
 | plane-mcp-server | v26.10.5 | v0.3.4 | MIT | in-sync |
 | presenton | 0.5.10 | electron-v0.9.11-beta | Apache-2.0 | lagging |
-| twenty | v26.10.0 | twenty/v2.48.0 | AGPL-3.0 | critical |
+| twenty | v26.10.0 | twenty/v2.49.0 | AGPL-3.0 | critical |
 | zammad | v26.9.0 | 7.2.2 | AGPL-3.0 | critical |
 | zammad-mcp-server | v26.10.0 | – | MIT | – |
