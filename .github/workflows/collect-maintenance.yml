@@ -8,6 +8,9 @@ name: Collect maintenance signals
 on:
   schedule:
     - cron: "53 8 * * *"
+    # Hourly campaign-only refresh while the certifi PRs land (public-engineering#574).
+    # The plan job stops it at CAMPAIGN_REFRESH_UNTIL; delete this line afterwards.
+    - cron: "23 * * * *"
   workflow_dispatch:
 
 concurrency:
@@ -18,8 +21,33 @@ permissions:
   contents: write
   actions: read
 
+env:
+  HOURLY_CRON: "23 * * * *"
+  CAMPAIGN_REFRESH_UNTIL: "2026-10-23T19:00:00Z"
+
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.plan.outputs.run }}
+      collectors: ${{ steps.plan.outputs.collectors }}
+    steps:
+      - id: plan
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ "$SCHEDULE" != "$HOURLY_CRON" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$(date -u +%s)" -lt "$(date -u -d "$CAMPAIGN_REFRESH_UNTIL" +%s)" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "collectors=--collector campaigns" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   collect:
+    needs: plan
+    if: needs.plan.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
       OUT_DIR: ${{ github.workspace }}/out/openedx/maintenance
@@ -31,7 +59,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt -r requirements-collectors.txt
-      - run: python scripts/collect_maintenance.py --out-dir "$OUT_DIR"
+      # A campaign-only run rebuilds every view, so start from the published files.
+      - name: Seed with published maintenance files
+        run: |
+          git fetch --depth 1 origin data
+          mkdir -p "$OUT_DIR"
+          git archive FETCH_HEAD openedx/maintenance | tar -x --strip-components=2 -C "$OUT_DIR"
+      - run: python scripts/collect_maintenance.py --out-dir "$OUT_DIR" ${{ needs.plan.outputs.collectors }}
         env:
           PYTHONPATH: ${{ github.workspace }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
