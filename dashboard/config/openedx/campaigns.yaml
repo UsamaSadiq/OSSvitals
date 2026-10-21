@@ -1,0 +1,16 @@
+# Package upgrade campaigns tracked on the Upgrades page.
+# A repo is "done" when every pin of `package` in its requirements files and
+# uv.lock is at or above `min_version`; repos that pin no version of it are not
+# applicable. Pins in `runtime_files` (pip-tools) or reachable from the project's
+# own dependencies (uv) are runtime; every other pin is dev or test only.
+campaigns:
+  certifi_2026_10:
+    title: "certifi 2026.10.19 (emSign CA removal)"
+    package: certifi
+    min_version: "2026.10.19"
+    epic: "https://github.com/openedx/public-engineering/issues/574"
+    advisory: "https://github.com/advisories/GHSA-6q48-6c7w-9gw2"
+    runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt"]
+    pull_requests:
+      search_terms: ["certifi"]
+      title_regex: "\\bcertifi\\b"

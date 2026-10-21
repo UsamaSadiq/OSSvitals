@@ -18,6 +18,7 @@ def test_openedx_config_files_validate_against_schemas():
         "org_branding",
         "waves",
         "campaign_supersession",
+        "campaigns",
     ]
 
     for name in config_names:

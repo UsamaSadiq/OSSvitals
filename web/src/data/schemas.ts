@@ -415,11 +415,30 @@ const waveSchema = z.looseObject({
     .optional(),
 });
 
+const campaignSchema = waveSchema.extend({
+  advisory: optionalText,
+  records: z
+    .array(
+      z.looseObject({
+        repo_name: z.string(),
+        status: z.string(),
+        pr_url: optionalText,
+        pr_title: optionalText,
+        pr_age_days: nullableNumber.optional(),
+        gaps: z.string(),
+        pinned: z.array(z.string()).optional(),
+        runtime_exposed: z.boolean().optional(),
+      }),
+    )
+    .optional(),
+});
+
 export const upgradesSchema = view({
   upgrade_jobs: z
     .object({ collected_at: isoString.nullable(), states: z.record(z.string(), int), records: z.array(upgradeJobRowSchema) })
     .nullable(),
   waves: z.array(waveSchema),
+  campaigns: z.array(campaignSchema).optional(),
   redundant_prs: z
     .object({
       collected_at: isoString.nullable(),

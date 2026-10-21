@@ -8,18 +8,19 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
-from collectors import catalog, fix_prs, github, publish, redundant_prs, upgrade_jobs, waves
+from collectors import campaigns, catalog, fix_prs, github, publish, redundant_prs, upgrade_jobs, waves
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import DEFAULT_ORG, get_config
 
 UPGRADE_JOBS_FILE = "upgrade_jobs.json"
 WAVES_DIR = "waves"
+CAMPAIGNS_DIR = "campaigns"
 REDUNDANT_PRS_FILE = "redundant_prs.json"
 CATALOG_FILE = "catalog.json"
 CATALOG_PATH = "catalog-info.yaml"
 FIX_PRS_FILE = "fix_prs.json"
 TREE_WORKERS = 8
-COLLECTORS = ("upgrade_jobs", "waves", "redundant_prs", "catalog", "fix_prs")
+COLLECTORS = ("upgrade_jobs", "waves", "campaigns", "redundant_prs", "catalog", "fix_prs")
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,54 @@ def collect_waves(out_dir: Path, repo_filter: list[str], target: Target) -> int:
         )
         publish.write(out_dir / WAVES_DIR / f"{wave_id}.json", content)
         print(f"Wave {wave_id}: {waves.summary(records)}")
+    return 0
+
+
+def _repo_pins(repo: dict, campaign: dict) -> list[dict]:
+    full_name, ref = repo["full_name"], repo["default_branch"]
+    found = []
+    for path in filter(campaigns.is_pin_file, github.file_paths(full_name, ref, campaigns.REQUIREMENTS_DIR)):
+        text = github.raw_text(full_name, ref, path)
+        if text:
+            found += campaigns.pins(path, text, campaign)
+    return found
+
+
+def _campaign_pins(repos: list[dict], campaign: dict) -> dict[str, list[dict]]:
+    def repo_pins(repo: dict) -> tuple[str, list[dict]]:
+        return repo["full_name"], _repo_pins(repo, campaign)
+
+    with ThreadPoolExecutor(max_workers=TREE_WORKERS) as pool:
+        return dict(pool.map(repo_pins, repos))
+
+
+def collect_campaigns(out_dir: Path, repo_filter: list[str], target: Target) -> int:
+    generated_at = now_utc()
+    repos = [repo for repo in github.org_repos(target.github_org) if not repo_filter or repo["name"] in repo_filter]
+    if not repos:
+        print("No repositories found; not writing campaigns.")
+        return 1
+    for campaign_id, campaign in get_config("campaigns", target.org).get("campaigns", {}).items():
+        prs = [pr for term in campaign["pull_requests"]["search_terms"] for pr in github.search_open_prs(target.github_org, term)]
+        open_prs = waves.matching_prs(prs, campaign)
+        records = waves.ordered(
+            [
+                campaigns.repo_status(name, repo_pins, campaign, open_prs.get(name), now=generated_at)
+                for name, repo_pins in _campaign_pins(repos, campaign).items()
+            ]
+        )
+        content = publish.payload(
+            records,
+            generated_at=generated_at,
+            source="requirements files and uv.lock on each repo's default branch; GitHub PR search",
+            campaign_id=campaign_id,
+            title=campaign["title"],
+            package=campaign["package"],
+            min_version=campaign["min_version"],
+            summary=waves.summary(records),
+        )
+        publish.write(out_dir / CAMPAIGNS_DIR / f"{campaign_id}.json", content)
+        print(f"Campaign {campaign_id}: {waves.summary(records)}")
     return 0
 
 
@@ -184,6 +233,7 @@ def main() -> int:
     runners = {
         "upgrade_jobs": collect_upgrade_jobs,
         "waves": collect_waves,
+        "campaigns": collect_campaigns,
         "redundant_prs": collect_redundant_prs,
         "catalog": collect_catalog,
         "fix_prs": collect_fix_prs,

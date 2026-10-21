@@ -32,11 +32,12 @@ def main() -> int:
         print("Snapshot is empty; not writing.")
         return 1
     waves = get_config("waves", args.org).get("waves", {})
+    campaigns = get_config("campaigns", args.org).get("campaigns", {})
     ctx = BuildContext(
         data=data,
         generated_at=now_utc(),
         commit_sha=os.environ.get("GITHUB_SHA", "local"),
-        maintenance=load_maintenance_dir(args.maintenance_dir, waves),
+        maintenance=load_maintenance_dir(args.maintenance_dir, waves, campaigns),
     )
     written = write_views(ctx, args.out_dir)
     print(f"Wrote {len(written)} view files for {args.org} to {args.out_dir}")

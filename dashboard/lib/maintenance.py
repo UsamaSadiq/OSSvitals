@@ -29,6 +29,10 @@ def wave_file(wave_id: str) -> str:
     return f"waves/{wave_id}.json"
 
 
+def campaign_file(campaign_id: str) -> str:
+    return f"campaigns/{campaign_id}.json"
+
+
 def _valid(payload: Any) -> bool:
     return (
         isinstance(payload, dict)

@@ -58,6 +58,34 @@ function wave(overrides: Partial<Wave> = {}): Wave {
   };
 }
 
+type Campaign = NonNullable<UpgradesView["campaigns"]>[number];
+
+function campaign(): Campaign {
+  return {
+    id: "certifi_2026_10",
+    title: "certifi 2026.10.19",
+    epic: "https://github.com/openedx/public-engineering/issues/574",
+    advisory: "https://github.com/advisories/GHSA-6q48-6c7w-9gw2",
+    done_rule: "every pin of `certifi` in requirements files and `uv.lock` is 2026.10.19 or later",
+    available: true,
+    collected_at: "2026-10-21T15:30:46.427884+00:00",
+    summary: { not_started: 1, pr_open: 1, done: 1, not_applicable: 4, applicable: 3, percent_done: 33 },
+    records: [
+      {
+        ...waveRow("openedx/openedx-platform", "pr_open", {
+          pr_url: "https://github.com/openedx/openedx-platform/pull/39272",
+          pr_title: "build: Upgrade `certifi` to latest",
+          pr_age_days: 0,
+          gaps: "2026.7.22 in requirements/edx/base.txt, uv.lock",
+        }),
+        runtime_exposed: true,
+      },
+      { ...waveRow("openedx/acid-block", "not_started", { gaps: "2024.7.4 in requirements/test.txt" }), runtime_exposed: false },
+      { ...waveRow("openedx/edx-rest-api-client", "done"), runtime_exposed: false },
+    ],
+  };
+}
+
 function upgradesFixture(overrides: Partial<UpgradesView> = {}): UpgradesView {
   return {
     metadata: metadata("collect-maintenance files"),
@@ -225,6 +253,41 @@ describe("Upgrades page", () => {
 
     const title = screen.getByText("No Node 24 wave data yet.");
     expect(title.closest(".empty-state")).toHaveTextContent(MISSING_BODY);
+  });
+
+  it("shows campaign progress with exposure and stale pins", async () => {
+    setUpgrades(upgradesFixture({ campaigns: [campaign()] }));
+    renderRoute("/maintenance");
+    await openTab("Campaign: certifi 2026.10.19");
+
+    expect(screen.getByRole("link", { name: "tracking issue" })).toHaveAttribute(
+      "href",
+      "https://github.com/openedx/public-engineering/issues/574",
+    );
+    expect(screen.getByRole("link", { name: "advisory" })).toHaveAttribute(
+      "href",
+      "https://github.com/advisories/GHSA-6q48-6c7w-9gw2",
+    );
+    expect(screen.getByRole("progressbar", { name: "1 of 3 repos done (33%)" })).toBeInTheDocument();
+
+    const openPrs = screen.getByRole("table", { name: "Open upgrade PRs, oldest first" });
+    expect(columnTexts(openPrs, 0)).toEqual(["openedx/openedx-platform"]);
+    expect(columnTexts(openPrs, 3)).toEqual(["Runtime"]);
+    expect(columnTexts(openPrs, 4)).toEqual(["2026.7.22 in requirements/edx/base.txt, uv.lock"]);
+
+    const notStarted = screen.getByRole("table", { name: "Not started" });
+    expect(columnTexts(notStarted, 0)).toEqual(["openedx/acid-block"]);
+    expect(columnTexts(notStarted, 1)).toEqual(["Dev/test only"]);
+  });
+
+  it("shows the missing state for an unavailable campaign", async () => {
+    setUpgrades(
+      upgradesFixture({ campaigns: [{ id: "x", title: "certifi 2027", epic: null, done_rule: "", available: false }] }),
+    );
+    renderRoute("/maintenance");
+    await openTab("Campaign: certifi 2027");
+
+    expect(screen.getByText("No certifi 2027 campaign data yet.")).toBeInTheDocument();
   });
 
   it("shows the redundant PR caption, tiles and table", async () => {

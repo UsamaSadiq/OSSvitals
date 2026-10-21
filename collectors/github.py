@@ -7,6 +7,8 @@ import subprocess
 import time
 from typing import Any
 
+import requests
+
 RETRIES = 3
 SEARCH_PAUSE_SECONDS = 2.5
 
@@ -93,6 +95,43 @@ def top_level_paths(full_name: str, ref: str) -> set[str]:
     except RuntimeError:
         return set()
     return {entry["name"] for entry in entries or []}
+
+
+def _tree(full_name: str, tree_ref: str, *, recursive: bool) -> list[dict[str, Any]]:
+    suffix = "?recursive=1" if recursive else ""
+    try:
+        return (gh_json("api", f"repos/{full_name}/git/trees/{tree_ref}{suffix}") or {}).get("tree") or []
+    except RuntimeError:
+        return []
+
+
+def file_paths(full_name: str, ref: str, subdir: str) -> list[str]:
+    """Top-level paths of ``ref`` plus every path under the ``subdir`` folder, without walking the whole repo."""
+    top = _tree(full_name, ref, recursive=False)
+    paths = [entry["path"] for entry in top]
+    folder = next((entry for entry in top if entry["path"] == subdir and entry["type"] == "tree"), None)
+    if folder:
+        paths += [f"{subdir}/{entry['path']}" for entry in _tree(full_name, folder["sha"], recursive=True)]
+    return paths
+
+
+RAW_BASE = "https://raw.githubusercontent.com"
+
+
+def raw_text(full_name: str, ref: str, path: str) -> str | None:
+    """A public file's text from the raw host, which does not count against the API rate limit."""
+    for attempt in range(RETRIES):
+        try:
+            response = requests.get(f"{RAW_BASE}/{full_name}/{ref}/{path}", timeout=30)
+        except requests.RequestException:
+            time.sleep(5 * (attempt + 1))
+            continue
+        if response.status_code == 404:
+            return None
+        if response.ok:
+            return response.text
+        time.sleep(5 * (attempt + 1))
+    raise RuntimeError(f"raw fetch of {full_name}/{ref}/{path} failed")
 
 
 def search_open_prs(org: str, term: str) -> list[dict[str, Any]]:
