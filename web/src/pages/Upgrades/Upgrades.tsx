@@ -6,6 +6,7 @@ import type { UpgradesView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
+import { CampaignTab } from "./CampaignTab";
 import { RedundantPrsTab } from "./RedundantPrs";
 import { UpgradeJobsTab } from "./UpgradeJobs";
 import { INTRO } from "./upgradesText";
@@ -19,6 +20,11 @@ function upgradeTabs(upgrades: UpgradesView): TabItem[] {
       id: `wave-${wave.id}`,
       label: `Wave: ${wave.title}`,
       content: () => <WaveTab wave={wave} />,
+    })),
+    ...(upgrades.campaigns ?? []).map((campaign) => ({
+      id: `campaign-${campaign.id}`,
+      label: `Campaign: ${campaign.title}`,
+      content: () => <CampaignTab campaign={campaign} />,
     })),
     {
       id: "redundant-prs",

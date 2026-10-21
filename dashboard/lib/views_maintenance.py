@@ -8,7 +8,7 @@ import pandas as pd
 
 from dashboard.lib import catalog, maintenance
 from dashboard.lib.schema import REPO_COL
-from dashboard.lib.upgrades import done_rule, gaps
+from dashboard.lib.upgrades import campaign_gaps, campaign_rule, done_rule, gaps
 from dashboard.lib.views_common import BuildContext, envelope, records
 
 CATALOG_KEY = catalog.CATALOG_FILE
@@ -21,16 +21,18 @@ UPGRADE_JOB_FIELDS = [
     "github.requirements_pr_last_merged", "workflow_url",
 ]
 WAVE_RECORD_FIELDS = [REPO_COL, "status", "pr_url", "pr_title", "pr_age_days"]
+CAMPAIGN_RECORD_FIELDS = [*WAVE_RECORD_FIELDS, "pinned", "runtime_exposed"]
 REDUNDANT_FIELDS = [REPO_COL, "bot_pr_url", "superseded_by_url", "superseded_by_merged", "confidence"]
 
 
-def maintenance_keys(waves_config: dict[str, Any]) -> list[str]:
+def maintenance_keys(waves_config: dict[str, Any], campaigns_config: dict[str, Any] | None = None) -> list[str]:
     return [
         catalog.CATALOG_FILE,
         maintenance.UPGRADE_JOBS,
         maintenance.REDUNDANT_PRS,
         maintenance.FIX_PRS,
         *(maintenance.wave_file(wave_id) for wave_id in waves_config),
+        *(maintenance.campaign_file(campaign_id) for campaign_id in campaigns_config or {}),
     ]
 
 
@@ -106,6 +108,33 @@ def _wave(wave_id: str, wave: dict[str, Any], payload: dict[str, Any] | None) ->
     }
 
 
+def _campaign_records(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    frame = pd.DataFrame(payload["records"])
+    if frame.empty:
+        return []
+    with_gaps = frame.assign(gaps=[campaign_gaps(stale) for stale in frame.get("below_floor", [])])
+    return records(_present(with_gaps, [*CAMPAIGN_RECORD_FIELDS, "gaps"]))
+
+
+def _campaign(campaign_id: str, campaign: dict[str, Any], payload: dict[str, Any] | None) -> dict[str, Any]:
+    base = {
+        "id": campaign_id,
+        "title": campaign.get("title", campaign_id),
+        "epic": campaign.get("epic"),
+        "advisory": campaign.get("advisory"),
+        "done_rule": campaign_rule(campaign),
+    }
+    if payload is None:
+        return {**base, "available": False}
+    return {
+        **base,
+        "available": True,
+        "collected_at": _generated(payload),
+        "summary": payload["metadata"].get("summary", {}),
+        "records": _campaign_records(payload),
+    }
+
+
 def _redundant(payload: dict[str, Any] | None) -> dict[str, Any] | None:
     if payload is None:
         return None
@@ -128,13 +157,19 @@ def build_upgrades(ctx: BuildContext) -> dict[str, Any]:
             _wave(wave_id, wave, ctx.maintenance.get(maintenance.wave_file(wave_id)))
             for wave_id, wave in waves_config.items()
         ],
+        campaigns=[
+            _campaign(campaign_id, campaign, ctx.maintenance.get(maintenance.campaign_file(campaign_id)))
+            for campaign_id, campaign in ctx.config("campaigns").get("campaigns", {}).items()
+        ],
         redundant_prs=_redundant(ctx.maintenance.get(maintenance.REDUNDANT_PRS)),
     )
 
 
-def load_maintenance_dir(directory: Path | None, waves_config: dict[str, Any]) -> dict[str, dict[str, Any] | None]:
+def load_maintenance_dir(
+    directory: Path | None, waves_config: dict[str, Any], campaigns_config: dict[str, Any] | None = None
+) -> dict[str, dict[str, Any] | None]:
     """Every maintenance file the views read, from a local directory; all None without one."""
-    keys = maintenance_keys(waves_config)
+    keys = maintenance_keys(waves_config, campaigns_config)
     if directory is None:
         return dict.fromkeys(keys)
     return {key: maintenance.load_file(directory, key) for key in keys}

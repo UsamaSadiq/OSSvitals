@@ -25,7 +25,11 @@ def built(tmp_path_factory):
         mp.setenv(fixtures.FIXTURE_DIR_ENV, str(FIXTURE_DIR))
         data = score_org()
         out_dir = tmp_path_factory.mktemp("views")
-        maintenance = load_maintenance_dir(FIXTURE_DIR / "maintenance", config.get_config("waves").get("waves", {}))
+        maintenance = load_maintenance_dir(
+            FIXTURE_DIR / "maintenance",
+            config.get_config("waves").get("waves", {}),
+            config.get_config("campaigns").get("campaigns", {}),
+        )
         write_views(BuildContext(data=data, generated_at=GENERATED_AT, maintenance=maintenance), out_dir)
     files = {path.name: json.loads(path.read_text(encoding="utf-8")) for path in out_dir.iterdir()}
     return data, files
@@ -288,6 +292,15 @@ def test_upgrades_carry_jobs_waves_and_redundant_prs(built):
     assert upgrades["redundant_prs"]["redundant"] == len(upgrades["redundant_prs"]["records"])
 
 
+def test_upgrades_carry_campaign_progress(built):
+    _, files = built
+    campaign = files["upgrades.json"]["campaigns"][0]
+    assert campaign["available"] is True and "`certifi`" in campaign["done_rule"]
+    not_started = next(row for row in campaign["records"] if row["status"] == "not_started")
+    assert not_started["gaps"] == "2024.7.4 in requirements/test.txt"
+    assert not_started["runtime_exposed"] is False
+
+
 def test_owners_report_coverage_and_groups(built):
     _, files = built
     owners = files["owners.json"]
@@ -302,6 +315,7 @@ def test_views_without_maintenance_files_mark_them_unavailable(built, tmp_path):
     upgrades = json.loads((tmp_path / "upgrades.json").read_text())
     assert upgrades["upgrade_jobs"] is None and upgrades["redundant_prs"] is None
     assert all(wave["available"] is False for wave in upgrades["waves"])
+    assert all(campaign["available"] is False for campaign in upgrades["campaigns"])
 
 
 def test_checks_carry_catalog_groups(built):

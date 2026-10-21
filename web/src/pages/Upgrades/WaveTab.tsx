@@ -59,7 +59,7 @@ function WaveHeading({ wave }: { wave: Wave }) {
   );
 }
 
-function WaveProgress({ summary }: { summary: Summary }) {
+export function WaveProgress({ summary }: { summary: Summary }) {
   const textId = useId();
   const percent = count(summary, "percent_done");
   const width = Math.min(Math.max(percent, 0), 100);
@@ -82,7 +82,7 @@ function WaveProgress({ summary }: { summary: Summary }) {
   );
 }
 
-function WaveTiles({ summary }: { summary: Summary }) {
+export function WaveTiles({ summary }: { summary: Summary }) {
   return (
     <div className="upgrades-tiles">
       {WAVE_TILES.map(([key, label]) => (

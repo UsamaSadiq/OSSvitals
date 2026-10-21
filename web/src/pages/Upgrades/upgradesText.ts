@@ -1,6 +1,6 @@
 export const INTRO =
   "Upgrade work across the org, from bot and human PRs alike: whether automated " +
-  "requirement upgrades land, how far platform-wide upgrade waves have reached, and " +
+  "requirement upgrades land, how far platform-wide upgrade waves and package upgrade campaigns have reached, and " +
   "upgrade PRs that are no longer needed. Collected daily from public GitHub data; read-only.";
 
 export const MISSING_BODY =
@@ -44,6 +44,10 @@ export function redundantCaption(collectedAt: string | null | undefined): string
 
 export function waveCaption(doneRule: string, collectedAt: string | null | undefined): string {
   return `Done means: ${doneRule}. Collected ${collectedTime(collectedAt)}.`;
+}
+
+export function exposureText(runtimeExposed: boolean | null | undefined): string {
+  return runtimeExposed ? "Runtime" : "Dev/test only";
 }
 
 export function waveProgressText(done: number, applicable: number, percentDone: number): string {

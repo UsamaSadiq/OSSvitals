@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["campaigns"],
+  "properties": {
+    "campaigns": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["title", "package", "min_version", "pull_requests"],
+        "properties": {
+          "title": {"type": "string"},
+          "package": {"type": "string"},
+          "min_version": {"type": "string"},
+          "epic": {"type": "string"},
+          "advisory": {"type": "string"},
+          "runtime_files": {"type": "array", "items": {"type": "string"}},
+          "pull_requests": {
+            "type": "object",
+            "required": ["search_terms", "title_regex"],
+            "properties": {
+              "search_terms": {"type": "array", "items": {"type": "string"}},
+              "title_regex": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}
