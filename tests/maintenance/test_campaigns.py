@@ -163,9 +163,16 @@ def test_unparseable_version_counts_as_below_floor(certifi):
         ("pip_2026_10", "fix: pin pip to <25", False),
         ("uv_2026_10", "build: use uv to install requirements", False),
         ("uv_2026_10", "ci: run uv tool install tox", False),
+        ("uv_2026_10", "Bump uv from 0.12.0 to 0.13.1", False),
+        ("pip_2026_10", "chore: pin pip to 24.2", False),
+        ("pip_2026_10", "Bump pip from 24.2 to 25.0", False),
+        ("pip_2026_10", "chore: upgrade pip to 26.3 for python 3.12", True),
+        ("certifi_2026_10", "build: Upgrade `certifi` to latest", True),
+        ("certifi_2026_10", "chore: bump certifi from 2026.7.22 to 2026.10.19", True),
+        ("certifi_2026_10", "chore: bump certifi from 2026.4.1 to 2026.7.22", False),
     ],
 )
 def test_campaign_pr_titles(campaign_id, title, matches):
     campaign = get_config("campaigns")["campaigns"][campaign_id]
     pr = {"title": title, "repository": {"nameWithOwner": "openedx/a"}, "createdAt": "2026-10-21T00:00:00Z"}
-    assert bool(waves.matching_prs([pr], campaign)) is matches
+    assert bool(campaigns.matching_prs([pr], campaign)) is matches
