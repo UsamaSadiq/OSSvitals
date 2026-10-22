@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Upgrades page: repository names in every table link to the repo on GitHub, and the Redundant PRs tab is hidden when no redundant PRs were found.
+
 ### Fixed
 - `tox_ini.uses_whitelist_externals` was scored as a plain boolean although the upstream check records True when the deprecated key is still used, so every repo that had already migrated was listed as failing. `check_descriptions.yaml` now declares the column under `inverted` and both loaders flip it once, so a failure means the key is really present.
 - Moneta fork releases no longer pick up upstream tags (default `v2x.y.z` pattern), and a multi-line upstream such as Twenty counts one release line.

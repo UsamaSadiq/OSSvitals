@@ -11,9 +11,7 @@ export interface HeaderChip {
 
 const LEADING_DATE = /^\d{4}-\d{2}-\d{2}/;
 
-export function githubUrl(repo: string): string {
-  return `https://github.com/${repo}`;
-}
+export { githubUrl } from "../../components/githubUrl";
 
 function text(value: string | null | undefined): string | null {
   const trimmed = value?.trim();

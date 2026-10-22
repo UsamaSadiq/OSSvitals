@@ -1,6 +1,6 @@
 import { CodeText } from "../../components/CodeText";
 import { DataTable, type Column } from "../../components/DataTable";
-import { RepoName } from "../../components/RepoName";
+import { RepoGitHubLink } from "../../components/RepoName";
 import type { UpgradesView } from "../../data/schemas";
 import { formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
@@ -14,7 +14,7 @@ type CampaignRow = NonNullable<Campaign["records"]>[number];
 const repoColumn: Column<CampaignRow> = {
   key: "repo_name",
   header: "Repository",
-  cell: (row) => <RepoName name={row.repo_name} />,
+  cell: (row) => <RepoGitHubLink name={row.repo_name} />,
   sortValue: (row) => row.repo_name,
 };
 

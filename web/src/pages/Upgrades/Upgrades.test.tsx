@@ -278,6 +278,10 @@ describe("Upgrades page", () => {
     const notStarted = screen.getByRole("table", { name: "Not started" });
     expect(columnTexts(notStarted, 0)).toEqual(["openedx/acid-block"]);
     expect(columnTexts(notStarted, 1)).toEqual(["Dev/test only"]);
+    expect(within(notStarted).getByRole("link", { name: "openedx/acid-block" })).toHaveAttribute(
+      "href",
+      "https://github.com/openedx/acid-block",
+    );
   });
 
   it("shows the missing state for an unavailable campaign", async () => {
@@ -302,6 +306,10 @@ describe("Upgrades page", () => {
     expect(tile("Redundant")).toHaveTextContent("27");
     expect(tile("Bot campaign PRs checked")).toHaveTextContent("30");
     const table = screen.getByRole("table", { name: "Redundant bot PRs" });
+    expect(within(table).getByRole("link", { name: "openedx/acid-block" })).toHaveAttribute(
+      "href",
+      "https://github.com/openedx/acid-block",
+    );
     expect(within(table).getByRole("link", { name: "#265" })).toHaveAttribute(
       "href",
       "https://github.com/openedx/acid-block/pull/265",
@@ -311,15 +319,14 @@ describe("Upgrades page", () => {
     expect(columnTexts(table, 4)).toEqual(["conflicts with default branch"]);
   });
 
-  it("shows the good empty state when no redundant PRs were found", async () => {
+  it("hides the redundant PR tab when none were found", async () => {
     setUpgrades(
       upgradesFixture({ redundant_prs: { collected_at: null, redundant: 0, bot_prs_checked: 12, records: [] } }),
     );
     renderRoute("/maintenance");
-    await openTab("Redundant PRs");
 
-    expect(screen.getByText("No redundant bot PRs found.").closest(".empty-state")).toHaveClass("empty-state--good");
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    await screen.findByRole("tab", { name: "Upgrade jobs" });
+    expect(screen.queryByRole("tab", { name: "Redundant PRs" })).not.toBeInTheDocument();
   });
 
   it("shows the missing state for redundant PRs", async () => {
