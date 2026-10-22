@@ -176,6 +176,10 @@ describe("Upgrades page", () => {
     expect(toggle).not.toBeChecked();
     const table = screen.getByRole("table", { name: "Upgrade jobs" });
     expect(columnTexts(table, 0)).toEqual(["openedx/failing-repo", "openedx/stuck-repo"]);
+    expect(within(table).getByRole("link", { name: "openedx/failing-repo" })).toHaveAttribute(
+      "href",
+      "https://github.com/openedx/failing-repo",
+    );
     expect(columnTexts(table, 1)).toEqual(["Job failing", "PRs not merged"]);
     expect(columnTexts(table, 3)).toEqual(["9 / 10", "9 / 10"]);
     expect(columnTexts(table, 4)).toEqual(["never", "2025-04-30"]);
@@ -228,12 +232,17 @@ describe("Upgrades page", () => {
 
     const openPrs = screen.getByRole("table", { name: "Open migration PRs, oldest first" });
     expect(columnTexts(openPrs, 0)).toEqual(["openedx/old", "openedx/young"]);
+    expect(within(openPrs).getByRole("link", { name: "openedx/old" })).toHaveAttribute("href", "https://github.com/openedx/old");
     expect(columnTexts(openPrs, 1)).toEqual(["40", "3"]);
     expect(within(openPrs).getByRole("link", { name: "#88" })).toHaveAttribute("href", "https://github.com/openedx/old/pull/88");
 
     const notStarted = screen.getByRole("table", { name: "Not started" });
     expect(columnTexts(notStarted, 0)).toEqual(["openedx/acid-block"]);
     expect(columnTexts(notStarted, 1)).toEqual(["add uv.lock, remove setup.py"]);
+    expect(within(notStarted).getByRole("link", { name: "openedx/acid-block" })).toHaveAttribute(
+      "href",
+      "https://github.com/openedx/acid-block",
+    );
   });
 
   it("shows the wave empty messages when nothing is open or not started", async () => {

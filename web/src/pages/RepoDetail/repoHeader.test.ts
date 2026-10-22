@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { githubUrl, headerChips, pushDate } from "./repoFacts";
+import { githubUrl } from "../../components/githubUrl";
+import { headerChips, pushDate } from "./repoFacts";
 import type { RepoRecord } from "./repoDetailData";
 import { compositeSeries, repoTrend, trendLabel, type HistoryPoint } from "./repoTrend";
 

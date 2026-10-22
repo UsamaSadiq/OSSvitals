@@ -14,7 +14,8 @@ import { WaveTab } from "./WaveTab";
 import "./upgrades.css";
 
 function hasNoRedundantPrs(upgrades: UpgradesView): boolean {
-  return upgrades.redundant_prs?.redundant === 0;
+  const redundant = upgrades.redundant_prs;
+  return redundant?.redundant === 0 && redundant.records.length === 0;
 }
 
 function upgradeTabs(upgrades: UpgradesView): TabItem[] {
