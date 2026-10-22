@@ -139,3 +139,28 @@ def test_open_pr_is_reported_with_age(certifi):
 
 def test_unparseable_version_counts_as_below_floor(certifi):
     assert campaigns.below_floor(_pin("not-a-version"), certifi["min_version"])
+
+
+@pytest.mark.parametrize(
+    ("campaign_id", "title", "matches"),
+    [
+        ("uv_2026_10", "build(deps): bump uv from 0.13.1 to 0.13.4", True),
+        ("uv_2026_10", "build: Upgrade `uv` to 0.13.4", True),
+        ("uv_2026_10", "chore(deps): update dependency uv to v0.13.4", True),
+        ("uv_2026_10", "uv 0.13.4 bump", True),
+        ("uv_2026_10", "build(deps): bump astral-sh/setup-uv from 6 to 7", False),
+        ("uv_2026_10", "chore(deps): update dependency uv-build to v0.9", False),
+        ("uv_2026_10", "build: migrate to uv", False),
+        ("uv_2026_10", "chore: update uv.lock", False),
+        ("uv_2026_10", "chore: update CI to install pip via uv", False),
+        ("pip_2026_10", "build(deps): Bump pip from 24.2 to 26.2.2 in /requirements", True),
+        ("pip_2026_10", "chore: upgrade pip to 26.2.2", True),
+        ("pip_2026_10", "chore: upgrade pip-tools to 7.5", False),
+        ("pip_2026_10", "chore: update requirements/pip.txt", False),
+        ("pip_2026_10", "chore: update CI to install pip via uv", False),
+    ],
+)
+def test_campaign_pr_titles(campaign_id, title, matches):
+    campaign = get_config("campaigns")["campaigns"][campaign_id]
+    pr = {"title": title, "repository": {"nameWithOwner": "openedx/a"}, "createdAt": "2026-10-21T00:00:00Z"}
+    assert bool(waves.matching_prs([pr], campaign)) is matches

@@ -22,12 +22,12 @@ campaigns:
     runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt"]
     pull_requests:
       search_terms: ["uv"]
-      title_regex: "\\b(bump|upgrade|update)\\b.*\\buv\\b(?!\\.lock)"
+      title_regex: "(?<![-/\\w`])`?uv`?\\s+(from|to|v?\\d)"
   pip_2026_10:
     title: "Pip 26.2.2"
     package: pip
     min_version: "26.2.2"
-    runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt"]
+    runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt", "pip.txt"]
     pull_requests:
       search_terms: ["pip"]
-      title_regex: "\\b(bump|upgrade|update)\\b.*\\bpip\\b(?![-.])"
+      title_regex: "(?<![-/\\w`])`?pip`?\\s+(from|to|v?\\d)"
