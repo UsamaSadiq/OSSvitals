@@ -16,11 +16,13 @@ from typing import Any
 
 from packaging.version import InvalidVersion, Version
 
+from collectors import waves
 from collectors.waves import DONE, NOT_APPLICABLE, NOT_STARTED, PR_OPEN
 
 UV_LOCK = "uv.lock"
 REQUIREMENTS_DIR = "requirements"
 PROJECT_SOURCES = ("editable", "virtual")
+DOTTED_VERSION = re.compile(r"\d+(?:\.\d+)+")
 
 
 def normalized(name: str) -> str:
@@ -97,6 +99,25 @@ def below_floor(pin: dict[str, Any], min_version: str) -> bool:
         return Version(pin["version"]) < Version(min_version)
     except InvalidVersion:
         return True
+
+
+def title_target(title: str, package: str) -> Version | None:
+    """Highest dotted version after the package name, which is where the PR takes it."""
+    mention = re.search(re.escape(package), title, re.IGNORECASE)
+    if not mention:
+        return None
+    versions = [Version(token) for token in DOTTED_VERSION.findall(title[mention.end():])]
+    return max(versions, default=None)
+
+
+def reaches_floor(pr: dict[str, Any], campaign: dict[str, Any]) -> bool:
+    target = title_target(pr.get("title", ""), campaign["package"])
+    return target is None or target >= Version(campaign["min_version"])
+
+
+def matching_prs(prs: list[dict[str, Any]], campaign: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Oldest open matching PR per repo, skipping PRs whose title stops below ``min_version``."""
+    return waves.matching_prs([pr for pr in prs if reaches_floor(pr, campaign)], campaign)
 
 
 def repo_status(

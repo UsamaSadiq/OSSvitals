@@ -127,7 +127,7 @@ def collect_campaigns(out_dir: Path, repo_filter: list[str], target: Target) -> 
         return 1
     for campaign_id, campaign in get_config("campaigns", target.org).get("campaigns", {}).items():
         prs = [pr for term in campaign["pull_requests"]["search_terms"] for pr in github.search_open_prs(target.github_org, term)]
-        open_prs = waves.matching_prs(prs, campaign)
+        open_prs = campaigns.matching_prs(prs, campaign)
         records = waves.ordered(
             [
                 campaigns.repo_status(name, repo_pins, campaign, open_prs.get(name), now=generated_at)
