@@ -63,7 +63,7 @@ type Campaign = NonNullable<UpgradesView["campaigns"]>[number];
 function campaign(): Campaign {
   return {
     id: "certifi_2026_10",
-    title: "certifi 2026.10.19",
+    title: "Certifi 2026.10.19",
     epic: "https://github.com/openedx/public-engineering/issues/574",
     advisory: "https://github.com/advisories/GHSA-6q48-6c7w-9gw2",
     done_rule: "every pin of `certifi` in requirements files and `uv.lock` is 2026.10.19 or later",
@@ -258,7 +258,7 @@ describe("Upgrades page", () => {
   it("shows campaign progress with exposure and stale pins", async () => {
     setUpgrades(upgradesFixture({ campaigns: [campaign()] }));
     renderRoute("/maintenance");
-    await openTab("Campaign: certifi 2026.10.19");
+    await openTab("Campaign: Certifi 2026.10.19");
 
     expect(screen.getByRole("link", { name: "tracking issue" })).toHaveAttribute(
       "href",

@@ -5,7 +5,7 @@
 # own dependencies (uv) are runtime; every other pin is dev or test only.
 campaigns:
   certifi_2026_10:
-    title: "certifi 2026.10.19 (emSign CA removal)"
+    title: "Certifi 2026.10.19"
     package: certifi
     min_version: "2026.10.19"
     epic: "https://github.com/openedx/public-engineering/issues/574"
@@ -14,3 +14,20 @@ campaigns:
     pull_requests:
       search_terms: ["certifi"]
       title_regex: "\\bcertifi\\b"
+  uv_2026_10:
+    title: "UV 0.13.4"
+    package: uv
+    min_version: "0.13.4"
+    advisory: "https://github.com/advisories/GHSA-hq85-5cpj-mr62"
+    runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt"]
+    pull_requests:
+      search_terms: ["uv"]
+      title_regex: "\\b(bump|upgrade|update)\\b.*\\buv\\b(?!\\.lock)"
+  pip_2026_10:
+    title: "Pip 26.2.2"
+    package: pip
+    min_version: "26.2.2"
+    runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt"]
+    pull_requests:
+      search_terms: ["pip"]
+      title_regex: "\\b(bump|upgrade|update)\\b.*\\bpip\\b(?![-.])"
