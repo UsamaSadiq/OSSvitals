@@ -158,6 +158,11 @@ def test_unparseable_version_counts_as_below_floor(certifi):
         ("pip_2026_10", "chore: upgrade pip-tools to 7.5", False),
         ("pip_2026_10", "chore: update requirements/pip.txt", False),
         ("pip_2026_10", "chore: update CI to install pip via uv", False),
+        ("pip_2026_10", "build: switch from pip to uv", False),
+        ("pip_2026_10", "chore: use pip to install deps", False),
+        ("pip_2026_10", "fix: pin pip to <25", False),
+        ("uv_2026_10", "build: use uv to install requirements", False),
+        ("uv_2026_10", "ci: run uv tool install tox", False),
     ],
 )
 def test_campaign_pr_titles(campaign_id, title, matches):

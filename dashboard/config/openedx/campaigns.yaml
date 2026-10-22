@@ -19,10 +19,10 @@ campaigns:
     package: uv
     min_version: "0.13.4"
     advisory: "https://github.com/advisories/GHSA-hq85-5cpj-mr62"
-    runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt"]
+    runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt", "pip.txt"]
     pull_requests:
       search_terms: ["uv"]
-      title_regex: "(?<![-/\\w`])`?uv`?\\s+(from|to|v?\\d)"
+      title_regex: "(?<![-/\\w`])`?uv`?\\s+(?:(?:from|to)\\s+)?v?\\d"
   pip_2026_10:
     title: "Pip 26.2.2"
     package: pip
@@ -30,4 +30,4 @@ campaigns:
     runtime_files: ["requirements.txt", "base.txt", "production.txt", "prod.txt", "pip.txt"]
     pull_requests:
       search_terms: ["pip"]
-      title_regex: "(?<![-/\\w`])`?pip`?\\s+(from|to|v?\\d)"
+      title_regex: "(?<![-/\\w`])`?pip`?\\s+(?:(?:from|to)\\s+)?v?\\d"
