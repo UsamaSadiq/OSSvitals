@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { githubUrl } from "./githubUrl";
 import { repoDetailPath } from "./repoDetailPath";
 
 export function splitRepoName(name: string): { org: string; short: string } {
@@ -22,5 +23,13 @@ export function RepoLink({ name }: { name: string }) {
     <Link to={repoDetailPath(name)}>
       <RepoName name={name} />
     </Link>
+  );
+}
+
+export function RepoGitHubLink({ name }: { name: string }) {
+  return (
+    <a href={githubUrl(name)}>
+      <RepoName name={name} />
+    </a>
   );
 }

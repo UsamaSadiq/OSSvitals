@@ -13,6 +13,11 @@ import { INTRO } from "./upgradesText";
 import { WaveTab } from "./WaveTab";
 import "./upgrades.css";
 
+function hasNoRedundantPrs(upgrades: UpgradesView): boolean {
+  const redundant = upgrades.redundant_prs;
+  return redundant?.redundant === 0 && redundant.records.length === 0;
+}
+
 function upgradeTabs(upgrades: UpgradesView): TabItem[] {
   return [
     { id: "upgrade-jobs", label: "Upgrade jobs", content: () => <UpgradeJobsTab jobs={upgrades.upgrade_jobs} /> },
@@ -26,11 +31,15 @@ function upgradeTabs(upgrades: UpgradesView): TabItem[] {
       label: `Campaign: ${campaign.title}`,
       content: () => <CampaignTab campaign={campaign} />,
     })),
-    {
-      id: "redundant-prs",
-      label: "Redundant PRs",
-      content: () => <RedundantPrsTab redundant={upgrades.redundant_prs} />,
-    },
+    ...(hasNoRedundantPrs(upgrades)
+      ? []
+      : [
+          {
+            id: "redundant-prs",
+            label: "Redundant PRs",
+            content: () => <RedundantPrsTab redundant={upgrades.redundant_prs} />,
+          },
+        ]),
   ];
 }
 

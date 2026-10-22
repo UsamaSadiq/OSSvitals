@@ -1,18 +1,17 @@
 import { DataTable, type Column } from "../../components/DataTable";
-import { EmptyState } from "../../components/EmptyState";
 import { KpiTile } from "../../components/KpiTile";
 import type { UpgradesView } from "../../data/schemas";
 import { formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
 import { PullLink } from "./PullLink";
 import { mergedText, redundantCaption } from "./upgradesText";
-import { RepoName } from "../../components/RepoName";
+import { RepoGitHubLink } from "../../components/RepoName";
 
 type Redundant = NonNullable<UpgradesView["redundant_prs"]>;
 type RedundantRow = Redundant["records"][number];
 
 const COLUMNS: Column<RedundantRow>[] = [
-  { key: "repo_name", header: "Repository", cell: (row) => <RepoName name={row.repo_name} />, sortValue: (row) => row.repo_name },
+  { key: "repo_name", header: "Repository", cell: (row) => <RepoGitHubLink name={row.repo_name} />, sortValue: (row) => row.repo_name },
   { key: "bot_pr_url", header: "Bot PR", cell: (row) => <PullLink url={row.bot_pr_url} /> },
   { key: "superseded_by_url", header: "Superseded by", cell: (row) => <PullLink url={row.superseded_by_url} /> },
   {
@@ -30,7 +29,6 @@ const COLUMNS: Column<RedundantRow>[] = [
 ];
 
 function RedundantTable({ records }: { records: readonly RedundantRow[] }) {
-  if (records.length === 0) return <EmptyState kind="good" title="No redundant bot PRs found." />;
   return (
     <DataTable
       caption="Redundant bot PRs"
