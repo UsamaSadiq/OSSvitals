@@ -44,7 +44,7 @@ function RedundantTable({ records }: { records: readonly RedundantRow[] }) {
 function RedundantSection({ redundant }: { redundant: Redundant }) {
   return (
     <>
-      <p className="caption">{redundantCaption(redundant.collected_at)}</p>
+      <p className="caption">{redundantCaption(redundant.collected_at, redundant.refreshed_at)}</p>
       <div className="upgrades-tiles">
         <KpiTile label="Redundant" value={formatNumber(redundant.redundant)} />
         <KpiTile label="Bot campaign PRs checked" value={formatNumber(redundant.bot_prs_checked)} />

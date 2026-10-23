@@ -90,6 +90,19 @@ def test_relations_match_entity_names_case_insensitively():
     assert "relation_unknown" not in records["openedx/b"]["findings"]
 
 
+def test_relations_resolve_against_entities_from_repos_outside_the_run():
+    text = (
+        "kind: Component\nmetadata: {name: b, description: d}\n"
+        "spec: {owner: 'group:x', type: library, lifecycle: production, dependsOn: ['component:core']}"
+    )
+
+    alone = catalog.snapshot({"openedx/b": text}, existing_users=set())[0]
+    with_others = catalog.snapshot({"openedx/b": text}, existing_users=set(), other_entities=frozenset({"core"}))[0]
+
+    assert "relation_unknown" in alone["findings"]
+    assert "relation_unknown" not in with_others["findings"]
+
+
 @pytest.mark.parametrize("text", ["", "   \n", "key: [unclosed", "- just\n- a list\n"])
 def test_file_without_a_mapping_has_no_entity(text):
     entry = catalog.snapshot({"openedx/x": text}, existing_users=None)[0]

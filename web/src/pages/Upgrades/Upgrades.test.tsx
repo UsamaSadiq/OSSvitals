@@ -5,7 +5,7 @@ import { metadata } from "../../data/fixtures";
 import type { UpgradesView, ViewName } from "../../data/schemas";
 import type { ViewState } from "../../data/useView";
 import { renderRoute } from "../../test/renderRoute";
-import { collectedTime, pullLabel, runsText } from "./upgradesText";
+import { collectedTime, pullLabel, runsText, waveCaption } from "./upgradesText";
 
 const views = vi.hoisted(() => ({ current: {} as Record<string, unknown> }));
 
@@ -144,7 +144,7 @@ describe("Upgrades page", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "Upgrades" })).toBeInTheDocument();
     expect(screen.getByText(/^Upgrade work across the org, from bot and human PRs alike/)).toHaveTextContent(
-      "upgrade PRs that are no longer needed. Collected daily from public GitHub data; read-only.",
+      "upgrade PRs that are no longer needed. Collected daily from public GitHub data, and repos GitHub reports a change for are refreshed in between; read-only.",
     );
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
       "Upgrade jobs",
@@ -363,6 +363,13 @@ describe("upgrades text", () => {
   it("formats the collected time like Streamlit", () => {
     expect(collectedTime("2026-10-03T10:30:09.732527+00:00")).toBe("2026-10-03 10:30 UTC");
     expect(collectedTime(null)).toBe(" UTC");
+  });
+
+  it("adds the per-repo refresh to a wave caption only when there is one", () => {
+    expect(waveCaption("rule", "2026-10-22T08:53:00+00:00")).toBe("Done means: rule. Collected 2026-10-22 08:53 UTC.");
+    expect(waveCaption("rule", "2026-10-22T08:53:00+00:00", "2026-10-23T06:04:00+00:00")).toBe(
+      "Done means: rule. Collected 2026-10-22 08:53 UTC. Changed repos refreshed 2026-10-23 06:04 UTC.",
+    );
   });
 
   it("labels pull request links by number and falls back to the URL", () => {

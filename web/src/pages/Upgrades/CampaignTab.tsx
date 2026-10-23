@@ -106,7 +106,7 @@ function CampaignSection({ campaign }: { campaign: Campaign }) {
       <WaveProgress summary={summary} />
       <WaveTiles summary={summary} />
       <p className="caption">
-        <CodeText text={waveCaption(campaign.done_rule, campaign.collected_at)} />
+        <CodeText text={waveCaption(campaign.done_rule, campaign.collected_at, campaign.refreshed_at)} />
       </p>
       <CampaignTables records={campaign.records ?? []} />
     </>
