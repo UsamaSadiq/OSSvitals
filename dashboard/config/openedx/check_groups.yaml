@@ -16,5 +16,7 @@ groups:
       - docs.build_badge
   - name: "README"
     pattern: "^readme\\..*"
+  - name: "Makefile"
+    pattern: "^makefile\\..*"
   - name: "Ownership"
     pattern: "^ownership\\..*"
