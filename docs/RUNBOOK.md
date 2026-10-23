@@ -25,7 +25,7 @@ Limits:
 - Both GitHub listings are eventually consistent and the watermarks have no overlap, so a push or PR update that shows up after a newer one was already seen waits for the next daily run.
 - Each poll reads at most 300 repos and 300 PRs. After a long outage (an expired token, a paused Worker), anything older than that waits for the next daily run.
 - A repo leaves `pending` once the dispatch is accepted, not once the run succeeds, so a partial run that fails waits for the next daily run. A rejected dispatch keeps the repos in `pending`, and the watermarks still move on.
-- `build-scores.yml` and `collect-maintenance.yml` share the `openedx-data` concurrency group, since both write `openedx/views`; the maintenance publish step retries a rejected push from a fresh clone, because the Moneta collectors push to `data` too.
+- `build-scores.yml` and `collect-maintenance.yml` both write `openedx/views` but keep separate concurrency groups, since a shared group would let a newer queued run cancel the pending one. Instead each publish step clones `data`, builds on that clone (build-scores builds its views from the clone's `openedx/maintenance`), and pushes; a rejected push starts over from a fresh clone, up to three times.
 - Files removed from the `data` branch stay in R2 until deleted by hand.
 
 ### Setting it up

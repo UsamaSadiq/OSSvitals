@@ -11,9 +11,6 @@ name: Collect maintenance signals
 on:
   schedule:
     - cron: "53 8 * * *"
-    # Hourly campaign-only refresh while the certifi PRs land (public-engineering#574).
-    # The plan job stops it at CAMPAIGN_REFRESH_UNTIL; delete this line afterwards.
-    - cron: "23 * * * *"
   workflow_dispatch:
     inputs:
       repos:
@@ -21,31 +18,23 @@ on:
         required: false
         default: ""
 
-# Shared with build-scores.yml: both write openedx/views, so one must finish
-# (fetch, build, push) before the other starts.
 concurrency:
-  group: openedx-data
+  group: collect-maintenance
   cancel-in-progress: false
 
 permissions:
   contents: write
   actions: read
 
-env:
-  HOURLY_CRON: "23 * * * *"
-  CAMPAIGN_REFRESH_UNTIL: "2026-10-23T19:00:00Z"
-
 jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      run: ${{ steps.plan.outputs.run }}
       collectors: ${{ steps.plan.outputs.collectors }}
       scope: ${{ steps.plan.outputs.scope }}
     steps:
       - id: plan
         env:
-          SCHEDULE: ${{ github.event.schedule }}
           REPOS: ${{ github.event.inputs.repos }}
         run: |
           set -f
@@ -58,21 +47,12 @@ jobs:
               fi
               args="$args --repo $repo"
             done
-            echo "run=true" >> "$GITHUB_OUTPUT"
             echo "collectors=$args" >> "$GITHUB_OUTPUT"
             echo "scope=$(wc -w <<< "$REPOS" | tr -d ' ') changed repos" >> "$GITHUB_OUTPUT"
-          elif [ "$SCHEDULE" != "$HOURLY_CRON" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          elif [ "$(date -u +%s)" -lt "$(date -u -d "$CAMPAIGN_REFRESH_UNTIL" +%s)" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "collectors=--collector campaigns" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 
   collect:
     needs: plan
-    if: needs.plan.outputs.run == 'true'
     runs-on: ubuntu-latest
     env:
       OUT_DIR: ${{ github.workspace }}/out/openedx/maintenance
@@ -84,7 +64,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt -r requirements-collectors.txt
-      # A campaign-only run rebuilds every view, so start from the published files.
+      # A --merge run folds into the published files, so start from them.
       - name: Seed with published maintenance files
         run: |
           git fetch --depth 1 origin data
@@ -104,24 +84,25 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Other collectors push to `data` too; a rejected push starts again from a fresh clone.
+          # build-scores.yml and the Moneta collectors push to `data` too; a rejected push
+          # starts again from a fresh clone. Only this workflow writes openedx/maintenance.
           publish() {
             rm -rf data-branch
-            git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch
-            mkdir -p data-branch/openedx/maintenance data-branch/openedx/views
-            cp -R "$OUT_DIR"/. data-branch/openedx/maintenance/
-            cp -R "$VIEWS_DIR"/. data-branch/openedx/views/
-            git -C data-branch add openedx/maintenance openedx/views
+            git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch || return 1
+            mkdir -p data-branch/openedx/maintenance data-branch/openedx/views || return 1
+            cp -R "$OUT_DIR"/. data-branch/openedx/maintenance/ || return 1
+            cp -R "$VIEWS_DIR"/. data-branch/openedx/views/ || return 1
+            git -C data-branch add openedx/maintenance openedx/views || return 1
             if git -C data-branch diff --cached --quiet; then
               echo "Maintenance data unchanged."
               return 0
             fi
-            git -C data-branch commit -m "chore(data): update openedx maintenance signals $(date -u +%F)${SCOPE:+ ($SCOPE)}"
+            git -C data-branch commit -m "chore(data): update openedx maintenance signals $(date -u +%F)${SCOPE:+ ($SCOPE)}" || return 1
             git -C data-branch push origin data
           }
           for attempt in 1 2 3; do
             publish && exit 0
-            echo "Push attempt $attempt was rejected; retrying."
+            echo "Publish attempt $attempt failed; retrying from a fresh clone."
           done
           exit 1
         env:
