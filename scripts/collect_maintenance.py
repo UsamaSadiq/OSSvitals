@@ -4,11 +4,14 @@ from __future__ import annotations
 import argparse
 import sys
 import tempfile
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
-from collectors import campaigns, catalog, fix_prs, github, publish, redundant_prs, upgrade_jobs, waves
+from collectors import campaigns, catalog, fix_prs, github, merge, publish, redundant_prs, upgrade_jobs, waves
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import DEFAULT_ORG, get_config
 
@@ -21,12 +24,27 @@ CATALOG_PATH = "catalog-info.yaml"
 FIX_PRS_FILE = "fix_prs.json"
 TREE_WORKERS = 8
 COLLECTORS = ("upgrade_jobs", "waves", "campaigns", "redundant_prs", "catalog", "fix_prs")
+MERGEABLE = tuple(name for name in COLLECTORS if name != "upgrade_jobs")
+
+Records = list[dict[str, Any]]
 
 
 @dataclass(frozen=True)
 class Target:
     org: str
     github_org: str
+
+
+@dataclass(frozen=True)
+class Scope:
+    repos: list[str]
+    merge: bool
+
+    def includes(self, name: str) -> bool:
+        return not self.repos or name in self.repos
+
+    def refreshed(self, github_org: str) -> set[str]:
+        return {f"{github_org}/{name}" for name in self.repos}
 
 
 def _target(org: str) -> Target:
@@ -39,13 +57,58 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--org", default=DEFAULT_ORG, help="Config folder under dashboard/config.")
     parser.add_argument("--repo", action="append", default=[], help="Limit to these repos (bare names); default is the whole org.")
     parser.add_argument("--collector", action="append", choices=COLLECTORS, help="Run only these collectors; default is all.")
-    return parser.parse_args()
+    parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Fold the --repo results into the files already in --out-dir instead of replacing them.",
+    )
+    args = parser.parse_args()
+    if args.merge and not args.repo:
+        parser.error("--merge needs at least one --repo")
+    if args.merge and "upgrade_jobs" in (args.collector or []):
+        parser.error("upgrade_jobs has no per-repo merge; run it without --merge")
+    return args
 
 
-def collect_upgrade_jobs(out_dir: Path, repos: list[str], target: Target) -> int:
+def _publish(
+    path: Path,
+    fresh: Records,
+    *,
+    scope: Scope,
+    target: Target,
+    generated_at: datetime,
+    order: Callable[[Records], Records],
+    derive: Callable[[Records], dict[str, Any]] = lambda _: {},
+    full_run: dict[str, Any] | None = None,
+    **metadata: Any,
+) -> Records | None:
+    """Write ``fresh`` as the whole file, or merged into the published file for a --merge run.
+
+    ``derive`` recomputes metadata from the final records; ``full_run`` fields only
+    make sense for a whole-org run, so a merge keeps the published values.
+    """
+    if not scope.merge:
+        final = order(fresh)
+        publish.write(path, publish.payload(final, generated_at=generated_at, **metadata, **(full_run or {}), **derive(final)))
+        return final
+    existing = merge.published(path)
+    if existing is None:
+        print(f"{path.name}: nothing published to merge into; skipped.")
+        return None
+    refreshed = scope.refreshed(target.github_org)
+    final = order(merge.records(existing["records"], fresh, refreshed))
+    publish.write(path, merge.payload(existing, final, refreshed_at=generated_at, refreshed=refreshed, **metadata, **derive(final)))
+    return final
+
+
+def _org_repos(scope: Scope, target: Target) -> list[dict]:
+    return [repo for repo in github.org_repos(target.github_org) if scope.includes(repo["name"])]
+
+
+def collect_upgrade_jobs(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
     with tempfile.TemporaryDirectory() as tmp:
-        rows = upgrade_jobs.read_rows(upgrade_jobs.run_tool(target.github_org, Path(tmp), repos))
+        rows = upgrade_jobs.read_rows(upgrade_jobs.run_tool(target.github_org, Path(tmp), scope.repos))
     records = upgrade_jobs.records(rows, org=target.github_org, today=generated_at.date())
     if not records:
         print("No upgrade-job records; not writing.")
@@ -71,9 +134,13 @@ def _repo_trees(repos: list[dict]) -> dict[str, set[str]]:
         return dict(pool.map(tree, repos))
 
 
-def collect_waves(out_dir: Path, repo_filter: list[str], target: Target) -> int:
+def _summarized(records: Records) -> dict[str, Any]:
+    return {"summary": waves.summary(records)}
+
+
+def collect_waves(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
-    repos = [repo for repo in github.org_repos(target.github_org) if not repo_filter or repo["name"] in repo_filter]
+    repos = _org_repos(scope, target)
     if not repos:
         print("No repositories found; not writing waves.")
         return 1
@@ -81,23 +148,22 @@ def collect_waves(out_dir: Path, repo_filter: list[str], target: Target) -> int:
     for wave_id, wave in get_config("waves", target.org).get("waves", {}).items():
         prs = [pr for term in wave["pull_requests"]["search_terms"] for pr in github.search_open_prs(target.github_org, term)]
         open_prs = waves.matching_prs(prs, wave)
-        records = waves.ordered(
-            [
-                waves.repo_status(name, paths, wave, open_prs.get(name), now=generated_at)
-                for name, paths in trees.items()
-            ]
-        )
-        content = publish.payload(
-            records,
+        fresh = [waves.repo_status(name, paths, wave, open_prs.get(name), now=generated_at) for name, paths in trees.items()]
+        final = _publish(
+            out_dir / WAVES_DIR / f"{wave_id}.json",
+            fresh,
+            scope=scope,
+            target=target,
             generated_at=generated_at,
+            order=waves.ordered,
+            derive=_summarized,
             source="GitHub repository contents and PR search",
             wave_id=wave_id,
             title=wave["title"],
             epic=wave.get("epic"),
-            summary=waves.summary(records),
         )
-        publish.write(out_dir / WAVES_DIR / f"{wave_id}.json", content)
-        print(f"Wave {wave_id}: {waves.summary(records)}")
+        if final is not None:
+            print(f"Wave {wave_id}: {waves.summary(final)}")
     return 0
 
 
@@ -119,44 +185,46 @@ def _campaign_pins(repos: list[dict], campaign: dict) -> dict[str, list[dict]]:
         return dict(pool.map(repo_pins, repos))
 
 
-def collect_campaigns(out_dir: Path, repo_filter: list[str], target: Target) -> int:
+def collect_campaigns(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
-    repos = [repo for repo in github.org_repos(target.github_org) if not repo_filter or repo["name"] in repo_filter]
+    repos = _org_repos(scope, target)
     if not repos:
         print("No repositories found; not writing campaigns.")
         return 1
     for campaign_id, campaign in get_config("campaigns", target.org).get("campaigns", {}).items():
         prs = [pr for term in campaign["pull_requests"]["search_terms"] for pr in github.search_open_prs(target.github_org, term)]
         open_prs = campaigns.matching_prs(prs, campaign)
-        records = waves.ordered(
-            [
-                campaigns.repo_status(name, repo_pins, campaign, open_prs.get(name), now=generated_at)
-                for name, repo_pins in _campaign_pins(repos, campaign).items()
-            ]
-        )
-        content = publish.payload(
-            records,
+        fresh = [
+            campaigns.repo_status(name, repo_pins, campaign, open_prs.get(name), now=generated_at)
+            for name, repo_pins in _campaign_pins(repos, campaign).items()
+        ]
+        final = _publish(
+            out_dir / CAMPAIGNS_DIR / f"{campaign_id}.json",
+            fresh,
+            scope=scope,
+            target=target,
             generated_at=generated_at,
+            order=waves.ordered,
+            derive=_summarized,
             source="requirements files and uv.lock on each repo's default branch; GitHub PR search",
             campaign_id=campaign_id,
             title=campaign["title"],
             package=campaign["package"],
             min_version=campaign["min_version"],
-            summary=waves.summary(records),
         )
-        publish.write(out_dir / CAMPAIGNS_DIR / f"{campaign_id}.json", content)
-        print(f"Campaign {campaign_id}: {waves.summary(records)}")
+        if final is not None:
+            print(f"Campaign {campaign_id}: {waves.summary(final)}")
     return 0
 
 
-def collect_redundant_prs(out_dir: Path, repo_filter: list[str], target: Target) -> int:
+def collect_redundant_prs(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
     found, checked = [], 0
     for campaign_id, campaign in get_config("campaign_supersession", target.org).get("campaigns", {}).items():
         bot_prs = [
             pr for pr in github.search_open_prs_by_author(target.github_org, campaign["bot_author"], campaign["bot_title_prefix"])
             if pr["title"].startswith(campaign["bot_title_prefix"])
-            and (not repo_filter or pr["repository"]["nameWithOwner"].split("/", 1)[1] in repo_filter)
+            and scope.includes(pr["repository"]["nameWithOwner"].split("/", 1)[1])
         ]
         checked += len(bot_prs)
         for bot_pr in bot_prs:
@@ -168,15 +236,19 @@ def collect_redundant_prs(out_dir: Path, repo_filter: list[str], target: Target)
                 found.append(
                     redundant_prs.record(campaign_id, bot_pr, human_pr, github.merge_state(repo, bot_pr["number"]))
                 )
-    content = publish.payload(
-        redundant_prs.ordered(found),
+    final = _publish(
+        out_dir / REDUNDANT_PRS_FILE,
+        found,
+        scope=scope,
+        target=target,
         generated_at=generated_at,
+        order=redundant_prs.ordered,
+        derive=lambda records: {"redundant": len(records)},
+        full_run={"bot_prs_checked": checked},
         source="GitHub PR search; dry run, nothing closed",
-        bot_prs_checked=checked,
-        redundant=len(found),
     )
-    publish.write(out_dir / REDUNDANT_PRS_FILE, content)
-    print(f"Redundant PRs: {len(found)} of {checked} open bot campaign PRs")
+    if final is not None:
+        print(f"Redundant PRs: {len(final)} redundant; {checked} open bot campaign PRs checked")
     return 0
 
 
@@ -193,43 +265,67 @@ def _existing_users(logins: set[str]) -> set[str]:
         return {login for login, exists in zip(logins, pool.map(github.user_exists, logins)) if exists}
 
 
-def collect_catalog(out_dir: Path, repo_filter: list[str], target: Target) -> int:
+def _other_entities(path: Path, scope: Scope, target: Target) -> frozenset[str]:
+    """Entity names the published catalog holds for repos this run leaves alone."""
+    existing = merge.published(path) if scope.merge else None
+    if existing is None:
+        return frozenset()
+    refreshed = scope.refreshed(target.github_org)
+    return frozenset(catalog.entity_names([entry for entry in existing["records"] if entry["repo_name"] not in refreshed]))
+
+
+def _by_repo(records: Records) -> Records:
+    return sorted(records, key=lambda entry: entry["repo_name"])
+
+
+def collect_catalog(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
-    repos = [repo for repo in github.org_repos(target.github_org) if not repo_filter or repo["name"] in repo_filter]
+    repos = _org_repos(scope, target)
     if not repos:
         print("No repositories found; not writing the catalog.")
         return 1
+    path = out_dir / CATALOG_FILE
     texts = _catalog_texts(repos)
     owners = catalog.user_owner_logins([catalog.record(name, text) for name, text in texts.items()])
-    records = catalog.snapshot(texts, _existing_users(owners))
-    content = publish.payload(
-        records,
+    fresh = catalog.snapshot(texts, _existing_users(owners), _other_entities(path, scope, target))
+    final = _publish(
+        path,
+        fresh,
+        scope=scope,
+        target=target,
         generated_at=generated_at,
+        order=_by_repo,
+        derive=lambda records: {"summary": catalog.summary(records)},
         source="catalog-info.yaml on each repo's default branch; GitHub user lookups for user owners",
         findings=catalog.FINDINGS,
-        summary=catalog.summary(records),
     )
-    publish.write(out_dir / CATALOG_FILE, content)
-    print(f"Catalog: {catalog.summary(records)}")
+    if final is not None:
+        print(f"Catalog: {catalog.summary(final)}")
     return 0
 
 
-def collect_fix_prs(out_dir: Path, repo_filter: list[str], target: Target) -> int:
+def collect_fix_prs(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
     hits = github.search_open_prs_by_body(target.github_org, fix_prs.MARKER_SEARCH)
-    found = [
-        entry for entry in fix_prs.records(hits)
-        if not repo_filter or entry["repo_name"].split("/", 1)[1] in repo_filter
-    ]
-    content = publish.payload(found, generated_at=generated_at, source=fix_prs.SOURCE, candidates=len(hits))
-    publish.write(out_dir / FIX_PRS_FILE, content)
-    print(f"Fix PRs: {len(found)} open remediation PRs from {len(hits)} candidates")
+    found = [entry for entry in fix_prs.records(hits) if scope.includes(entry["repo_name"].split("/", 1)[1])]
+    final = _publish(
+        out_dir / FIX_PRS_FILE,
+        found,
+        scope=scope,
+        target=target,
+        generated_at=generated_at,
+        order=fix_prs.ordered,
+        full_run={"candidates": len(hits)},
+        source=fix_prs.SOURCE,
+    )
+    if final is not None:
+        print(f"Fix PRs: {len(final)} open remediation PRs from {len(hits)} candidates")
     return 0
 
 
 def main() -> int:
     args = _parse_args()
-    selected = args.collector or list(COLLECTORS)
+    selected = args.collector or list(MERGEABLE if args.merge else COLLECTORS)
     runners = {
         "upgrade_jobs": collect_upgrade_jobs,
         "waves": collect_waves,
@@ -239,7 +335,8 @@ def main() -> int:
         "fix_prs": collect_fix_prs,
     }
     target = _target(args.org)
-    results = [runners[name](args.out_dir, args.repo, target) for name in selected]
+    scope = Scope(repos=args.repo, merge=args.merge)
+    results = [runners[name](args.out_dir, scope, target) for name in selected]
     return max(results)
 
 

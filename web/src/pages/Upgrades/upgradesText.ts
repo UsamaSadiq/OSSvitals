@@ -1,7 +1,10 @@
+import { refreshedNote } from "../../format";
+
 export const INTRO =
   "Upgrade work across the org, from bot and human PRs alike: whether automated " +
   "requirement upgrades land, how far platform-wide upgrade waves and package upgrade campaigns have reached, and " +
-  "upgrade PRs that are no longer needed. Collected daily from public GitHub data; read-only.";
+  "upgrade PRs that are no longer needed. Collected daily from public GitHub data, and repos GitHub reports a change for " +
+  "are refreshed in between; read-only.";
 
 export const MISSING_BODY =
   "It is published daily by the collect-maintenance workflow; check back after its next run.";
@@ -35,15 +38,15 @@ export function upgradeJobsCaption(collectedAt: string | null | undefined): stri
   );
 }
 
-export function redundantCaption(collectedAt: string | null | undefined): string {
+export function redundantCaption(collectedAt: string | null | undefined, refreshedAt?: string | null): string {
   return (
     "Bot campaign PRs made redundant by a later human campaign in the same repo. " +
-    `Dry run: nothing has been closed. Collected ${collectedTime(collectedAt)}.`
+    `Dry run: nothing has been closed. Collected ${collectedTime(collectedAt)}.${refreshedNote(collectedAt, refreshedAt)}`
   );
 }
 
-export function waveCaption(doneRule: string, collectedAt: string | null | undefined): string {
-  return `Done means: ${doneRule}. Collected ${collectedTime(collectedAt)}.`;
+export function waveCaption(doneRule: string, collectedAt: string | null | undefined, refreshedAt?: string | null): string {
+  return `Done means: ${doneRule}. Collected ${collectedTime(collectedAt)}.${refreshedNote(collectedAt, refreshedAt)}`;
 }
 
 export function exposureText(runtimeExposed: boolean | null | undefined): string {

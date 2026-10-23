@@ -4,16 +4,14 @@ on:
   pull_request:
     paths:
       - web/**
+      - scripts/data_branch_export.sh
       - .github/workflows/deploy-web.yml
   push:
     branches: [main]
     paths:
       - web/**
+      - scripts/data_branch_export.sh
       - .github/workflows/deploy-web.yml
-  workflow_run:
-    workflows: ["Build scores", "Collect maintenance signals", "Collect Moneta status", "Forecast Moneta sync conflicts"]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -25,7 +23,6 @@ permissions:
 
 jobs:
   deploy:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,19 +38,11 @@ jobs:
       - run: npm run check
       - name: Fetch data
         working-directory: .
-        shell: bash
-        run: |
-          git fetch --depth 1 origin data
-          mkdir -p web/public/data
-          paths=()
-          for org in $(git ls-tree -d --name-only FETCH_HEAD); do
-            for folder in views maintenance; do
-              if git cat-file -e "FETCH_HEAD:$org/$folder" 2>/dev/null; then paths+=("$org/$folder"); fi
-            done
-          done
-          git archive FETCH_HEAD "${paths[@]}" | tar -x -C web/public/data
+        run: scripts/data_branch_export.sh web/public/data
       - run: npm run validate-data
       - run: npm run build
+        env:
+          VITE_DATA_BASE: https://data.ossvitals.org
       - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: cloudflare/wrangler-action@v4
         with:

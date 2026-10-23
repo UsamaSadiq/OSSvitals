@@ -351,6 +351,7 @@ const findingRepoSchema = z.object({ repo_name: z.string(), score_letter: grade.
 export const componentsSchema = view({
   available: z.boolean(),
   collected_at: isoString.nullable().optional(),
+  refreshed_at: isoString.nullable().optional(),
   summary: z.looseObject({ repos: int, with_file: int, with_problem: int }).optional(),
   findings: z
     .array(
@@ -400,6 +401,7 @@ const waveSchema = z.looseObject({
   done_rule: z.string(),
   available: z.boolean(),
   collected_at: isoString.nullable().optional(),
+  refreshed_at: isoString.nullable().optional(),
   summary: z.record(z.string(), z.number()).optional(),
   records: z
     .array(
@@ -442,6 +444,7 @@ export const upgradesSchema = view({
   redundant_prs: z
     .object({
       collected_at: isoString.nullable(),
+      refreshed_at: isoString.nullable().optional(),
       redundant: int,
       bot_prs_checked: int,
       records: z.array(

@@ -23,6 +23,15 @@ async function rejectionOf(promise: Promise<unknown>): Promise<ViewDataError> {
 beforeEach(clearViewCache);
 
 describe("viewUrl", () => {
+  it("reads from the data host when the build names one", () => {
+    vi.stubEnv("VITE_DATA_BASE", "https://data.ossvitals.org");
+    try {
+      expect(viewUrl("openedx", "overview")).toBe("https://data.ossvitals.org/openedx/views/overview.json");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("is same-origin under /data/<org>/views", () => {
     expect(viewUrl("openedx", "overview")).toBe("/data/openedx/views/overview.json");
   });

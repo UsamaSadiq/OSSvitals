@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Data reaches the site without a rebuild: `sync-data.yml` mirrors the `data` branch to the public `ossvitals-data` R2 bucket after every collector run, the production web app and the MCP Worker read it from `https://data.ossvitals.org`, and `deploy-web.yml` only runs for code changes.
+- Maintenance data refreshes per repo between daily runs: the new `ossvitals-events` Worker (`events/`) watches openedx pushes and PR updates and dispatches `collect-maintenance.yml` with the changed repos, which `collect_maintenance.py --merge` folds into the published files. Upgrades and Components captions show when changed repos were last refreshed. Upgrade-job health stays daily.
 - Upgrades page: repository names in every table link to the repo on GitHub, and the Redundant PRs tab is hidden when no redundant PRs were found.
 
 ### Fixed

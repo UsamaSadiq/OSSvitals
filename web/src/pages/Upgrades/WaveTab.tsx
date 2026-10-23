@@ -128,7 +128,7 @@ function WaveSection({ wave }: { wave: Wave }) {
       <WaveProgress summary={summary} />
       <WaveTiles summary={summary} />
       <p className="caption">
-        <CodeText text={waveCaption(wave.done_rule, wave.collected_at)} />
+        <CodeText text={waveCaption(wave.done_rule, wave.collected_at, wave.refreshed_at)} />
       </p>
       <WaveTables records={wave.records ?? []} />
     </>

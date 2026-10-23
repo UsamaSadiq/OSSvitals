@@ -11,6 +11,36 @@
 1. Update `csv_url` to a known-good raw CSV snapshot URL.
 2. Re-run the `build-scores` workflow and confirm it publishes fresh `scores.json` and `views/`.
 
+## Live data
+
+The site does not rebuild when data changes. Each collector pushes to the `data` branch, `sync-data.yml` (on `workflow_run`) mirrors every tenant's `views/` and `maintenance/` folders to the public `ossvitals-data` R2 bucket, and the production build reads them from `https://data.ossvitals.org` (`VITE_DATA_BASE` in `deploy-web.yml`; local dev and the audit harness keep using `/data`). Objects carry `Cache-Control: no-cache`, so browsers revalidate by ETag. `deploy-web.yml` runs only for code changes, and the MCP Worker reads the same host.
+
+Everything in `ossvitals-data` is public. A private tenant needs its own bucket with access control in front of it, and its files must stay off the `data` branch, which `sync-data.yml` copies wholesale.
+
+Between daily runs the `ossvitals-events` Worker (`events/`) refreshes the maintenance files per repo. Every two minutes it lists openedx repos by `pushed_at` (ETag, so an unchanged list is free) and searches PRs updated since its last look, then dispatches `collect-maintenance.yml` with `repos=<names>` once the workflow is idle and at least `MIN_DISPATCH_GAP_MINUTES` after the last dispatch. That run merges the refreshed repos into the published files (`collect_maintenance.py --merge`) and keeps the full run's `generated_at`, so `data-freshness` still notices a broken daily run; `refreshed_at` and `refreshed_repos` record the partial run, and the pages show it. The watcher keeps its watermarks in the private `ossvitals-events-state` bucket.
+
+Limits:
+- Upgrade-job health stays daily: workflow runs show up in neither signal.
+- Both signals over-include (any branch push, PR comments), which only costs a few extra API calls per run.
+- A PR the search index picks up late can be missed until the next daily run.
+- A repo leaves `pending` once the dispatch is accepted, not once the run succeeds, so a partial run that fails (for example its push to `data` losing a race with another collector) waits for the next daily run.
+- Files removed from the `data` branch stay in R2 until deleted by hand.
+
+### Setting it up
+
+Run wrangler from `events/` (it has wrangler installed), in this order:
+1. Create both buckets: `npx wrangler r2 bucket create ossvitals-data` and `npx wrangler r2 bucket create ossvitals-events-state`.
+2. Let any site read the public bucket: `npx wrangler r2 bucket cors set ossvitals-data --file ../scripts/r2_cors.json`.
+3. Connect `data.ossvitals.org` to `ossvitals-data` (R2 → bucket → Settings → Custom Domains, or `npx wrangler r2 bucket domain add ossvitals-data --domain data.ossvitals.org --zone-id <ossvitals.org zone id>`). Leave `ossvitals-events-state` without a domain or public access.
+4. Seed the public bucket locally, since `sync-data.yml` cannot be dispatched until it is on `main`: `scripts/data_branch_export.sh <dir> && scripts/sync_r2.sh <dir> ossvitals-data` (wrangler on PATH, logged in), then check `curl -sI https://data.ossvitals.org/openedx/views/meta.json`. Give the `CLOUDFLARE_API_TOKEN` repo secret R2 edit permission so the workflow can take over after the merge.
+5. Create a fine-grained token with `Actions: read and write` on `UsamaSadiq/OSSvitals` only. Check it can read openedx too; this should print `200` and `x-ratelimit-limit: 30`, otherwise use a classic token with `public_repo`:
+   ```
+   curl -sS -H "Authorization: Bearer $TOKEN" "https://api.github.com/search/issues?q=org:openedx+is:pr&per_page=1" -D - -o /dev/null | grep -iE "^HTTP|ratelimit-limit"
+   ```
+6. From the branch, deploy the watcher and store the token, so it never ticks without one: `npx wrangler deploy && npx wrangler secret put GITHUB_TOKEN`.
+7. Merge; `deploy-web.yml` rebuilds the site against `data.ossvitals.org`, `deploy-mcp.yml` picks up the new `VIEWS_BASE`, and `deploy-events.yml` redeploys the watcher (the secret survives).
+8. Watch the first ticks with `npx wrangler tail ossvitals-events`. The first one only records watermarks.
+
 ## Tenants
 
 Each tenant owns its collector, its view files and its pages. They share only a thin contract, so one tenant's setup never blocks another.
@@ -32,7 +62,7 @@ and optionally `pages` (the paths the nav shows; omit it to show every page the 
 1. Add `dashboard/config/<org>/` with at least `org_branding.yaml`. Wording the web app shows comes from there; every key under `provenance` and `catalog` is optional and a missing key gives neutral text.
 2. Write the tenant's collector and publish its views under `<org>/views/` on the `data` branch. It does not need a CSV, scoring or the openedx pipeline. If it uses the Python pipeline, a metric with `parse_rule: boolean` needs no code.
 3. Add a tenant module in `web/src/tenants/<org>/index.tsx` (nav sections, routes, optional nav counts and palette host) and register it in `web/src/tenants/registry.ts`. An org with no module falls back to openedx.
-4. Add the route in `web/wrangler.json` (`<org>.ossvitals.org`, custom domain). `deploy-web.yml` bundles `views` and `maintenance` for every org folder on the `data` branch.
+4. Add the route in `web/wrangler.json` (`<org>.ossvitals.org`, custom domain). `deploy-web.yml` bundles `views` and `maintenance` for every org folder on the `data` branch, and `sync-data.yml` mirrors the same folders to R2.
 5. Freshness needs nothing: `data-freshness.yml` checks every org that has `views/meta.json`, using that file's `stale_threshold_hours`.
 6. Visual and accessibility gates: add a page inventory in `scripts/webaudit/pages.py` (`PAGES_BY_ORG`) and view fixtures in `tests/fixtures/<org>/views/`. Build the web app with `VITE_DEFAULT_ORG=<org>` and run `python scripts/web_audit.py --org <org> --dist <dir> --mode a11y`. Baselines live in `tests/baseline-web/<org>/`; generate them in CI (see below) and add a job to `.github/workflows/web-audit.yml` once the tenant has pages worth guarding.
 7. List the dashboard on `sites/landing/public/index.html` once it is public.

@@ -1,0 +1,49 @@
+name: Deploy events watcher
+
+# Checks and deploys the ossvitals-events Worker in events/. Every two minutes it lists
+# openedx repos by last push and searches recently updated PRs, then dispatches
+# collect-maintenance.yml for just the repos that changed. Deploys only from main.
+
+on:
+  pull_request:
+    paths:
+      - events/**
+      - .github/workflows/deploy-events.yml
+  push:
+    branches: [main]
+    paths:
+      - events/**
+      - .github/workflows/deploy-events.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('deploy-events-pr-{0}', github.ref) || 'deploy-events' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: events
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: events/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npx wrangler deploy --dry-run
+      - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          wranglerVersion: "4.146.0"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: events
+          command: deploy

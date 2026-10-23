@@ -4,6 +4,9 @@ name: Collect maintenance signals
 # wave progress, package upgrade campaigns, redundant bot campaign PRs, the catalog-info.yaml snapshot) and publishes them to
 # openedx/maintenance/ on the orphan `data` branch, next to the scores. Read-only:
 # nothing here writes to openedx repos. The dashboard only reads these files.
+#
+# A dispatch with `repos` (from the ossvitals-events Worker in events/) re-collects only
+# those repos and merges them into the published files; upgrade jobs stay on the daily run.
 
 on:
   schedule:
@@ -12,6 +15,11 @@ on:
     # The plan job stops it at CAMPAIGN_REFRESH_UNTIL; delete this line afterwards.
     - cron: "23 * * * *"
   workflow_dispatch:
+    inputs:
+      repos:
+        description: Space-separated bare repo names to refresh and merge; empty runs every repo.
+        required: false
+        default: ""
 
 concurrency:
   group: collect-maintenance
@@ -31,12 +39,27 @@ jobs:
     outputs:
       run: ${{ steps.plan.outputs.run }}
       collectors: ${{ steps.plan.outputs.collectors }}
+      scope: ${{ steps.plan.outputs.scope }}
     steps:
       - id: plan
         env:
           SCHEDULE: ${{ github.event.schedule }}
+          REPOS: ${{ github.event.inputs.repos }}
         run: |
-          if [ "$SCHEDULE" != "$HOURLY_CRON" ]; then
+          set -f
+          if [ -n "$REPOS" ]; then
+            args="--merge"
+            for repo in $REPOS; do
+              if ! [[ "$repo" =~ ^[A-Za-z0-9._-]+$ ]]; then
+                echo "::error::Not a bare repo name: $repo"
+                exit 1
+              fi
+              args="$args --repo $repo"
+            done
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "collectors=$args" >> "$GITHUB_OUTPUT"
+            echo "scope=$(wc -w <<< "$REPOS" | tr -d ' ') changed repos" >> "$GITHUB_OUTPUT"
+          elif [ "$SCHEDULE" != "$HOURLY_CRON" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           elif [ "$(date -u +%s)" -lt "$(date -u -d "$CAMPAIGN_REFRESH_UNTIL" +%s)" ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
@@ -89,7 +112,8 @@ jobs:
             echo "Maintenance data unchanged."
             exit 0
           fi
-          git commit -m "chore(data): update openedx maintenance signals $(date -u +%F)"
+          git commit -m "chore(data): update openedx maintenance signals $(date -u +%F)${SCOPE:+ ($SCOPE)}"
           git push origin data
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SCOPE: ${{ needs.plan.outputs.scope }}

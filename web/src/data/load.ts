@@ -4,9 +4,14 @@ import { viewFileName, type View, type ViewName } from "./schemas";
 type Fetch = typeof fetch;
 
 const cache = new Map<string, Promise<unknown>>();
+const LOCAL_DATA_BASE = "/data";
+
+export function dataBase(): string {
+  return import.meta.env.VITE_DATA_BASE || LOCAL_DATA_BASE;
+}
 
 export function viewUrl(org: string, name: ViewName): string {
-  return `/data/${encodeURIComponent(org)}/views/${viewFileName(name)}`;
+  return `${dataBase()}/${encodeURIComponent(org)}/views/${viewFileName(name)}`;
 }
 
 function messageOf(error: unknown): string {

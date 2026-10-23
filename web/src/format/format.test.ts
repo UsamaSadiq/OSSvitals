@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAge, formatDelta, formatNumber, formatPercent, formatScore, formatUtcDate, NO_CHANGE, percentOf, toFixedHalfEven } from ".";
+import { formatAge, formatDelta, formatNumber, formatPercent, formatScore, formatUtcDate, NO_CHANGE, percentOf, refreshedNote, toFixedHalfEven } from ".";
 
 describe("formatNumber", () => {
   it("adds thousands separators", () => {
@@ -109,5 +109,20 @@ describe("formatAge", () => {
   it("uses whole days from two days", () => {
     expect(formatAge(48)).toBe("2 days");
     expect(formatAge(80)).toBe("3 days");
+  });
+});
+
+describe("refreshedNote", () => {
+  const collected = "2026-10-22T08:53:10+00:00";
+
+  it("names the refresh when it is newer than the full run", () => {
+    expect(refreshedNote(collected, "2026-10-23T06:04:59+00:00")).toBe(" Changed repos refreshed 2026-10-23 06:04 UTC.");
+  });
+
+  it("is empty without a later refresh", () => {
+    expect(refreshedNote(collected, null)).toBe("");
+    expect(refreshedNote(collected, undefined)).toBe("");
+    expect(refreshedNote(collected, "2026-10-22T08:00:00+00:00")).toBe("");
+    expect(refreshedNote(collected, "not a date")).toBe("");
   });
 });
