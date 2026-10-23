@@ -104,3 +104,19 @@ def test_publish_without_merge_replaces_the_file(tmp_path):
     assert content["records"] == [_record("b", "done")]
     assert content["metadata"]["generated_at"] == PARTIAL_RUN.isoformat()
     assert "refreshed_at" not in content["metadata"]
+
+
+def test_merge_run_for_an_unlisted_repo_drops_its_stale_record(tmp_path, monkeypatch):
+    from scripts import collect_maintenance
+
+    wave = {"title": "t", "pull_requests": {"search_terms": [], "title_regex": "x"}}
+    monkeypatch.setattr(collect_maintenance.github, "org_repos", lambda org: [])
+    monkeypatch.setattr(collect_maintenance, "get_config", lambda name, org: {"waves": {"w": wave}})
+    path = tmp_path / "waves" / "w.json"
+    records = [{**_record(repo, "done"), "pr_age_days": None} for repo in ("a", "gone")]
+    publish.write(path, publish.payload(records, generated_at=FULL_RUN, source="s"))
+
+    result = collect_maintenance.collect_waves(tmp_path, Scope(repos=["gone"], merge=True), TARGET)
+
+    assert result == 0
+    assert [record["repo_name"] for record in json.loads(path.read_text(encoding="utf-8"))["records"]] == ["openedx/a"]

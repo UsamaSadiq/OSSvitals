@@ -141,7 +141,7 @@ def _summarized(records: Records) -> dict[str, Any]:
 def collect_waves(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
     repos = _org_repos(scope, target)
-    if not repos:
+    if not repos and not scope.merge:
         print("No repositories found; not writing waves.")
         return 1
     trees = _repo_trees(repos)
@@ -188,7 +188,7 @@ def _campaign_pins(repos: list[dict], campaign: dict) -> dict[str, list[dict]]:
 def collect_campaigns(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
     repos = _org_repos(scope, target)
-    if not repos:
+    if not repos and not scope.merge:
         print("No repositories found; not writing campaigns.")
         return 1
     for campaign_id, campaign in get_config("campaigns", target.org).get("campaigns", {}).items():
@@ -281,7 +281,7 @@ def _by_repo(records: Records) -> Records:
 def collect_catalog(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
     repos = _org_repos(scope, target)
-    if not repos:
+    if not repos and not scope.merge:
         print("No repositories found; not writing the catalog.")
         return 1
     path = out_dir / CATALOG_FILE

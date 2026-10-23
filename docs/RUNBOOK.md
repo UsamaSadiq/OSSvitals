@@ -22,8 +22,10 @@ Between daily runs the `ossvitals-events` Worker (`events/`) refreshes the maint
 Limits:
 - Upgrade-job health stays daily: workflow runs show up in neither signal.
 - Both signals over-include (any branch push, PR comments), which only costs a few extra API calls per run.
-- A PR the search index picks up late can be missed until the next daily run.
-- A repo leaves `pending` once the dispatch is accepted, not once the run succeeds, so a partial run that fails (for example its push to `data` losing a race with another collector) waits for the next daily run.
+- Both GitHub listings are eventually consistent and the watermarks have no overlap, so a push or PR update that shows up after a newer one was already seen waits for the next daily run.
+- Each poll reads at most 300 repos and 300 PRs. After a long outage (an expired token, a paused Worker), anything older than that waits for the next daily run.
+- A repo leaves `pending` once the dispatch is accepted, not once the run succeeds, so a partial run that fails waits for the next daily run. A rejected dispatch keeps the repos in `pending`, and the watermarks still move on.
+- `build-scores.yml` and `collect-maintenance.yml` share the `openedx-data` concurrency group, since both write `openedx/views`; the maintenance publish step retries a rejected push from a fresh clone, because the Moneta collectors push to `data` too.
 - Files removed from the `data` branch stay in R2 until deleted by hand.
 
 ### Setting it up
@@ -37,7 +39,7 @@ Run wrangler from `events/` (it has wrangler installed), in this order:
    ```
    curl -sS -H "Authorization: Bearer $TOKEN" "https://api.github.com/search/issues?q=org:openedx+is:pr&per_page=1" -D - -o /dev/null | grep -iE "^HTTP|ratelimit-limit"
    ```
-6. From the branch, deploy the watcher and store the token, so it never ticks without one: `npx wrangler deploy && npx wrangler secret put GITHUB_TOKEN`.
+6. Deploy the watcher and store the token, so it never ticks without one: `npx wrangler deploy && pbpaste | tr -d '\n' | npx wrangler secret put GITHUB_TOKEN` (`secret put` reads stdin when there is no terminal, so piping avoids storing an empty secret). Deploying before the merge is fine: `main` rejects the dispatches until `collect-maintenance.yml` has the `repos` input, and the changed repos wait in `pending`.
 7. Merge; `deploy-web.yml` rebuilds the site against `data.ossvitals.org`, `deploy-mcp.yml` picks up the new `VIEWS_BASE`, and `deploy-events.yml` redeploys the watcher (the secret survives).
 8. Watch the first ticks with `npx wrangler tail ossvitals-events`. The first one only records watermarks.
 

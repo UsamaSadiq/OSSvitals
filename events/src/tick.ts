@@ -66,10 +66,8 @@ function sameState(left: WatchState, right: WatchState): boolean {
 export async function tick(deps: TickDeps): Promise<TickOutcome> {
   const before = await deps.store.load();
   const polled = await poll(before, deps.github);
-  if (!(await readyToDispatch(polled, deps))) {
-    if (!sameState(before, polled)) await deps.store.save(polled);
-    return { state: polled, dispatched: [] };
-  }
+  if (!sameState(before, polled)) await deps.store.save(polled);
+  if (!(await readyToDispatch(polled, deps))) return { state: polled, dispatched: [] };
   const batch = polled.pending.slice(0, deps.config.maxReposPerDispatch);
   await deps.github.dispatch(batch);
   const after = { ...polled, pending: polled.pending.slice(batch.length), lastDispatchAt: deps.now.toISOString() };

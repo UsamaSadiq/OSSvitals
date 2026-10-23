@@ -27,8 +27,10 @@ on:
       - scripts/build_scores.py
       - scripts/build_views.py
 
+# Shared with collect-maintenance.yml: both write openedx/views, so one must finish
+# (fetch, build, push) before the other starts.
 concurrency:
-  group: build-scores
+  group: openedx-data
   cancel-in-progress: false
 
 permissions:

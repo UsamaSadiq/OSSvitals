@@ -108,6 +108,18 @@ describe("tick", () => {
     expect(state.pending).toEqual(["c"]);
   });
 
+  it("keeps found repos pending and moves the watermarks when the dispatch is rejected", async () => {
+    const github = {
+      ...fakeGitHub({ pulls: [pull("edx-platform", "2026-10-23T06:25:00Z")] }),
+      dispatch: async () => {
+        throw new Error("GitHub 422");
+      },
+    };
+    const bucket = memoryBucket(WATCHING);
+    await expect(run(github, bucket)).rejects.toThrow("GitHub 422");
+    expect(bucket.saved.at(-1)).toMatchObject({ pending: ["edx-platform"], pullsUpdatedSince: "2026-10-23T06:25:00Z" });
+  });
+
   it("saves nothing when it sees nothing new", async () => {
     const bucket = memoryBucket(WATCHING);
     const { dispatched } = await run(fakeGitHub({}), bucket);
