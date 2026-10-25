@@ -219,11 +219,14 @@ def build_what_changed(ctx: BuildContext) -> dict[str, Any]:
         return envelope(ctx, "two most recent snapshots", snapshots=len(history), new_failures=[], new_passes=[])
     latest, previous = history[-1], history[-2]
     changes = summarize_weekly_changes(latest.df, previous.df)
+    branding = ctx.config("org_branding")
     bulletin = generate_weekly_bulletin(
         changes["new_failures"],
         changes["new_passes"],
         dashboard_url=str(ctx.config("data_source").get("site_url", "")).rstrip("/"),
         commit_sha=ctx.commit_sha,
+        bulletin_title=str(branding.get("site_title") or branding.get("name", "")),
+        dashboard_name=str(branding.get("name", "")),
     )
     return envelope(
         ctx,
@@ -314,10 +317,10 @@ def _category(check: str) -> str | None:
     return next((name for name, predicate in CATEGORY_GROUPS.items() if predicate(check)), None)
 
 
-def _remediation(entry: RemediationEntry | None, dashboard_url: str) -> dict[str, Any] | None:
+def _remediation(entry: RemediationEntry | None, dashboard_url: str, dashboard_name: str) -> dict[str, Any] | None:
     if entry is None:
         return None
-    return {**asdict(entry), "issue_body": issue_body(entry, dashboard_url)}
+    return {**asdict(entry), "issue_body": issue_body(entry, dashboard_url, dashboard_name)}
 
 
 def _check_record(
@@ -329,6 +332,7 @@ def _check_record(
     remediation: dict[str, RemediationEntry],
     pr_config: dict,
     dashboard_url: str,
+    dashboard_name: str,
 ) -> dict[str, Any]:
     populated_pct, pass_pct = coverage(series)
     return {
@@ -340,7 +344,7 @@ def _check_record(
         "pass_pct": pass_pct,
         "scored_by": score_map.get(check),
         "has_remediation": check in remediation,
-        "remediation": _remediation(remediation.get(check), dashboard_url),
+        "remediation": _remediation(remediation.get(check), dashboard_url, dashboard_name),
         "pr_template": pr_template(check, pr_config) if check in pr_config.get("whitelist", []) else None,
     }
 
@@ -353,6 +357,7 @@ def build_checks(ctx: BuildContext) -> dict[str, Any]:
     remediation = load_remediation_map(ctx.org)
     pr_config = ctx.config("pr_templates")
     dashboard_url = str(ctx.config("data_source").get("site_url", "")).rstrip("/")
+    dashboard_name = str(ctx.config("org_branding").get("name", ""))
     review = review_window(ctx.data.history)
     return envelope(
         ctx,
@@ -366,6 +371,7 @@ def build_checks(ctx: BuildContext) -> dict[str, Any]:
                 remediation=remediation,
                 pr_config=pr_config,
                 dashboard_url=dashboard_url,
+                dashboard_name=dashboard_name,
             )
             for check in columns
         ],
