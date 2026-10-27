@@ -15,7 +15,7 @@ The Open edX tenant reads a CSV published by `openedx/wg-maintenance`; other ten
 
 ## Live data
 
-The site does not rebuild when data changes. Each collector pushes to the `data` branch, `sync-data.yml` (on `workflow_run`) mirrors every tenant's `views/` and `maintenance/` folders to the public `ossvitals-data` R2 bucket, and the production build reads them from `https://data.ossvitals.org` (`VITE_DATA_BASE` in `deploy-web.yml`; local dev and the audit harness keep using `/data`). Objects carry `Cache-Control: no-cache`, so browsers revalidate by ETag. `deploy-web.yml` runs only for code changes, and the MCP Worker reads the same host.
+The site does not rebuild when data changes. Each collector pushes to the `data` branch, `sync-data.yml` (on `workflow_run`) mirrors every tenant's `views/` and `maintenance/` folders to the public `ossvitals-data` R2 bucket, and the production build reads them from `https://data.ossvitals.org` (`VITE_DATA_BASE` in `deploy-web.yml`; local dev and the audit harness keep using `/data`). Objects carry `Cache-Control: no-cache`, so browsers revalidate by ETag. `deploy-web.yml` runs only for code changes, and the MCP Worker reads the same host. The build still bundles the `data` branch under `/data`, and the site falls back to that copy when the data host fails (network, HTTP error or a non-JSON response), so an R2 outage shows the last deployed data with a staleness banner instead of an error. A file that downloads but fails its schema does not fall back.
 
 Everything in `ossvitals-data` is public. A private tenant needs its own bucket with access control in front of it, and its files must stay off the `data` branch, which `sync-data.yml` copies wholesale.
 

@@ -102,6 +102,53 @@ describe("loadView", () => {
     expect(error.message).toBe("repos.json: HTTP 404 from /data/openedx/views/repos.json");
   });
 
+  it("falls back to the bundled copy when the data host fails", async () => {
+    vi.stubEnv("VITE_DATA_BASE", "https://data.ossvitals.org");
+    try {
+      const fetchImpl = vi.fn<typeof fetch>(async (input) =>
+        String(input).startsWith("https://") ? jsonResponse({}, 503) : jsonResponse(metaFixture()),
+      );
+      const meta = await loadView("meta", "openedx", fetchImpl);
+
+      expect(meta.feature_flags.enable_maintainer_views).toBe(false);
+      expect(fetchImpl.mock.calls.map(([url]) => url)).toEqual([
+        "https://data.ossvitals.org/openedx/views/meta.json",
+        "/data/openedx/views/meta.json",
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("reports the data host's error when the bundled copy fails too", async () => {
+    vi.stubEnv("VITE_DATA_BASE", "https://data.ossvitals.org");
+    try {
+      const fetchImpl = vi.fn<typeof fetch>(async (input) =>
+        String(input).startsWith("https://")
+          ? jsonResponse({}, 503)
+          : new Response("<!doctype html>", { status: 200, headers: { "Content-Type": "text/html" } }),
+      );
+      const error = await rejectionOf(loadView("meta", "openedx", fetchImpl));
+
+      expect(error.message).toBe("meta.json: HTTP 503 from https://data.ossvitals.org/openedx/views/meta.json");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("does not fall back when the data host serves a file that fails its schema", async () => {
+    vi.stubEnv("VITE_DATA_BASE", "https://data.ossvitals.org");
+    try {
+      const fetchImpl = fetchReturning({ ...metaFixture(), feature_flags: {} });
+      const error = await rejectionOf(loadView("meta", "openedx", fetchImpl));
+
+      expect(error.kind).toBe("schema");
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("treats an HTML page served with 200 as a missing file", async () => {
     const spaFallback = vi.fn<typeof fetch>(
       async () => new Response("<!doctype html>", { status: 200, headers: { "Content-Type": "text/html" } }),

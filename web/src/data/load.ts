@@ -10,8 +10,17 @@ export function dataBase(): string {
   return import.meta.env.VITE_DATA_BASE || LOCAL_DATA_BASE;
 }
 
+export function dataBases(): string[] {
+  const primary = dataBase();
+  return primary === LOCAL_DATA_BASE ? [LOCAL_DATA_BASE] : [primary, LOCAL_DATA_BASE];
+}
+
+function viewPath(org: string, name: ViewName): string {
+  return `${encodeURIComponent(org)}/views/${viewFileName(name)}`;
+}
+
 export function viewUrl(org: string, name: ViewName): string {
-  return `${dataBase()}/${encodeURIComponent(org)}/views/${viewFileName(name)}`;
+  return `${dataBase()}/${viewPath(org, name)}`;
 }
 
 function messageOf(error: unknown): string {
@@ -41,8 +50,26 @@ async function fetchJson(url: string, file: string, fetchImpl: Fetch): Promise<u
   }
 }
 
-async function fetchView<Name extends ViewName>(name: Name, url: string, fetchImpl: Fetch): Promise<View<Name>> {
-  return parseView(name, await fetchJson(url, viewFileName(name), fetchImpl));
+// The data host is primary; the copy bundled at build time keeps the site usable if it is down.
+// That copy can be older, which the freshness banner then reports from its snapshot date.
+export async function fetchDataJson(path: string, file: string, fetchImpl: Fetch = fetch): Promise<unknown> {
+  const [primary, ...fallbacks] = dataBases();
+  try {
+    return await fetchJson(`${primary}/${path}`, file, fetchImpl);
+  } catch (primaryError) {
+    for (const base of fallbacks) {
+      try {
+        return await fetchJson(`${base}/${path}`, file, fetchImpl);
+      } catch {
+        continue;
+      }
+    }
+    throw primaryError;
+  }
+}
+
+async function fetchView<Name extends ViewName>(name: Name, org: string, fetchImpl: Fetch): Promise<View<Name>> {
+  return parseView(name, await fetchDataJson(viewPath(org, name), viewFileName(name), fetchImpl));
 }
 
 export function loadView<Name extends ViewName>(
@@ -53,7 +80,7 @@ export function loadView<Name extends ViewName>(
   const url = viewUrl(org, name);
   const cached = cache.get(url);
   if (cached) return cached as Promise<View<Name>>;
-  const pending = fetchView(name, url, fetchImpl);
+  const pending = fetchView(name, org, fetchImpl);
   cache.set(url, pending);
   pending.catch(() => cache.delete(url));
   return pending;
