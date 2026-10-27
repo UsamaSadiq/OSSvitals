@@ -7,7 +7,7 @@ from typing import Any, Callable
 from urllib.parse import quote
 
 from collectors.moneta import signals
-from collectors.moneta.ranges import affects, version_key
+from collectors.moneta.ranges import VERSION, affects, version_key
 from collectors.moneta.release_gap import release_gap
 from collectors.moneta.status import DriftSignals, classify
 
@@ -19,7 +19,7 @@ FORK_RELEASE_TAG = r"^v2\d\.\d{1,2}\.\d+$"
 RC_TAG = re.compile(r"^v?(\d+(?:\.\d+)+)-rc[.\-]?(\d*)$")
 RC_SUFFIX = re.compile(r"-rc[.\-]?\d*$")
 BASE_RELEASE_CANDIDATES = 25
-BASE_RELEASE_SLACK = timedelta(days=7)
+BASE_RELEASE_SLACK = timedelta(days=30)
 RELEASE_PAGES = 4
 TAG_CANDIDATES = 5
 ADVISORY_SOURCE = "github-published-advisories"
@@ -80,7 +80,10 @@ def upstream_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None =
     wanted = [
         release
         for release in releases
-        if not release["draft"] and not release["prerelease"] and (pattern is None or pattern.match(release["tag_name"]))
+        if not release["draft"]
+        and not release["prerelease"]
+        and VERSION.search(release["tag_name"])
+        and (pattern is None or pattern.match(release["tag_name"]))
     ]
     return sorted(wanted, key=lambda release: release["published_at"], reverse=True)
 
@@ -102,21 +105,20 @@ def release_lag(releases: list[dict[str, Any]], merged_at: str, fork_release: di
     return {"upstream_releases_since_sync": len(since), "upstream_ahead_of_our_release_days": behind_days}
 
 
-def _all_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None, first_page: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    releases = list(first_page)
-    for page in range(2, RELEASE_PAGES + 1):
+def all_upstream_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None = None) -> list[dict[str, Any]]:
+    releases: list[dict[str, Any]] = []
+    for page in range(1, RELEASE_PAGES + 1):
         more = upstream_releases(api, upstream, pattern, page)
         if not more:
             break
         releases.extend(more)
-    return releases
+    return sorted(releases, key=lambda release: release["published_at"], reverse=True)
 
 
 def fork_base_release(
     api: Api,
     base: str,
     upstream: str,
-    pattern: re.Pattern[str] | None,
     ref: str | None,
     releases: list[dict[str, Any]],
     merged_at: str,
@@ -129,7 +131,7 @@ def fork_base_release(
         return None
     owner = upstream.split("/")[0]
     latest_possible = _parse(merged_at) + BASE_RELEASE_SLACK
-    possible = [release for release in _all_releases(api, upstream, pattern, releases) if _parse(release["published_at"]) <= latest_possible]
+    possible = [release for release in releases if _parse(release["published_at"]) <= latest_possible]
     newest_first = sorted(possible, key=lambda release: version_key(release["tag_name"]), reverse=True)
     for release in newest_first[:BASE_RELEASE_CANDIDATES]:
         comparison = api(f"{base}/compare/{owner}:{quote(release['tag_name'], safe='')}...{quote(ref, safe='')}")
@@ -214,10 +216,10 @@ def collect_fork(
     fork_pattern = re.compile(app.get("fork_release_tag", FORK_RELEASE_TAG))
     upstream_pattern = re.compile(app["release_tag"]) if "release_tag" in app else None
     release = latest_fork_release(api, base, upstream_ref, tags, fork_pattern)
-    releases = upstream_releases(api, app["upstream"], upstream_pattern)
+    releases = all_upstream_releases(api, app["upstream"], upstream_pattern)
     upstream_release = latest_upstream_release(api, app["upstream"], releases, upstream_pattern)
     base_ref = release["tag"] if release else production
-    base_release = signals.guarded(lambda: fork_base_release(api, base, app["upstream"], upstream_pattern, base_ref, releases, merged_at))
+    base_release = fork_base_release(api, base, app["upstream"], base_ref, releases, merged_at)
     advisories = advisory_summary(
         api, app["upstream"], release["date"] if release else None, rules.get("critical_advisory_severities", []), base_release
     )

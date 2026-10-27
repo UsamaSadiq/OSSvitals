@@ -1,11 +1,11 @@
 import { Link } from "react-router";
 import { appPath } from "./paths";
 import { StatusPill } from "./StatusPill";
-import { advisoryLabel, driftHeadline, isStatus, sortedForks, type ForkRow } from "./rows";
+import { advisoryNotice, driftHeadline, isStatus, sortedForks, type ForkRow } from "./rows";
 
-function AdvisoryBadge({ count }: { count: number }) {
-  if (count === 0) return null;
-  return <p className="fork-card__advisories">{advisoryLabel(count)}</p>;
+function AdvisoryBadge({ notice }: { notice: string | null }) {
+  if (notice === null) return null;
+  return <p className="fork-card__advisories">{notice}</p>;
 }
 
 function ForkCard({ row }: { row: ForkRow }) {
@@ -24,7 +24,7 @@ function ForkCard({ row }: { row: ForkRow }) {
       <p className="fork-card__behind">
         <span className="fork-card__number">{headline.count.toLocaleString()}</span> {headline.text}
       </p>
-      <AdvisoryBadge count={drift.advisories.since_fork_release} />
+      <AdvisoryBadge notice={advisoryNotice(drift)} />
       <p className="fork-card__licence">{app.licence ?? "Licence not recorded"}</p>
     </article>
   );

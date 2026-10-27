@@ -1,4 +1,4 @@
-import { advisoryLabel, pluralise, releaseGapText, type ForkRow } from "./rows";
+import { advisoryNotice, pluralise, releaseGapText, type ForkRow } from "./rows";
 import type { ConflictRecord, HistoryRow } from "./schemas";
 
 export interface StatusChange {
@@ -62,7 +62,7 @@ export function attentionReasons(row: ForkRow, conflict: ConflictRecord | undefi
     drift.release_gap
       ? `Built on ${releaseGapText(drift.release_gap)}`
       : `${pluralise(drift.behind_by, "commit")} behind upstream, last synced ${drift.days_since_upstream_merge} days ago`,
-    drift.advisories.since_fork_release > 0 ? `${advisoryLabel(drift.advisories.since_fork_release)} since our latest release` : null,
+    advisoryNotice(drift),
     drift.ci?.state === "failing" ? "Checks are failing on our release branch" : null,
     drift.fork_release === null ? "We have not cut a release of our own yet" : null,
     conflicts && !conflicts.clean ? `Syncing with upstream would conflict on ${pluralise(conflicts.conflicted_total, "file")}` : null,

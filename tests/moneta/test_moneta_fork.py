@@ -307,7 +307,7 @@ def test_the_base_release_is_the_highest_version_in_history_not_the_newest_by_da
         f"{BASE}/compare/up:v1.7.1...v26.9.0": {"behind_by": 0},
         f"{BASE}/compare/up:v1.7.0...v26.9.0": {"behind_by": 0},
     }
-    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", None, "v26.9.0", fork.upstream_releases(api_for(routes), "up/demo"), "2026-10-01T00:00:00Z") == "v1.7.1"
+    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", "v26.9.0", fork.upstream_releases(api_for(routes), "up/demo"), "2026-10-01T00:00:00Z") == "v1.7.1"
 
 
 def test_a_release_cut_from_a_side_branch_does_not_stop_the_search():
@@ -317,11 +317,11 @@ def test_a_release_cut_from_a_side_branch_does_not_stop_the_search():
         f"{BASE}/compare/up:v2.0.0...v26.9.0": {"behind_by": 12},
         f"{BASE}/compare/up:v1.9.0...v26.9.0": {"behind_by": 0},
     }
-    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", None, "v26.9.0", fork.upstream_releases(api_for(routes), "up/demo"), "2026-10-01T00:00:00Z") == "v1.9.0"
+    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", "v26.9.0", fork.upstream_releases(api_for(routes), "up/demo"), "2026-10-01T00:00:00Z") == "v1.9.0"
 
 
 def test_releases_published_well_after_our_last_merge_are_not_base_candidates():
-    releases = [release_pair(f"v1.{minor}.0", f"2026-{month:02d}-01T00:00:00Z") for minor, month in [(9, 10), (8, 9), (7, 6)]]
+    releases = [release_pair(f"v1.{minor}.0", f"2026-{month:02d}-01T00:00:00Z") for minor, month in [(9, 10), (8, 8), (7, 6)]]
     routes = {"repos/up/demo/releases?per_page=100": releases, f"{BASE}/compare/up:v1.7.0...foss-main": {"behind_by": 0}}
     asked = []
 
@@ -330,7 +330,7 @@ def test_releases_published_well_after_our_last_merge_are_not_base_candidates():
         return routes.get(path)
 
     kept = fork.upstream_releases(api, "up/demo")
-    assert fork.fork_base_release(api, BASE, "up/demo", None, "foss-main", kept, "2026-06-10T00:00:00Z") == "v1.7.0"
+    assert fork.fork_base_release(api, BASE, "up/demo", "foss-main", kept, "2026-06-10T00:00:00Z") == "v1.7.0"
     assert not any("v1.9.0" in path or "v1.8.0" in path for path in asked)
 
 
@@ -370,3 +370,31 @@ def test_without_a_fork_release_the_base_is_found_from_the_production_branch():
 def test_the_commit_basis_is_kept_when_no_base_release_is_found():
     record = collect()
     assert (record["release_gap"], record["status_basis"]) == (None, "commits")
+
+
+def test_a_failed_base_release_lookup_fails_the_record_instead_of_switching_basis():
+    def api(path):
+        if path.startswith(f"{BASE}/compare/up:v"):
+            raise RuntimeError("502")
+        return GAP_ROUTES.get(path)
+
+    with pytest.raises(RuntimeError):
+        fork.collect_fork(api, "Org", APP, RULES, NOW, merged_by)
+
+
+def test_the_release_gap_counts_releases_beyond_the_first_page():
+    first = [release_pair(f"v1.{minor}.0", f"2026-10-12T{minor // 60:02d}:{minor % 60:02d}:00Z") for minor in range(171, 71, -1)]
+    routes = {
+        **GAP_ROUTES,
+        "repos/up/demo/releases?per_page=100": first,
+        "repos/up/demo/releases?per_page=100&page=2": [release_pair("v1.5.0", "2026-08-20T00:00:00Z"), release_pair("v1.4.0", "2026-08-10T00:00:00Z")],
+        f"{BASE}/compare/up:v1.4.0...v26.9.0": {"behind_by": 0},
+    }
+    gap = collect(routes)["release_gap"]
+    assert (gap["base"], gap["releases_behind"], gap["days_behind"]) == ("v1.4.0", 101, 53)
+
+
+def test_releases_without_a_version_in_their_tag_are_ignored():
+    releases = [release_pair("nightly", "2026-10-05T00:00:00Z"), release_pair("v1.0.0", "2026-10-01T00:00:00Z")]
+    kept = fork.upstream_releases(api_for({"repos/up/demo/releases?per_page=100": releases}), "up/demo")
+    assert [release["tag_name"] for release in kept] == ["v1.0.0"]

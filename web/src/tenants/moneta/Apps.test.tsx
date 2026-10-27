@@ -74,7 +74,7 @@ describe("Moneta apps page", () => {
     renderRoute("/apps", META, monetaTenant);
     const burning = await screen.findByRole("article", { name: "burning" });
     expect(within(burning).getByRole("link", { name: "burning" }).getAttribute("href")).toBe("/apps/burning");
-    expect(within(burning).getByText("2 new upstream advisories")).toBeTruthy();
+    expect(within(burning).getByText("2 new upstream advisories since our latest release")).toBeTruthy();
     expect(within(burning).getByText("MIT")).toBeTruthy();
     expect(within(burning).queryByText(/Ours /)).toBeNull();
     expect(within(burning).queryByText(/patches/)).toBeNull();

@@ -74,6 +74,7 @@ export interface DriftHeadline {
 
 export function driftHeadline(drift: DriftRecord): DriftHeadline {
   const gap = drift.release_gap;
+  if (gap?.releases_behind === 0) return { count: 0, text: `releases behind (on upstream's latest, ${gap.base})` };
   if (gap) return { count: gap.releases_behind, text: `${gap.releases_behind === 1 ? "release" : "releases"} behind upstream (${gap.base} → ${gap.latest})` };
   return { count: drift.behind_by, text: `${drift.behind_by === 1 ? "commit" : "commits"} behind upstream` };
 }
@@ -132,4 +133,13 @@ export function needingAttention(forks: readonly ForkRow[]): ForkRow[] {
 
 export function advisoryLabel(count: number): string {
   return `${count} new upstream ${count === 1 ? "advisory" : "advisories"}`;
+}
+
+export function advisoryNotice(drift: DriftRecord): string | null {
+  const { advisories, release_gap: gap } = drift;
+  if (gap && drift.status_basis === "release") {
+    const affecting = advisories.affecting_fork_release ?? 0;
+    return affecting > 0 ? `${affecting} upstream ${affecting === 1 ? "advisory affects" : "advisories affect"} ${gap.base}, our base` : null;
+  }
+  return advisories.since_fork_release > 0 ? `${advisoryLabel(advisories.since_fork_release)} since our latest release` : null;
 }
