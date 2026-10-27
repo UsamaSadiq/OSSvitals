@@ -1,12 +1,13 @@
 # Dashboard Configuration
 
-This directory contains configuration for repository-health dashboard behavior.
+This directory contains OSSvitals configuration: global flags plus one folder per tenant.
 
 ## Layout
 
 - `feature_flags.yaml`: global feature toggles.
-- `openedx/*.yaml`: Open edX org-specific configuration.
-- `moneta/*.yaml`: Pressingly (Moneta) configuration: `apps.yaml` is the app inventory, `status.yaml` the drift status thresholds.
+- `<org>/*.yaml`: one folder per tenant, named after the GitHub organization. At least `org_branding.yaml` is required; see [Adding a tenant](../../docs/RUNBOOK.md#adding-a-tenant).
+  - `openedx/`: Open edX, a health tenant (scoring, checks, remediation, PR templates).
+  - `moneta/`: Pressingly (Moneta), a drift tenant: `apps.yaml` is the app inventory, `status.yaml` the drift status thresholds.
 - `schemas/*.schema.json`: JSON Schemas used to validate config payloads at load time.
 
 ## Validation Behavior

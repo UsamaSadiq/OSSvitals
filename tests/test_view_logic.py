@@ -78,6 +78,13 @@ def test_category_columns_require_a_dot():
     assert cats["README"] == ["readme.badge"]
 
 
+def test_makefile_checks_get_a_category():
+    assert category_columns(["makefile.test-python", "makefile.quality-python"])["Makefile"] == [
+        "makefile.test-python",
+        "makefile.quality-python",
+    ]
+
+
 def test_category_pass_rates_include_undotted_columns():
     rates = category_pass_rates(_frame()).set_index("category")["pass_rate"]
     assert rates["CI / Tooling"] == round(3 / 6 * 100, 2)

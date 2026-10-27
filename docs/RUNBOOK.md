@@ -1,6 +1,8 @@
 # Runbook
 
-## Upstream outage
+## Upstream outage (openedx tenant)
+
+The Open edX tenant reads a CSV published by `openedx/wg-maintenance`; other tenants run their own collectors and are not affected by this source.
 
 1. Verify the CSV URL in [dashboard/config/openedx/data_source.yaml](../dashboard/config/openedx/data_source.yaml).
 2. Check the `data-freshness` workflow: it opens an issue when any source is over 2 days old.

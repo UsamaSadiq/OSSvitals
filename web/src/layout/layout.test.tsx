@@ -85,6 +85,20 @@ describe("Footer", () => {
     expect(within(footer).getByText(/not affiliated with Axim Collaborative/)).toBeInTheDocument();
   });
 
+  it("links feedback to prefilled issue forms carrying the page and tenant", async () => {
+    renderRoute("/");
+    const footer = await screen.findByRole("contentinfo");
+    const question = within(footer).getByRole("link", { name: "Ask a question" });
+    const params = new URL(question.getAttribute("href") ?? "").searchParams;
+
+    expect(question.getAttribute("href")).toContain(`${DEFAULT_SITE_META.footer.sourceUrl}/issues/new?`);
+    expect(params.get("template")).toBe("question.yml");
+    expect(params.get("tenant")).toBe("openedx");
+    expect(params.get("page")).toBe(`${window.location.origin}/`);
+    expect(within(footer).getByRole("link", { name: "Report a bug" })).toBeInTheDocument();
+    expect(within(footer).getByRole("link", { name: "Flag wrong data" })).toBeInTheDocument();
+  });
+
   it("skips links without a URL", () => {
     expect(footerLinks({ privacyUrl: "https://example.org/privacy" })).toEqual([
       { label: "Privacy", url: "https://example.org/privacy" },

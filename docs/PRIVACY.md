@@ -1,6 +1,6 @@
 # Privacy
 
-The dashboard shows public information about Open edX repositories. Some of it names people, by GitHub handle. It does not collect data from its visitors.
+Each OSSvitals dashboard shows public information about the repositories of one GitHub organization (today Open edX at `openedx.ossvitals.org` and Moneta at `moneta.ossvitals.org`). Some of it names people, by GitHub handle. It does not collect data from its visitors.
 
 ## What is shown about people
 
@@ -9,8 +9,9 @@ The dashboard shows public information about Open edX repositories. Some of it n
 
 ## Where the data comes from
 
-- The public repo health CSV published daily by the Open edX Maintenance Working Group in [openedx/wg-maintenance](https://github.com/openedx/wg-maintenance).
-- Public files and metadata of public GitHub repositories, read by the dashboard's daily collectors.
+- Public files and metadata of public GitHub repositories, read by each tenant's daily collector.
+- For the Open edX tenant, also the public repo health CSV published daily by the Open edX Maintenance Working Group in [openedx/wg-maintenance](https://github.com/openedx/wg-maintenance).
+- No tenant's dashboard reads private repositories or private organization data.
 
 ## Corrections and removal
 

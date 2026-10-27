@@ -1,5 +1,6 @@
 import type { SiteMeta } from "../layout/siteMeta";
-import { freshnessOf, snapshotDateOf } from "./freshness";
+import { freshnessOf } from "./freshness";
+import { snapshotDateOf } from "./snapshotDate";
 import type { MetaView } from "./schemas";
 
 function scoresFileUrl(sourceUrl: string | undefined, org: string | undefined): string | undefined {

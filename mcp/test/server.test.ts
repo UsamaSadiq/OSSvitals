@@ -11,10 +11,15 @@ function metaFor(org: string) {
       schema_version: 1,
       org,
       generated_at: "2026-09-01T00:00:00+00:00",
-      snapshot_timestamp: null,
+      snapshot_timestamp: "2026-08-29T12:00:00+00:00",
       source: "test",
     },
-    branding: { name: `${org} name`, short_name: org, tagline: `${org} tagline` },
+    branding: {
+      name: `${org} name`,
+      short_name: org,
+      tagline: `${org} tagline`,
+      footer: { source_url: "https://github.com/UsamaSadiq/OSSvitals" },
+    },
     feature_flags: { enable_maintainer_views: false },
     stale_threshold_hours: 48,
     critically_stale_threshold_hours: 168,
@@ -53,6 +58,7 @@ describe("mcp worker", () => {
         "get_repo",
         "get_check",
         "list_needing_attention",
+        "report_issue",
       ]),
     );
     const result = await client.callTool({ name: "list_tenants", arguments: {} });
@@ -88,6 +94,35 @@ describe("mcp worker", () => {
     expect(await health.text()).toBe("ok");
     const unknown = await handle(new Request(endpoint("/nope/mcp"), { method: "POST" }), deps);
     expect(unknown.status).toBe(404);
+  });
+
+  it("report_issue dates the issue by the data snapshot, not the build, and prefixes the title", async () => {
+    const client = await connect("/openedx/mcp");
+    const result = await client.callTool({
+      name: "report_issue",
+      arguments: { kind: "question", title: "How is tier set?", details: "Asking about tiers" },
+    });
+    const content = result.content as { text: string }[];
+    const { url } = JSON.parse(content[0]?.text ?? "{}") as { url: string };
+    const params = new URL(url).searchParams;
+
+    expect(params.get("data_date")).toBe("2026-08-29");
+    expect(params.get("title")).toBe("[question] How is tier set?");
+    expect(params.get("tenant")).toBe("openedx");
+    await client.close();
+  });
+
+  it("report_issue rejects a link too long for GitHub", async () => {
+    const client = await connect("/openedx/mcp");
+    const result = await client.callTool({
+      name: "report_issue",
+      arguments: { kind: "bug", title: "t", details: "漢".repeat(1500) },
+    });
+    const content = result.content as { text: string }[];
+
+    expect(result.isError).toBe(true);
+    expect(content[0]?.text).toContain("shorten details");
+    await client.close();
   });
 
   it("returns 429 with Retry-After when the limiter rejects", async () => {

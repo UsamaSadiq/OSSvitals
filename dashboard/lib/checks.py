@@ -23,6 +23,7 @@ CATEGORY_GROUPS: dict[str, Callable[[str], bool]] = {
     "Dependencies": lambda c: c.startswith("dependabot.") or c.startswith("dependencies."),
     "Documentation": lambda c: c in {"readthedocs_config.exists", "docs.build_badge"},
     "README": lambda c: c.startswith("readme."),
+    "Makefile": lambda c: c.startswith("makefile."),
 }
 
 

@@ -18,7 +18,12 @@ Requests are rate limited per client IP (100 per minute); excess requests get `4
 
 ## Tools
 
-Every endpoint has `list_tenants`. The rest depend on the tenant kind set in `src/tenants.ts`.
+Every endpoint has `list_tenants`. Every tenant endpoint also has `report_issue`. The rest depend on the
+tenant kind set in `src/tenants.ts`.
+
+| Tool | Arguments | Returns |
+|---|---|---|
+| `report_issue` | `kind` (`bug`, `data` or `question`), `title`, `details`, `repo`, `page` | a link to a prefilled GitHub issue form on the tenant's source repo. It files nothing: the user reviews and submits it, so the server stays read-only |
 
 Health tenants (`openedx`):
 
