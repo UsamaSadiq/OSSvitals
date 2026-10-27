@@ -109,7 +109,13 @@ function view<Shape extends z.ZodTypeAny>(record: Shape) {
 }
 
 export const appsSchema = view(appRecord);
-export const driftSchema = view(driftRecord);
+const failedRecord = z.object({ repo: z.string(), error: z.string() });
+
+function collected(records: unknown[]): unknown[] {
+  return records.filter((record) => !failedRecord.safeParse(record).success);
+}
+
+export const driftSchema = z.object({ metadata: envelope, records: z.array(z.unknown()).transform(collected).pipe(z.array(driftRecord)) });
 export const historySchema = view(historyRow);
 export const updatesSchema = view(update);
 export const conflictsSchema = view(conflictRecord);

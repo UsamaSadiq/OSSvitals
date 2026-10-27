@@ -75,8 +75,11 @@ def pending_release_candidate(
     return None
 
 
-def upstream_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None = None, page: int = 1) -> list[dict[str, Any]]:
-    releases = api(f"repos/{upstream}/releases?per_page=100" + (f"&page={page}" if page > 1 else "")) or []
+def _release_page(api: Api, upstream: str, page: int) -> list[dict[str, Any]]:
+    return api(f"repos/{upstream}/releases?per_page=100" + (f"&page={page}" if page > 1 else "")) or []
+
+
+def _stable_releases(releases: list[dict[str, Any]], pattern: re.Pattern[str] | None) -> list[dict[str, Any]]:
     wanted = [
         release
         for release in releases
@@ -86,6 +89,10 @@ def upstream_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None =
         and (pattern is None or pattern.match(release["tag_name"]))
     ]
     return sorted(wanted, key=lambda release: release["published_at"], reverse=True)
+
+
+def upstream_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None = None, page: int = 1) -> list[dict[str, Any]]:
+    return _stable_releases(_release_page(api, upstream, page), pattern)
 
 
 def latest_upstream_release(
@@ -108,11 +115,11 @@ def release_lag(releases: list[dict[str, Any]], merged_at: str, fork_release: di
 def all_upstream_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None = None) -> list[dict[str, Any]]:
     releases: list[dict[str, Any]] = []
     for page in range(1, RELEASE_PAGES + 1):
-        more = upstream_releases(api, upstream, pattern, page)
-        if not more:
+        raw = _release_page(api, upstream, page)
+        if not raw:
             break
-        releases.extend(more)
-    return sorted(releases, key=lambda release: release["published_at"], reverse=True)
+        releases.extend(raw)
+    return _stable_releases(releases, pattern)
 
 
 def fork_base_release(

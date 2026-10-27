@@ -13,6 +13,13 @@ const apps = appsSchema.parse(appsJson);
 const drift = driftSchema.parse(driftJson);
 const conflicts = conflictsSchema.parse(conflictsJson);
 
+describe("driftSchema", () => {
+  it("drops a fork whose collection failed instead of rejecting the whole view", () => {
+    const withFailure = { ...driftJson, records: [...driftJson.records, { repo: "broken", error: "HTTP 502" }] };
+    expect(driftSchema.parse(withFailure).records.map((record) => record.repo)).toEqual(drift.records.map((record) => record.repo));
+  });
+});
+
 describe("listApps", () => {
   it("joins a fork with its drift record", () => {
     const alpha = listApps(apps, drift, {}).find((entry) => entry.repo === "alpha");

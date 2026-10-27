@@ -398,3 +398,11 @@ def test_releases_without_a_version_in_their_tag_are_ignored():
     releases = [release_pair("nightly", "2026-10-05T00:00:00Z"), release_pair("v1.0.0", "2026-10-01T00:00:00Z")]
     kept = fork.upstream_releases(api_for({"repos/up/demo/releases?per_page=100": releases}), "up/demo")
     assert [release["tag_name"] for release in kept] == ["v1.0.0"]
+
+
+def test_pagination_continues_past_a_page_with_no_stable_release():
+    routes = {
+        "repos/up/demo/releases?per_page=100": [release("v2.0.0-rc.1", "2026-10-05T00:00:00Z", prerelease=True)],
+        "repos/up/demo/releases?per_page=100&page=2": [release_pair("v1.9.0", "2026-09-01T00:00:00Z")],
+    }
+    assert [release["tag_name"] for release in fork.all_upstream_releases(api_for(routes), "up/demo")] == ["v1.9.0"]
