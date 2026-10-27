@@ -1,0 +1,34 @@
+name: Flag wrong data
+description: A score, status, count or date on a dashboard looks wrong or stale.
+title: "[data] "
+labels: ["bug"]
+body:
+  - type: input
+    id: tenant
+    attributes:
+      label: Tenant
+      description: The dashboard this is about, for example moneta or openedx.
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: Link to the dashboard page, if any.
+  - type: input
+    id: repo
+    attributes:
+      label: Repository
+      description: The repository or app this is about, if any.
+  - type: input
+    id: data_date
+    attributes:
+      label: Data date
+      description: The snapshot date shown on the dashboard.
+  - type: textarea
+    id: details
+    attributes:
+      label: What looks wrong
+      description: The value shown, the value you expected, and how you know.
+    validations:
+      required: true

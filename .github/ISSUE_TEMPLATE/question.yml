@@ -1,0 +1,33 @@
+name: Ask a question
+description: Ask the maintainers about the data, a metric or how to use OSSvitals.
+title: "[question] "
+labels: ["question"]
+body:
+  - type: input
+    id: tenant
+    attributes:
+      label: Tenant
+      description: The dashboard this is about, for example moneta or openedx.
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: Link to the dashboard page, if any.
+  - type: input
+    id: repo
+    attributes:
+      label: Repository
+      description: The repository or app this is about, if any.
+  - type: input
+    id: data_date
+    attributes:
+      label: Data date
+      description: The snapshot date shown on the dashboard.
+  - type: textarea
+    id: details
+    attributes:
+      label: Question
+    validations:
+      required: true

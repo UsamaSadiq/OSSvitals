@@ -1,0 +1,50 @@
+name: Request a dashboard
+description: Ask for an OSSvitals dashboard for an open-source organization.
+title: "[dashboard] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        OSSvitals builds dashboards from public data only. Tell us about the organization and what you want to see; we follow up on this issue.
+  - type: input
+    id: org
+    attributes:
+      label: GitHub organization
+      description: Link to the organization, for example https://github.com/openedx.
+    validations:
+      required: true
+  - type: dropdown
+    id: dashboard_kind
+    attributes:
+      label: What should the dashboard track?
+      options:
+        - Repository health scores (checks, grades, repos needing attention)
+        - Fork drift from upstream (sync status, releases, advisories)
+        - Not sure yet
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Repositories in scope
+      description: All public repositories, a topic or team, or a list. Say which ones to leave out.
+    validations:
+      required: true
+  - type: input
+    id: role
+    attributes:
+      label: Your role in the organization
+      description: For example maintainer, working group member, or user.
+  - type: textarea
+    id: details
+    attributes:
+      label: Anything else
+      description: Questions the dashboard should answer, existing health data, or who reads it.
+  - type: checkboxes
+    id: public_data
+    attributes:
+      label: Data
+      options:
+        - label: The repositories are public, and I understand the dashboard and its data will be public.
+          required: true

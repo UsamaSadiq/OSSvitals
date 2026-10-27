@@ -1,3 +1,4 @@
+import { FeedbackLinks } from "./FeedbackLinks";
 import { useSiteMeta, type FooterMeta } from "./siteMeta";
 
 interface FooterLink {
@@ -19,6 +20,7 @@ export function Footer() {
 
   return (
     <footer className="footer">
+      <FeedbackLinks />
       {links.length > 0 && (
         <p className="footer__links">
           {links.map((link, index) => (
