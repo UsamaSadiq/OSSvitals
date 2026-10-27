@@ -8,6 +8,12 @@ const TEMPLATE_BY_KIND: Record<IssueKind, string> = {
   question: "question.yml",
 };
 
+const TITLE_PREFIX_BY_KIND: Record<IssueKind, string> = {
+  bug: "[bug] ",
+  data: "[data] ",
+  question: "[question] ",
+};
+
 export interface IssueContext {
   tenant: string;
   title?: string;
@@ -27,7 +33,7 @@ const FIELD_BY_KEY: Record<Exclude<keyof IssueContext, "title">, string> = {
 
 export function newIssueUrl(sourceUrl: string, kind: IssueKind, context: IssueContext): string {
   const params = new URLSearchParams({ template: TEMPLATE_BY_KIND[kind] });
-  if (context.title) params.set("title", context.title);
+  if (context.title) params.set("title", `${TITLE_PREFIX_BY_KIND[kind]}${context.title}`);
   for (const [key, field] of Object.entries(FIELD_BY_KEY)) {
     const value = context[key as keyof typeof FIELD_BY_KEY];
     if (value) params.set(field, value);

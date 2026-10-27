@@ -1,11 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import { snapshotDateOf } from "../../../web/src/data/snapshotDate.ts";
 import { metaSchema } from "../../../web/src/data/schemas.ts";
 import { ISSUE_KINDS, newIssueUrl } from "../../../web/src/feedback/issueUrl.ts";
 import { ViewUnavailable, fetchView, type ViewDeps } from "../views.ts";
 
 const NEXT_STEP =
   "Nothing has been filed. Give this link to the user; they review the prefilled issue and submit it on GitHub.";
+
+const MAX_URL_LENGTH = 8000;
 
 const reportInput = z.object({
   kind: z.enum(ISSUE_KINDS),
@@ -33,8 +36,11 @@ export function registerFeedbackTools(server: McpServer, org: string, deps: View
         const meta = await fetchView(deps, org, "meta", metaSchema);
         const sourceUrl = meta.branding.footer?.source_url;
         if (!sourceUrl) return textResult(`No issue tracker is configured for ${org}`, true);
-        const dataDate = meta.metadata.generated_at?.slice(0, 10);
+        const dataDate = snapshotDateOf(meta.metadata.snapshot_timestamp) ?? undefined;
         const url = newIssueUrl(sourceUrl, kind, { tenant: org, title, details, repo, page, dataDate });
+        if (url.length > MAX_URL_LENGTH) {
+          return textResult(`The issue link is ${url.length} characters, over ${MAX_URL_LENGTH}; shorten details.`, true);
+        }
         return textResult(JSON.stringify({ url, filed: false, next_step: NEXT_STEP }));
       } catch (error) {
         if (error instanceof ViewUnavailable) return textResult(error.message, true);

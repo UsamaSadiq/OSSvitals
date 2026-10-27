@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { metadata, metaFixture } from "./fixtures";
-import { freshnessLevel, freshnessOf, snapshotAgeHours, snapshotDateOf } from "./freshness";
+import { freshnessLevel, freshnessOf, snapshotAgeHours } from "./freshness";
+import { snapshotDateOf } from "./snapshotDate";
 
 const thresholds = { staleHours: 48, criticalHours: 168 };
 const NOW = new Date("2026-10-02T13:00:00Z");

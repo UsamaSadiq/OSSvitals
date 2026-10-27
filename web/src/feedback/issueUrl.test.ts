@@ -21,7 +21,7 @@ describe("newIssueUrl", () => {
     expect(url.startsWith(`${SOURCE}/issues/new?`)).toBe(true);
     expect(paramsOf(url)).toEqual({
       template: "wrong-data.yml",
-      title: "alpha drift looks stale",
+      title: "[data] alpha drift looks stale",
       tenant: "moneta",
       page: "https://moneta.ossvitals.org/apps/alpha",
       repo: "alpha",
