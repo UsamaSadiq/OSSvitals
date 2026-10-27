@@ -31,9 +31,13 @@ const FIELD_BY_KEY: Record<Exclude<keyof IssueContext, "title">, string> = {
   details: "details",
 };
 
+function withPrefix(prefix: string, title: string): string {
+  return title.startsWith(prefix) ? title : `${prefix}${title}`;
+}
+
 export function newIssueUrl(sourceUrl: string, kind: IssueKind, context: IssueContext): string {
   const params = new URLSearchParams({ template: TEMPLATE_BY_KIND[kind] });
-  if (context.title) params.set("title", `${TITLE_PREFIX_BY_KIND[kind]}${context.title}`);
+  if (context.title) params.set("title", withPrefix(TITLE_PREFIX_BY_KIND[kind], context.title));
   for (const [key, field] of Object.entries(FIELD_BY_KEY)) {
     const value = context[key as keyof typeof FIELD_BY_KEY];
     if (value) params.set(field, value);

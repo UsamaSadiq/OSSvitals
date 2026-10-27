@@ -30,6 +30,11 @@ describe("newIssueUrl", () => {
     });
   });
 
+  it("does not double a kind prefix the title already has", () => {
+    const url = newIssueUrl(SOURCE, "bug", { tenant: "moneta", title: "[bug] list_apps is empty" });
+    expect(paramsOf(url).title).toBe("[bug] list_apps is empty");
+  });
+
   it("omits fields without a value", () => {
     const url = newIssueUrl(SOURCE, "question", { tenant: "openedx", repo: "" });
     expect(paramsOf(url)).toEqual({ template: "question.yml", tenant: "openedx" });
