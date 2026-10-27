@@ -12,6 +12,12 @@ bucket="$2"
 parallel_uploads=6
 
 cd "$dir"
-find . -type f -name '*.json' | sed 's#^\./##' \
-  | xargs -P "$parallel_uploads" -I{} \
+
+upload() {
+  sed 's#^\./##' | xargs -P "$parallel_uploads" -I{} \
     wrangler r2 object put "$bucket/{}" --file "{}" --content-type "application/json; charset=utf-8" --cache-control no-cache --remote --force
+}
+
+# Each org's views/meta.json goes last: the site trusts the data host for an org only once its meta.json checks out.
+find . -type f -name '*.json' ! -path '*/views/meta.json' | upload
+find . -type f -path '*/views/meta.json' | upload
