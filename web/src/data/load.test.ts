@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata, metaFixture } from "./fixtures";
 import { clearViewCache, loadView, viewUrl } from "./load";
 import { ViewDataError } from "./parse";
@@ -23,6 +23,15 @@ async function rejectionOf(promise: Promise<unknown>): Promise<ViewDataError> {
 beforeEach(clearViewCache);
 
 describe("viewUrl", () => {
+  it("reads from the data host when the build names one", () => {
+    vi.stubEnv("VITE_DATA_BASE", "https://data.ossvitals.org");
+    try {
+      expect(viewUrl("openedx", "overview")).toBe("https://data.ossvitals.org/openedx/views/overview.json");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("is same-origin under /data/<org>/views", () => {
     expect(viewUrl("openedx", "overview")).toBe("/data/openedx/views/overview.json");
   });
@@ -91,6 +100,57 @@ describe("loadView", () => {
 
     expect(error.kind).toBe("http");
     expect(error.message).toBe("repos.json: HTTP 404 from /data/openedx/views/repos.json");
+  });
+
+  describe("with a data host", () => {
+    const HOST = "https://data.ossvitals.org";
+    const urlsOf = (fetchImpl: ReturnType<typeof vi.fn<typeof fetch>>) => fetchImpl.mock.calls.map(([url]) => url);
+
+    beforeEach(() => vi.stubEnv("VITE_DATA_BASE", HOST));
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("reads every view from the host once its meta.json checks out, with a deadline on the check", async () => {
+      const fetchImpl = fetchReturning(metaFixture());
+      await loadView("meta", "openedx", fetchImpl);
+      await rejectionOf(loadView("overview", "openedx", fetchImpl));
+
+      expect(urlsOf(fetchImpl)).toEqual([
+        `${HOST}/openedx/views/meta.json`,
+        `${HOST}/openedx/views/meta.json`,
+        `${HOST}/openedx/views/overview.json`,
+      ]);
+      expect(fetchImpl.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it("switches every view to the bundled copy when the host fails, and warns", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const fetchImpl = vi.fn<typeof fetch>(async (input) =>
+        String(input).startsWith(HOST) ? jsonResponse({}, 503) : jsonResponse(metaFixture()),
+      );
+      const meta = await loadView("meta", "openedx", fetchImpl);
+      await rejectionOf(loadView("overview", "openedx", fetchImpl));
+
+      expect(meta.feature_flags.enable_maintainer_views).toBe(false);
+      expect(urlsOf(fetchImpl)).toEqual([
+        `${HOST}/openedx/views/meta.json`,
+        "/data/openedx/views/meta.json",
+        "/data/openedx/views/overview.json",
+      ]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("HTTP 503"));
+      warn.mockRestore();
+    });
+
+    it("falls back when the host publishes a schema_version this build does not read", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const future = metaFixture({ metadata: metadata("dashboard/config", { schema_version: 2 }) });
+      const fetchImpl = vi.fn<typeof fetch>(async (input) =>
+        jsonResponse(String(input).startsWith(HOST) ? future : metaFixture()),
+      );
+      await loadView("meta", "openedx", fetchImpl);
+
+      expect(urlsOf(fetchImpl).at(-1)).toBe("/data/openedx/views/meta.json");
+      warn.mockRestore();
+    });
   });
 
   it("treats an HTML page served with 200 as a missing file", async () => {

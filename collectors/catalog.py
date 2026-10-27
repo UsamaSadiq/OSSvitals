@@ -174,10 +174,20 @@ def with_owner_status(entry: dict[str, Any], existing_users: set[str] | None) ->
     return {**entry, "owner_status": USER_STATUS_EXISTS if exists else USER_STATUS_NOT_FOUND}
 
 
-def snapshot(texts: dict[str, str | None], existing_users: set[str] | None) -> list[dict[str, Any]]:
-    """Records for every repo, with owner status and findings, ordered by repo."""
+def entity_names(entries: list[dict[str, Any]]) -> set[str]:
+    return {entry["entity_name"].lower() for entry in entries if entry.get("entity_name")}
+
+
+def snapshot(
+    texts: dict[str, str | None], existing_users: set[str] | None, other_entities: frozenset[str] = frozenset()
+) -> list[dict[str, Any]]:
+    """Records for every repo, with owner status and findings, ordered by repo.
+
+    ``other_entities`` names entities declared by repos outside ``texts``, so a
+    partial run still resolves relations to them.
+    """
     entries = [with_owner_status(record(repo, text), existing_users) for repo, text in sorted(texts.items())]
-    names = {entry["entity_name"].lower() for entry in entries if entry.get("entity_name")}
+    names = entity_names(entries) | other_entities
     related = [{**entry, "relations": relations(entry, names)} if entry.get("has_entity") else entry for entry in entries]
     return [{**entry, "findings": findings(entry)} for entry in related]
 

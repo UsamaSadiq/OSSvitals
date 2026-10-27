@@ -39,7 +39,10 @@ function serve(files: Record<string, unknown>) {
     "fetch",
     vi.fn(async (url: string) => {
       const body = files[url.split("/").pop() ?? ""];
-      return new Response(JSON.stringify(body), { status: body ? 200 : 404 });
+      return new Response(JSON.stringify(body), {
+        status: body ? 200 : 404,
+        headers: { "Content-Type": "application/json" },
+      });
     }),
   );
 }

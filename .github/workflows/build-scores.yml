@@ -49,35 +49,42 @@ jobs:
       - run: python scripts/build_scores.py --org openedx --out-dir "$OUT_DIR"
         env:
           PYTHONPATH: ${{ github.workspace }}
-      - name: Fetch published maintenance files
-        run: |
-          mkdir -p "$RUNNER_TEMP/published"
-          if git fetch --depth 1 origin data; then
-            git archive FETCH_HEAD openedx/maintenance | tar -x -C "$RUNNER_TEMP/published" || true
-          fi
-      - run: python scripts/build_views.py --org openedx --out-dir "$OUT_DIR/views" --maintenance-dir "$RUNNER_TEMP/published/openedx/maintenance"
-        env:
-          PYTHONPATH: ${{ github.workspace }}
 
-      - name: Publish to data branch
+      # collect-maintenance.yml also writes openedx/views, as often as every few minutes.
+      # Views are built from the maintenance files in the clone being pushed, so a push
+      # can only land on the state it was built from; a rejected push starts over.
+      - name: Build views and publish to data branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin data >/dev/null; then
-            git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch
-          else
-            git init -b data data-branch
-            git -C data-branch remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          fi
-          mkdir -p data-branch/openedx
-          cp -R "$OUT_DIR"/. data-branch/openedx/
-          cd data-branch
-          git add openedx
-          if git diff --cached --quiet; then
-            echo "Scores unchanged."
-            exit 0
-          fi
-          git commit -m "chore(data): update openedx scores $(date -u +%F)"
-          git push origin data
+          remote="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          clone_data_branch() {
+            if git ls-remote --exit-code --heads origin data >/dev/null; then
+              git clone --depth 1 --branch data "$remote" data-branch
+            else
+              git init -b data data-branch && git -C data-branch remote add origin "$remote"
+            fi
+          }
+          publish() {
+            rm -rf data-branch "$OUT_DIR/views"
+            clone_data_branch || return 1
+            python scripts/build_views.py --org openedx --out-dir "$OUT_DIR/views" \
+              --maintenance-dir data-branch/openedx/maintenance || return 1
+            mkdir -p data-branch/openedx || return 1
+            cp -R "$OUT_DIR"/. data-branch/openedx/ || return 1
+            git -C data-branch add openedx || return 1
+            if git -C data-branch diff --cached --quiet; then
+              echo "Scores unchanged."
+              return 0
+            fi
+            git -C data-branch commit -m "chore(data): update openedx scores $(date -u +%F)" || return 1
+            git -C data-branch push origin data
+          }
+          for attempt in 1 2 3; do
+            publish && exit 0
+            echo "Publish attempt $attempt failed; retrying from a fresh clone."
+          done
+          exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONPATH: ${{ github.workspace }}

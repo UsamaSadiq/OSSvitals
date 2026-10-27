@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ZodType } from "zod";
+import { fetchDataJson } from "../../data/load";
 import {
   appsSchema,
   conflictsSchema,
@@ -25,14 +26,8 @@ export type MonetaState = { status: "loading" } | ({ status: "ready" } & MonetaV
 
 let pending: Promise<MonetaViews> | null = null;
 
-async function fetchJson(file: string): Promise<unknown> {
-  const response = await fetch(`/data/moneta/views/${file}`);
-  if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
-  return response.json();
-}
-
 async function fetchRequired<T>(file: string, schema: ZodType<T>): Promise<T> {
-  return schema.parse(await fetchJson(file));
+  return schema.parse(await fetchDataJson("moneta", file));
 }
 
 async function fetchOptional<T>(file: string, schema: ZodType<T>): Promise<T | null> {

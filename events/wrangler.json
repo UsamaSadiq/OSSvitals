@@ -1,0 +1,15 @@
+{
+  "name": "ossvitals-events",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "triggers": { "crons": ["*/2 * * * *"] },
+  "r2_buckets": [{ "binding": "STATE", "bucket_name": "ossvitals-events-state" }],
+  "vars": {
+    "ORG": "openedx",
+    "TARGET_REPO": "UsamaSadiq/OSSvitals",
+    "WORKFLOW": "collect-maintenance.yml",
+    "REF": "main",
+    "MIN_DISPATCH_GAP_MINUTES": "5"
+  }
+}

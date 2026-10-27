@@ -7,7 +7,7 @@ import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
 import { ShareLink } from "../../components/ShareLink";
 import type { ComponentsView } from "../../data/schemas";
 import { useView } from "../../data/useView";
-import { formatNumber } from "../../format";
+import { formatNumber, refreshedNote } from "../../format";
 import { membershipNote } from "../../layout/catalogCopy";
 import { usePageTitle } from "../../layout/pageTitle";
 import { useSiteMeta } from "../../layout/siteMeta";
@@ -122,7 +122,7 @@ function CatalogSnapshot({ view }: { view: ComponentsView }) {
   return (
     <>
       <p className="caption">
-        Collected {collectedLabel(view.collected_at)} from each repo's default branch. {membershipNote(catalog)}
+        Collected {collectedLabel(view.collected_at)} from each repo's default branch.{refreshedNote(view.collected_at, view.refreshed_at)} {membershipNote(catalog)}
       </p>
       <SummaryTiles summary={view.summary ?? EMPTY_SUMMARY} />
       <CatalogIssues findings={view.findings ?? []} />

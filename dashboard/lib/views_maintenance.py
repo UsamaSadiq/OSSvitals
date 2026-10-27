@@ -40,6 +40,11 @@ def _generated(payload: dict[str, Any]) -> str | None:
     return payload["metadata"].get("generated_at")
 
 
+def _stamps(payload: dict[str, Any]) -> dict[str, str | None]:
+    """When the whole file was collected, and when a repo-scoped run last refreshed part of it."""
+    return {"collected_at": _generated(payload), "refreshed_at": payload["metadata"].get("refreshed_at")}
+
+
 def _present(frame: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
     return frame[[field for field in fields if field in frame.columns]]
 
@@ -67,7 +72,7 @@ def build_components(ctx: BuildContext) -> dict[str, Any]:
         ctx,
         "catalog-info.yaml snapshot",
         available=True,
-        collected_at=_generated(payload),
+        **_stamps(payload),
         summary=payload["metadata"].get("summary") or {},
         findings=_finding_rows(payload, components),
         components=records(_present(components, COMPONENT_FIELDS)),
@@ -79,7 +84,7 @@ def _upgrade_jobs(payload: dict[str, Any] | None) -> dict[str, Any] | None:
     if payload is None:
         return None
     return {
-        "collected_at": _generated(payload),
+        **_stamps(payload),
         "states": payload["metadata"].get("states", {}),
         "records": records(_present(pd.DataFrame(payload["records"]), UPGRADE_JOB_FIELDS)),
     }
@@ -102,7 +107,7 @@ def _wave(wave_id: str, wave: dict[str, Any], payload: dict[str, Any] | None) ->
     return {
         **base,
         "available": True,
-        "collected_at": _generated(payload),
+        **_stamps(payload),
         "summary": payload["metadata"].get("summary", {}),
         "records": _wave_records(payload),
     }
@@ -129,7 +134,7 @@ def _campaign(campaign_id: str, campaign: dict[str, Any], payload: dict[str, Any
     return {
         **base,
         "available": True,
-        "collected_at": _generated(payload),
+        **_stamps(payload),
         "summary": payload["metadata"].get("summary", {}),
         "records": _campaign_records(payload),
     }
@@ -140,7 +145,7 @@ def _redundant(payload: dict[str, Any] | None) -> dict[str, Any] | None:
         return None
     meta = payload["metadata"]
     return {
-        "collected_at": _generated(payload),
+        **_stamps(payload),
         "redundant": meta.get("redundant", 0),
         "bot_prs_checked": meta.get("bot_prs_checked", 0),
         "records": records(_present(pd.DataFrame(payload["records"]), REDUNDANT_FIELDS)),

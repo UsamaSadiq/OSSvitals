@@ -62,6 +62,9 @@ def record(pr: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
+def ordered(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(entries, key=lambda item: (item["repo_name"], item["check"], -item["pr_number"]))
+
+
 def records(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    kept = [entry for entry in (record(pr) for pr in hits) if entry is not None]
-    return sorted(kept, key=lambda item: (item["repo_name"], item["check"], -item["pr_number"]))
+    return ordered([entry for entry in (record(pr) for pr in hits) if entry is not None])
