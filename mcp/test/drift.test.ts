@@ -3,12 +3,18 @@ import { describe, expect, it } from "vitest";
 import appsJson from "./fixtures/moneta/views/apps.json";
 import conflictsJson from "./fixtures/moneta/views/conflicts.json";
 import driftJson from "./fixtures/moneta/views/drift.json";
+import metaJson from "./fixtures/moneta/views/meta.json";
 import { handle, type HandlerDeps } from "../src/index.ts";
 import { neverLimit } from "../src/limiter.ts";
 
 const BASE = "https://{org}.test/data/{org}/views";
 
-const FIXTURES: Record<string, unknown> = { apps: appsJson, drift: driftJson, conflicts: conflictsJson };
+const FIXTURES: Record<string, unknown> = {
+  apps: appsJson,
+  drift: driftJson,
+  conflicts: conflictsJson,
+  meta: metaJson,
+};
 
 function fakeFetch(unavailable: string[] = []): typeof fetch {
   return async (input) => {
@@ -36,11 +42,11 @@ async function call(client: Client, name: string, args: Record<string, unknown>)
 }
 
 describe("moneta drift tools", () => {
-  it("lists list_tenants plus the three drift tools", async () => {
+  it("lists list_tenants, report_issue and the three drift tools", async () => {
     const client = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(
-      ["get_app", "get_conflict_forecast", "list_apps", "list_tenants"].sort(),
+      ["get_app", "get_conflict_forecast", "list_apps", "list_tenants", "report_issue"].sort(),
     );
     await client.close();
   });
@@ -87,6 +93,36 @@ describe("moneta drift tools", () => {
     const result = await call(client, "get_conflict_forecast", { repo: "alpha" });
     expect(result.isError).toBe(true);
     expect(result.text).toContain("conflicts");
+    await client.close();
+  });
+
+  it("report_issue returns a prefilled issue link without filing anything", async () => {
+    const client = await connect();
+    const { text } = await call(client, "report_issue", {
+      kind: "data",
+      title: "alpha drift looks stale",
+      details: "behind_by has not moved in a week",
+      repo: "alpha",
+    });
+    const payload = JSON.parse(text) as { url: string; filed: boolean };
+    const params = new URL(payload.url).searchParams;
+
+    expect(payload.filed).toBe(false);
+    expect(payload.url.startsWith("https://github.com/UsamaSadiq/OSSvitals/issues/new?")).toBe(true);
+    expect(Object.fromEntries(params)).toMatchObject({
+      template: "wrong-data.yml",
+      tenant: "moneta",
+      repo: "alpha",
+      data_date: "2026-08-31",
+    });
+    await client.close();
+  });
+
+  it("report_issue returns an error when meta is unavailable", async () => {
+    const client = await connect(["meta"]);
+    const result = await call(client, "report_issue", { kind: "bug", title: "t", details: "d" });
+    expect(result.isError).toBe(true);
+    expect(result.text).toContain("meta");
     await client.close();
   });
 });
