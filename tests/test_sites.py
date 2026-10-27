@@ -38,3 +38,19 @@ def test_placeholder_is_not_indexed():
 
     assert '<meta name="robots" content="noindex">' in (site / "index.html").read_text()
     assert "X-Robots-Tag: noindex" in (site / "_headers").read_text()
+
+
+@pytest.mark.parametrize("site", ["landing", "placeholder"])
+def test_pages_ship_the_favicon(site):
+    public = SITES / site / "public"
+
+    assert (public / "favicon.svg").exists()
+    assert '<link rel="icon" type="image/svg+xml" href="/favicon.svg">' in (public / "index.html").read_text()
+
+
+def test_landing_hosts_the_social_image():
+    public = SITES / "landing" / "public"
+    html = (public / "index.html").read_text()
+
+    assert (public / "og-image.png").exists()
+    assert '<meta property="og:image" content="https://ossvitals.org/og-image.png">' in html
