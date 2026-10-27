@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable
 
 from urllib.parse import quote
 
 from collectors.moneta import signals
 from collectors.moneta.ranges import affects, version_key
-from collectors.moneta.status import classify
+from collectors.moneta.release_gap import release_gap
+from collectors.moneta.status import DriftSignals, classify
 
 Api = Callable[[str], Any]
 MergedBy = Callable[[str, str, str], list[str] | None]
@@ -18,6 +19,7 @@ FORK_RELEASE_TAG = r"^v2\d\.\d{1,2}\.\d+$"
 RC_TAG = re.compile(r"^v?(\d+(?:\.\d+)+)-rc[.\-]?(\d*)$")
 RC_SUFFIX = re.compile(r"-rc[.\-]?\d*$")
 BASE_RELEASE_CANDIDATES = 25
+BASE_RELEASE_SLACK = timedelta(days=7)
 RELEASE_PAGES = 4
 TAG_CANDIDATES = 5
 ADVISORY_SOURCE = "github-published-advisories"
@@ -115,16 +117,22 @@ def fork_base_release(
     base: str,
     upstream: str,
     pattern: re.Pattern[str] | None,
-    fork_release: dict[str, Any] | None,
+    ref: str | None,
     releases: list[dict[str, Any]],
+    merged_at: str,
 ) -> str | None:
-    """The highest-versioned upstream release that is in the history of our latest fork release."""
-    if fork_release is None:
+    """The highest-versioned upstream release in the history of `ref`.
+
+    A release published well after our last upstream merge cannot be in that history, so it is not compared.
+    """
+    if ref is None:
         return None
     owner = upstream.split("/")[0]
-    newest_first = sorted(_all_releases(api, upstream, pattern, releases), key=lambda release: version_key(release["tag_name"]), reverse=True)
+    latest_possible = _parse(merged_at) + BASE_RELEASE_SLACK
+    possible = [release for release in _all_releases(api, upstream, pattern, releases) if _parse(release["published_at"]) <= latest_possible]
+    newest_first = sorted(possible, key=lambda release: version_key(release["tag_name"]), reverse=True)
     for release in newest_first[:BASE_RELEASE_CANDIDATES]:
-        comparison = api(f"{base}/compare/{owner}:{quote(release['tag_name'], safe='')}...{quote(fork_release['tag'], safe='')}")
+        comparison = api(f"{base}/compare/{owner}:{quote(release['tag_name'], safe='')}...{quote(ref, safe='')}")
         if comparison and comparison["behind_by"] == 0:
             return release["tag_name"]
     return None
@@ -208,12 +216,16 @@ def collect_fork(
     release = latest_fork_release(api, base, upstream_ref, tags, fork_pattern)
     releases = upstream_releases(api, app["upstream"], upstream_pattern)
     upstream_release = latest_upstream_release(api, app["upstream"], releases, upstream_pattern)
-    base_release = signals.guarded(lambda: fork_base_release(api, base, app["upstream"], upstream_pattern, release, releases))
+    base_ref = release["tag"] if release else production
+    base_release = signals.guarded(lambda: fork_base_release(api, base, app["upstream"], upstream_pattern, base_ref, releases, merged_at))
     advisories = advisory_summary(
         api, app["upstream"], release["date"] if release else None, rules.get("critical_advisory_severities", []), base_release
     )
     distance = signals.guarded(lambda: release_distance(api, base, owner, production, upstream_release)) or {}
     days = _days_since(merged_at, now)
+    gap = release_gap(base_release, base_ref, releases, now)
+    severe = advisories["severe_affecting_fork_release"] if gap else advisories["severe_since_fork_release"]
+    drift = DriftSignals(behind=comparison["behind_by"], days=days, severe_advisory=severe > 0, gap=gap)
     return {
         "repo": app["repo"],
         "production_branch": production,
@@ -227,11 +239,13 @@ def collect_fork(
         "behind_release": distance.get("behind_release"),
         "ahead_release": distance.get("ahead_release"),
         "release_lag": release_lag(releases, merged_at, release),
+        "release_gap": gap,
         "advisories": advisories,
         "promotion": promotion(api, base, production, staging),
         "ci": signals.guarded(lambda: signals.ci_status(api, base, production)),
         "pull_requests": signals.guarded(lambda: signals.open_pull_requests(api, base, production)),
         "maintainers": signals.guarded(lambda: signals.merged_by(merged_by, org, app["repo"], production)),
         "upstream_activity": signals.guarded(lambda: signals.upstream_activity(api, app["upstream"], now, rules.get("upstream_quiet_days", 120))),
-        "status": classify(rules["statuses"], comparison["behind_by"], days, advisories["severe_since_fork_release"] > 0),
+        "status": classify(rules["statuses"], drift),
+        "status_basis": drift.basis,
     }

@@ -78,6 +78,11 @@ describe("attentionReasons", () => {
     expect(attentionReasons(fork({}), undefined)).toEqual(["4,849 commits behind upstream, last synced 164 days ago"]);
   });
 
+  it("explains the drift by upstream release when the base release is known", () => {
+    const row = fork({ release_gap: { base: "v1.7.1", base_ref: "v1", latest: "v1.10.1", releases_behind: 8, level: "minor", days_behind: 120 } });
+    expect(attentionReasons(row, undefined)).toEqual(["Built on v1.7.1 → v1.10.1, 8 releases behind (a minor version behind)"]);
+  });
+
   it("adds a line for each other problem it can see", () => {
     const row = fork({
       advisories: { published: 3, since_fork_release: 2, source: "x" },

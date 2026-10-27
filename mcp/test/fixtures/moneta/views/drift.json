@@ -80,7 +80,16 @@
         "quiet": false
       },
       "behind_release": 2200,
-      "ahead_release": 12
+      "ahead_release": 12,
+      "status_basis": "release",
+      "release_gap": {
+        "base": "v2.0.0",
+        "base_ref": "v26.8.0",
+        "latest": "v2.1.0",
+        "releases_behind": 1,
+        "level": "minor",
+        "days_behind": 40
+      }
     },
     {
       "repo": "beta",
@@ -130,7 +139,9 @@
         "quiet": false
       },
       "behind_release": 0,
-      "ahead_release": 12
+      "ahead_release": 12,
+      "status_basis": "commits",
+      "release_gap": null
     },
     {
       "repo": "gamma",
@@ -180,7 +191,9 @@
         "quiet": false
       },
       "behind_release": 0,
-      "ahead_release": 12
+      "ahead_release": 12,
+      "status_basis": "commits",
+      "release_gap": null
     }
   ]
 }

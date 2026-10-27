@@ -27,7 +27,10 @@
           "label": {"type": "string"},
           "min_behind": {"type": "integer", "minimum": 0},
           "min_days_since_upstream_merge": {"type": "integer", "minimum": 0},
-          "on_advisory_newer_than_release": {"type": "boolean"}
+          "min_releases_behind": {"type": "integer", "minimum": 1},
+          "min_version_gap": {"enum": ["patch", "minor", "major"]},
+          "min_days_behind_release": {"type": "integer", "minimum": 0},
+          "on_severe_advisory": {"type": "boolean"}
         },
         "additionalProperties": false
       }

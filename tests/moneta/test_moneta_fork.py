@@ -307,8 +307,7 @@ def test_the_base_release_is_the_highest_version_in_history_not_the_newest_by_da
         f"{BASE}/compare/up:v1.7.1...v26.9.0": {"behind_by": 0},
         f"{BASE}/compare/up:v1.7.0...v26.9.0": {"behind_by": 0},
     }
-    release = {"tag": "v26.9.0", "date": "2026-09-20T00:00:00Z"}
-    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", None, release, fork.upstream_releases(api_for(routes), "up/demo")) == "v1.7.1"
+    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", None, "v26.9.0", fork.upstream_releases(api_for(routes), "up/demo"), "2026-10-01T00:00:00Z") == "v1.7.1"
 
 
 def test_a_release_cut_from_a_side_branch_does_not_stop_the_search():
@@ -318,5 +317,56 @@ def test_a_release_cut_from_a_side_branch_does_not_stop_the_search():
         f"{BASE}/compare/up:v2.0.0...v26.9.0": {"behind_by": 12},
         f"{BASE}/compare/up:v1.9.0...v26.9.0": {"behind_by": 0},
     }
-    release = {"tag": "v26.9.0", "date": "2026-09-20T00:00:00Z"}
-    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", None, release, fork.upstream_releases(api_for(routes), "up/demo")) == "v1.9.0"
+    assert fork.fork_base_release(api_for(routes), BASE, "up/demo", None, "v26.9.0", fork.upstream_releases(api_for(routes), "up/demo"), "2026-10-01T00:00:00Z") == "v1.9.0"
+
+
+def test_releases_published_well_after_our_last_merge_are_not_base_candidates():
+    releases = [release_pair(f"v1.{minor}.0", f"2026-{month:02d}-01T00:00:00Z") for minor, month in [(9, 10), (8, 9), (7, 6)]]
+    routes = {"repos/up/demo/releases?per_page=100": releases, f"{BASE}/compare/up:v1.7.0...foss-main": {"behind_by": 0}}
+    asked = []
+
+    def api(path):
+        asked.append(path)
+        return routes.get(path)
+
+    kept = fork.upstream_releases(api, "up/demo")
+    assert fork.fork_base_release(api, BASE, "up/demo", None, "foss-main", kept, "2026-06-10T00:00:00Z") == "v1.7.0"
+    assert not any("v1.9.0" in path or "v1.8.0" in path for path in asked)
+
+
+GAP_ROUTES = {
+    **ROUTES,
+    f"{BASE}/compare/up:v1.5.0...v26.9.0": {"behind_by": 7},
+    f"{BASE}/compare/up:v1.4.0...v26.9.0": {"behind_by": 0},
+}
+
+
+def test_a_known_base_release_puts_the_status_on_the_release_basis():
+    record = collect({**GAP_ROUTES, f"{BASE}/compare/up:main...foss-main": {**ROUTES[f"{BASE}/compare/up:main...foss-main"], "behind_by": 5000}})
+    assert record["release_gap"] == {"base": "v1.4.0", "base_ref": "v26.9.0", "latest": "v1.5.0", "releases_behind": 1, "level": "minor", "days_behind": 11}
+    assert (record["status_basis"], record["status"]) == ("release", "lagging")
+
+
+def test_on_the_release_basis_only_a_severe_advisory_affecting_our_base_is_critical():
+    newer_but_fixed = [{"published_at": "2026-09-25T00:00:00Z", "severity": "high", "ghsa_id": "G", "vulnerabilities": [{"vulnerable_version_range": "< 1.4.0"}]}]
+    record = collect({**GAP_ROUTES, "repos/up/demo/security-advisories?per_page=100": newer_but_fixed})
+    assert record["status"] == "lagging"
+    affecting = [{**newer_but_fixed[0], "vulnerabilities": [{"vulnerable_version_range": "<= 1.4.0"}]}]
+    assert collect({**GAP_ROUTES, "repos/up/demo/security-advisories?per_page=100": affecting})["status"] == "critical"
+
+
+def test_without_a_fork_release_the_base_is_found_from_the_production_branch():
+    routes = {
+        **ROUTES,
+        f"{BASE}/tags?per_page=100": [],
+        f"{BASE}/compare/up:v1.5.0...foss-main": {"behind_by": 3, "ahead_by": 1},
+        f"{BASE}/compare/up:v1.4.0...foss-main": {"behind_by": 0},
+    }
+    record = collect(routes)
+    assert record["fork_release"] is None
+    assert (record["release_gap"]["base"], record["release_gap"]["base_ref"]) == ("v1.4.0", "foss-main")
+
+
+def test_the_commit_basis_is_kept_when_no_base_release_is_found():
+    record = collect()
+    assert (record["release_gap"], record["status_basis"]) == (None, "commits")

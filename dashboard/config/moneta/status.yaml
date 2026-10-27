@@ -10,17 +10,21 @@ statuses:
     label: "In sync"
   - key: "lagging"
     label: "Lagging"
+    min_version_gap: "minor"
+    min_releases_behind: 3
     min_behind: 50
     min_days_since_upstream_merge: 30
   - key: "stale"
     label: "Stale"
+    min_version_gap: "major"
+    min_days_behind_release: 90
     min_behind: 500
     min_days_since_upstream_merge: 90
   - key: "critical"
     label: "Critical"
     min_behind: 2000
     min_days_since_upstream_merge: 180
-    on_advisory_newer_than_release: true
+    on_severe_advisory: true
 freshness:
   stale_threshold_hours: 48
   critically_stale_threshold_hours: 168
