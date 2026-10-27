@@ -10,11 +10,6 @@ export function dataBase(): string {
   return import.meta.env.VITE_DATA_BASE || LOCAL_DATA_BASE;
 }
 
-export function dataBases(): string[] {
-  const primary = dataBase();
-  return primary === LOCAL_DATA_BASE ? [LOCAL_DATA_BASE] : [primary, LOCAL_DATA_BASE];
-}
-
 function viewPath(org: string, name: ViewName): string {
   return `${encodeURIComponent(org)}/views/${viewFileName(name)}`;
 }
@@ -32,10 +27,10 @@ function isSpaFallbackPage(response: Response): boolean {
   return contentType !== null && !contentType.toLowerCase().includes("json");
 }
 
-async function fetchJson(url: string, file: string, fetchImpl: Fetch): Promise<unknown> {
+async function fetchJson(url: string, file: string, fetchImpl: Fetch, signal?: AbortSignal): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetchImpl(url);
+    response = await (signal ? fetchImpl(url, { signal }) : fetchImpl(url));
   } catch (error) {
     throw new ViewDataError(file, "network", `could not be downloaded (${messageOf(error)})`);
   }
@@ -50,26 +45,39 @@ async function fetchJson(url: string, file: string, fetchImpl: Fetch): Promise<u
   }
 }
 
-// The data host is primary; the copy bundled at build time keeps the site usable if it is down.
-// That copy can be older, which the freshness banner then reports from its snapshot date.
-export async function fetchDataJson(path: string, file: string, fetchImpl: Fetch = fetch): Promise<unknown> {
-  const [primary, ...fallbacks] = dataBases();
+const PRIMARY_TIMEOUT_MS = 5000;
+const baseByOrg = new Map<string, Promise<string>>();
+
+async function hostServes(base: string, org: string, fetchImpl: Fetch): Promise<boolean> {
+  const url = `${base}/${viewPath(org, "meta")}`;
   try {
-    return await fetchJson(`${primary}/${path}`, file, fetchImpl);
-  } catch (primaryError) {
-    for (const base of fallbacks) {
-      try {
-        return await fetchJson(`${base}/${path}`, file, fetchImpl);
-      } catch {
-        continue;
-      }
-    }
-    throw primaryError;
+    parseView("meta", await fetchJson(url, viewFileName("meta"), fetchImpl, AbortSignal.timeout(PRIMARY_TIMEOUT_MS)));
+    return true;
+  } catch (error) {
+    console.warn(`Data host ${base} failed for ${org}; using the copy bundled with the site. ${messageOf(error)}`);
+    return false;
   }
 }
 
+// One source per org for the whole session, so every view and the freshness banner (from meta.json)
+// describe the same snapshot. The bundled copy is as old as the last code deploy.
+export function dataBaseFor(org: string, fetchImpl: Fetch = fetch): Promise<string> {
+  const primary = dataBase();
+  if (primary === LOCAL_DATA_BASE) return Promise.resolve(primary);
+  const cached = baseByOrg.get(org);
+  if (cached) return cached;
+  const pending = hostServes(primary, org, fetchImpl).then((serves) => (serves ? primary : LOCAL_DATA_BASE));
+  baseByOrg.set(org, pending);
+  return pending;
+}
+
+export async function fetchDataJson(org: string, file: string, fetchImpl: Fetch = fetch): Promise<unknown> {
+  const base = await dataBaseFor(org, fetchImpl);
+  return fetchJson(`${base}/${encodeURIComponent(org)}/views/${file}`, file, fetchImpl);
+}
+
 async function fetchView<Name extends ViewName>(name: Name, org: string, fetchImpl: Fetch): Promise<View<Name>> {
-  return parseView(name, await fetchDataJson(viewPath(org, name), viewFileName(name), fetchImpl));
+  return parseView(name, await fetchDataJson(org, viewFileName(name), fetchImpl));
 }
 
 export function loadView<Name extends ViewName>(
@@ -88,4 +96,5 @@ export function loadView<Name extends ViewName>(
 
 export function clearViewCache(): void {
   cache.clear();
+  baseByOrg.clear();
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata, metaFixture } from "./fixtures";
 import { clearViewCache, loadView, viewUrl } from "./load";
 import { ViewDataError } from "./parse";
@@ -102,51 +102,55 @@ describe("loadView", () => {
     expect(error.message).toBe("repos.json: HTTP 404 from /data/openedx/views/repos.json");
   });
 
-  it("falls back to the bundled copy when the data host fails", async () => {
-    vi.stubEnv("VITE_DATA_BASE", "https://data.ossvitals.org");
-    try {
+  describe("with a data host", () => {
+    const HOST = "https://data.ossvitals.org";
+    const urlsOf = (fetchImpl: ReturnType<typeof vi.fn<typeof fetch>>) => fetchImpl.mock.calls.map(([url]) => url);
+
+    beforeEach(() => vi.stubEnv("VITE_DATA_BASE", HOST));
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("reads every view from the host once its meta.json checks out, with a deadline on the check", async () => {
+      const fetchImpl = fetchReturning(metaFixture());
+      await loadView("meta", "openedx", fetchImpl);
+      await rejectionOf(loadView("overview", "openedx", fetchImpl));
+
+      expect(urlsOf(fetchImpl)).toEqual([
+        `${HOST}/openedx/views/meta.json`,
+        `${HOST}/openedx/views/meta.json`,
+        `${HOST}/openedx/views/overview.json`,
+      ]);
+      expect(fetchImpl.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it("switches every view to the bundled copy when the host fails, and warns", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
       const fetchImpl = vi.fn<typeof fetch>(async (input) =>
-        String(input).startsWith("https://") ? jsonResponse({}, 503) : jsonResponse(metaFixture()),
+        String(input).startsWith(HOST) ? jsonResponse({}, 503) : jsonResponse(metaFixture()),
       );
       const meta = await loadView("meta", "openedx", fetchImpl);
+      await rejectionOf(loadView("overview", "openedx", fetchImpl));
 
       expect(meta.feature_flags.enable_maintainer_views).toBe(false);
-      expect(fetchImpl.mock.calls.map(([url]) => url)).toEqual([
-        "https://data.ossvitals.org/openedx/views/meta.json",
+      expect(urlsOf(fetchImpl)).toEqual([
+        `${HOST}/openedx/views/meta.json`,
         "/data/openedx/views/meta.json",
+        "/data/openedx/views/overview.json",
       ]);
-    } finally {
-      vi.unstubAllEnvs();
-    }
-  });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining("HTTP 503"));
+      warn.mockRestore();
+    });
 
-  it("reports the data host's error when the bundled copy fails too", async () => {
-    vi.stubEnv("VITE_DATA_BASE", "https://data.ossvitals.org");
-    try {
+    it("falls back when the host publishes a schema_version this build does not read", async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+      const future = metaFixture({ metadata: metadata("dashboard/config", { schema_version: 2 }) });
       const fetchImpl = vi.fn<typeof fetch>(async (input) =>
-        String(input).startsWith("https://")
-          ? jsonResponse({}, 503)
-          : new Response("<!doctype html>", { status: 200, headers: { "Content-Type": "text/html" } }),
+        jsonResponse(String(input).startsWith(HOST) ? future : metaFixture()),
       );
-      const error = await rejectionOf(loadView("meta", "openedx", fetchImpl));
+      await loadView("meta", "openedx", fetchImpl);
 
-      expect(error.message).toBe("meta.json: HTTP 503 from https://data.ossvitals.org/openedx/views/meta.json");
-    } finally {
-      vi.unstubAllEnvs();
-    }
-  });
-
-  it("does not fall back when the data host serves a file that fails its schema", async () => {
-    vi.stubEnv("VITE_DATA_BASE", "https://data.ossvitals.org");
-    try {
-      const fetchImpl = fetchReturning({ ...metaFixture(), feature_flags: {} });
-      const error = await rejectionOf(loadView("meta", "openedx", fetchImpl));
-
-      expect(error.kind).toBe("schema");
-      expect(fetchImpl).toHaveBeenCalledTimes(1);
-    } finally {
-      vi.unstubAllEnvs();
-    }
+      expect(urlsOf(fetchImpl).at(-1)).toBe("/data/openedx/views/meta.json");
+      warn.mockRestore();
+    });
   });
 
   it("treats an HTML page served with 200 as a missing file", async () => {

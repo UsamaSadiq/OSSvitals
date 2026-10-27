@@ -27,7 +27,7 @@ export type MonetaState = { status: "loading" } | ({ status: "ready" } & MonetaV
 let pending: Promise<MonetaViews> | null = null;
 
 async function fetchRequired<T>(file: string, schema: ZodType<T>): Promise<T> {
-  return schema.parse(await fetchDataJson(`moneta/views/${file}`, file));
+  return schema.parse(await fetchDataJson("moneta", file));
 }
 
 async function fetchOptional<T>(file: string, schema: ZodType<T>): Promise<T | null> {
