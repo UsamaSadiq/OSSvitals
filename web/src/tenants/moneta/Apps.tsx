@@ -6,6 +6,7 @@ import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
 import { Tabs, type TabItem } from "../../components/Tabs";
 import { usePageTitle } from "../../layout/pageTitle";
+import { CollectionFailures } from "./CollectionFailures";
 import { FilterBar } from "./FilterBar";
 import { ForkCards } from "./ForkCards";
 import { StatusPill } from "./StatusPill";
@@ -167,6 +168,7 @@ function Content() {
       <Explainer />
       <section className="overview-section" aria-labelledby="forks-heading">
         <h2 id="forks-heading">Forks tracked against upstream</h2>
+        <CollectionFailures failed={state.drift.failed} />
         <Forks forks={forks} />
       </section>
       <section className="overview-section" id="originals" aria-labelledby="originals-heading">

@@ -137,6 +137,14 @@ describe("Moneta overview", () => {
     expect((await screen.findByRole("link", { name: "Not yet promoted: 1" })).getAttribute("href")).toBe("/apps?unpromoted=1");
   });
 
+  it("warns when a fork's collection failed and keeps it out of the totals", async () => {
+    const drift = FILES["drift.json"] as { metadata: unknown; records: Record<string, unknown>[] };
+    FILES["drift.json"] = { ...drift, records: [...drift.records, { repo: "broken", error: "clone failed" }] };
+    renderRoute("/", META, monetaTenant);
+    expect(await screen.findByText("Collection failed for 1 fork: broken.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Status of our forks (3 tracked)" })).toBeTruthy();
+  });
+
   it("explains a data failure instead of showing an empty page", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 404 })));
     renderRoute("/", META, monetaTenant);
