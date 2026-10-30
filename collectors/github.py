@@ -48,6 +48,29 @@ def file_content(full_name: str, path: str, ref: str) -> str | None:
     return _gh_optional("api", f"repos/{full_name}/contents/{path}?ref={ref}", "-H", "Accept: application/vnd.github.raw")
 
 
+def latest_release_tag(full_name: str) -> str | None:
+    release = api_optional(f"repos/{full_name}/releases/latest")
+    return release.get("tag_name") if release else None
+
+
+def tag_targets(full_name: str, prefix: str) -> dict[str, dict[str, str]]:
+    """Tags under ``prefix`` mapped to the git object each points at."""
+    refs = api_optional(f"repos/{full_name}/git/matching-refs/tags/{prefix}") or []
+    return {ref["ref"].removeprefix("refs/tags/"): ref["object"] for ref in refs}
+
+
+def tagged_commit_date(full_name: str, target: dict[str, str]) -> str | None:
+    """Committer date of the commit a tag points at, following an annotated tag to its commit."""
+    sha = target["sha"]
+    if target["type"] == "tag":
+        tag = api_optional(f"repos/{full_name}/git/tags/{sha}")
+        if not tag:
+            return None
+        sha = tag["object"]["sha"]
+    commit = api_optional(f"repos/{full_name}/git/commits/{sha}")
+    return commit["committer"]["date"] if commit else None
+
+
 MERGED_BY_QUERY = (
     "query($owner:String!,$name:String!,$base:String!,$after:String){repository(owner:$owner,name:$name)"
     "{pullRequests(states:MERGED,baseRefName:$base,first:100,after:$after,orderBy:{field:CREATED_AT,direction:DESC})"

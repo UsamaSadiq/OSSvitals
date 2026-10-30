@@ -19,6 +19,7 @@ def test_openedx_config_files_validate_against_schemas():
         "waves",
         "campaign_supersession",
         "campaigns",
+        "support_windows",
     ]
 
     for name in config_names:

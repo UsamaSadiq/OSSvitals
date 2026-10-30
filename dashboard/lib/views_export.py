@@ -62,7 +62,7 @@ from dashboard.lib.stewardship import (
 )
 from dashboard.lib.tiers import TIER_COL
 from dashboard.lib.trends import Snapshot, summarize_weekly_changes
-from dashboard.lib.views_maintenance import build_components, build_upgrades
+from dashboard.lib.views_maintenance import build_components, build_support_window, build_upgrades
 from dashboard.lib.views_repo import build_repo_detail
 from dashboard.lib.views_common import (
     BuildContext,
@@ -486,6 +486,7 @@ BUILDERS: dict[str, Callable[[BuildContext], dict[str, Any]]] = {
     "repo_checks.json": build_repo_checks,
     "components.json": build_components,
     "upgrades.json": build_upgrades,
+    "support_window.json": build_support_window,
     "repo_detail.json": build_repo_detail,
 }
 

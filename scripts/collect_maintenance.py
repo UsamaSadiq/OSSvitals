@@ -11,7 +11,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from collectors import campaigns, catalog, fix_prs, github, merge, publish, redundant_prs, upgrade_jobs, waves
+from collectors import (
+    campaigns,
+    catalog,
+    endoflife,
+    fix_prs,
+    github,
+    merge,
+    publish,
+    redundant_prs,
+    support_windows,
+    upgrade_jobs,
+    waves,
+)
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import DEFAULT_ORG, get_config
 
@@ -22,9 +34,15 @@ REDUNDANT_PRS_FILE = "redundant_prs.json"
 CATALOG_FILE = "catalog.json"
 CATALOG_PATH = "catalog-info.yaml"
 FIX_PRS_FILE = "fix_prs.json"
+SUPPORT_WINDOWS_FILE = "support_windows.json"
+TUTOR_DEFAULTS = "tutor/templates/config/defaults.yml"
+OPENEDX_RELEASE_PATTERN = r'OPENEDX_COMMON_VERSION: "([^"]+)"'
+RELEASE_TAG_PATTERN = r"^([a-z]+)\.1$"
+MISSING_DECLARED = support_windows.Declared(support_windows.MISSING)
 TREE_WORKERS = 8
-COLLECTORS = ("upgrade_jobs", "waves", "campaigns", "redundant_prs", "catalog", "fix_prs")
-MERGEABLE = tuple(name for name in COLLECTORS if name != "upgrade_jobs")
+COLLECTORS = ("upgrade_jobs", "waves", "campaigns", "redundant_prs", "catalog", "fix_prs", "support_windows")
+ORG_WIDE = ("upgrade_jobs", "support_windows")
+MERGEABLE = tuple(name for name in COLLECTORS if name not in ORG_WIDE)
 
 Records = list[dict[str, Any]]
 
@@ -65,8 +83,9 @@ def _parse_args() -> argparse.Namespace:
     args = parser.parse_args()
     if args.merge and not args.repo:
         parser.error("--merge needs at least one --repo")
-    if args.merge and "upgrade_jobs" in (args.collector or []):
-        parser.error("upgrade_jobs has no per-repo merge; run it without --merge")
+    for name in ORG_WIDE:
+        if args.merge and name in (args.collector or []):
+            parser.error(f"{name} has no per-repo merge; run it without --merge")
     return args
 
 
@@ -323,6 +342,116 @@ def collect_fix_prs(out_dir: Path, scope: Scope, target: Target) -> int:
     return 0
 
 
+@dataclass(frozen=True)
+class ResolvedRef:
+    repo: str
+    ref: str | None
+
+
+def _resolve_refs(refs: dict[str, dict[str, str]]) -> dict[str, ResolvedRef]:
+    """Each named ref as a concrete tag or branch; ``openedx_release`` needs the Tutor ref first."""
+    resolved: dict[str, ResolvedRef] = {}
+    for name, entry in sorted(refs.items(), key=lambda item: item[1]["ref"] == "openedx_release"):
+        resolved[name] = ResolvedRef(entry["repo"], _concrete_ref(entry, resolved))
+    return resolved
+
+
+def _concrete_ref(entry: dict[str, str], resolved: dict[str, ResolvedRef]) -> str | None:
+    if entry["ref"] == "latest_release":
+        return github.latest_release_tag(entry["repo"])
+    if entry["ref"] == "openedx_release":
+        tutor = resolved.get("tutor")
+        defaults = github.file_content(tutor.repo, TUTOR_DEFAULTS, tutor.ref) if tutor and tutor.ref else None
+        return support_windows.detect(defaults, OPENEDX_RELEASE_PATTERN)
+    return entry["ref"]
+
+
+def _detected(rule: dict[str, str], refs: dict[str, ResolvedRef]) -> support_windows.Detected:
+    source = refs[rule["source"]]
+    text = github.file_content(source.repo, rule["path"], source.ref) if source.ref else None
+    return support_windows.Detected(support_windows.detect(text, rule["pattern"]), source.repo, source.ref, rule["path"])
+
+
+def _release_dates(settings: dict[str, Any]) -> dict[str, datetime]:
+    repo, dates = settings["tag_repo"], {}
+    for prefix in settings["tag_prefixes"]:
+        for tag, target in github.tag_targets(repo, prefix).items():
+            name = support_windows.detect(tag.removeprefix(prefix), RELEASE_TAG_PATTERN)
+            committed = github.tagged_commit_date(repo, target) if name else None
+            if name and committed:
+                dates[name] = datetime.fromisoformat(committed.replace("Z", "+00:00"))
+    return dates
+
+
+def _open_edx_record(settings: dict[str, Any], declared: dict, refs: dict[str, ResolvedRef], **context: Any) -> dict[str, Any]:
+    released = {name: when.date() for name, when in _release_dates(settings).items()}
+    cycles = support_windows.open_edx_cycles(released, settings.get("planned", []))
+    found = _detected(settings["detect"], refs)
+    detected = support_windows.Detected(
+        found.version.capitalize() if found.version else None, found.repo, found.ref, found.path
+    )
+    return support_windows.product_record(
+        "open_edx",
+        settings,
+        cycles,
+        declared.get(settings["declared_key"], MISSING_DECLARED),
+        detected,
+        tracks_eol=False,
+        **context,
+    )
+
+
+def _product_record(
+    product: str, settings: dict[str, Any], declared: dict, refs: dict[str, ResolvedRef], **context: Any
+) -> dict[str, Any] | None:
+    rows = endoflife.cycles(settings["eol_slug"])
+    if rows is None:
+        print(f"Support windows: endoflife.date has nothing for {settings['eol_slug']}; skipped {product}.")
+        return None
+    cycles = support_windows.cycles_from_endoflife(rows, settings.get("cycles", "all"), settings.get("extra_cycles"))
+    return support_windows.product_record(
+        product,
+        settings,
+        cycles,
+        declared.get(settings["declared_key"], MISSING_DECLARED),
+        _detected(settings["detect"], refs),
+        **context,
+    )
+
+
+def collect_support_windows(out_dir: Path, scope: Scope, target: Target) -> int:
+    config = get_config("support_windows", target.org)
+    if not config:
+        print("Support windows: not configured for this org; skipped.")
+        return 0
+    generated_at = now_utc()
+    refs = _resolve_refs(config["refs"])
+    source = config["declared"]
+    declared = support_windows.declared_versions(github.file_content(source["repo"], source["path"], source["ref"]))
+    if not declared:
+        print(f"Support windows: no CURRENT dict in {source['repo']} {source['path']}; kept the published file.")
+        return 0
+    context = {"today": generated_at.date(), "eol_soon_months": config.get("eol_soon_months", 12)}
+    products = [
+        _product_record(product, settings, declared, refs, **context)
+        for product, settings in config["products"].items()
+    ]
+    records = [_open_edx_record(config["open_edx"], declared, refs, **context), *filter(None, products)]
+    content = publish.payload(
+        records,
+        generated_at=generated_at,
+        source=support_windows.SOURCE,
+        declared_url=f"https://github.com/{source['repo']}/blob/{source['ref']}/{source['path']}",
+        edit_url=f"https://github.com/{source['repo']}/edit/{source['ref']}/{source['path']}",
+        refs={name: {"repo": ref.repo, "ref": ref.ref} for name, ref in refs.items()},
+        window=config.get("window", {}),
+        summary=support_windows.summary(records),
+    )
+    publish.write(out_dir / SUPPORT_WINDOWS_FILE, content)
+    print(f"Support windows: {len(records)} products, {support_windows.summary(records)}")
+    return 0
+
+
 def main() -> int:
     args = _parse_args()
     selected = args.collector or list(MERGEABLE if args.merge else COLLECTORS)
@@ -333,6 +462,7 @@ def main() -> int:
         "redundant_prs": collect_redundant_prs,
         "catalog": collect_catalog,
         "fix_prs": collect_fix_prs,
+        "support_windows": collect_support_windows,
     }
     target = _target(args.org)
     scope = Scope(repos=args.repo, merge=args.merge)

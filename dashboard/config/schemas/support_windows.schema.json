@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["declared", "refs", "open_edx", "products"],
+  "$defs": {
+    "month": {"type": "string", "pattern": "^\\d{4}-\\d{2}$"},
+    "detect": {
+      "type": "object",
+      "required": ["source", "path", "pattern"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {"type": "string"},
+        "path": {"type": "string"},
+        "pattern": {"type": "string"}
+      }
+    }
+  },
+  "properties": {
+    "declared": {
+      "type": "object",
+      "required": ["repo", "ref", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "repo": {"type": "string"},
+        "ref": {"type": "string"},
+        "path": {"type": "string"}
+      }
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["repo", "ref"],
+        "additionalProperties": false,
+        "properties": {
+          "repo": {"type": "string"},
+          "ref": {"type": "string"}
+        }
+      }
+    },
+    "eol_soon_months": {"type": "integer", "minimum": 1},
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "years_back": {"type": "integer", "minimum": 0},
+        "years_ahead": {"type": "integer", "minimum": 1}
+      }
+    },
+    "open_edx": {
+      "type": "object",
+      "required": ["label", "declared_key", "tag_repo", "tag_prefixes", "detect"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {"type": "string"},
+        "declared_key": {"type": "string"},
+        "source_note": {"type": "string"},
+        "tag_repo": {"type": "string"},
+        "tag_prefixes": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "detect": {"$ref": "#/$defs/detect"},
+        "planned": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "date"],
+            "additionalProperties": false,
+            "properties": {"name": {"type": "string"}, "date": {"$ref": "#/$defs/month"}}
+          }
+        }
+      }
+    },
+    "products": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["label", "declared_key", "eol_slug", "detect"],
+        "additionalProperties": false,
+        "properties": {
+          "label": {"type": "string"},
+          "declared_key": {"type": "string"},
+          "eol_slug": {"type": "string"},
+          "cycles": {"enum": ["all", "lts", "major", "latest_minor_per_major"]},
+          "detect": {"$ref": "#/$defs/detect"},
+          "extra_cycles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["cycle", "start"],
+              "additionalProperties": false,
+              "properties": {
+                "cycle": {"type": "string"},
+                "start": {"$ref": "#/$defs/month"},
+                "end": {"$ref": "#/$defs/month"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

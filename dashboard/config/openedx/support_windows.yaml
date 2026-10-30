@@ -1,0 +1,93 @@
+# Support Window page: the OEP-10 support calendar, kept current without hand edits.
+#
+# Release cycles and end-of-life dates come from endoflife.date every day, so new
+# versions appear on their own. "Detected" is what the latest Tutor release ships
+# (Tutor first; the platform release Tutor pins where Tutor sets no version).
+# "Declared" is the CURRENT dict in repo-tools barcalendar.py; a product whose
+# declared version differs from the detected one is shown as drift, meaning
+# barcalendar.py needs a PR.
+
+declared:
+  repo: openedx/repo-tools
+  ref: master
+  path: barcalendar.py
+
+# Repos whose refs other sources point at. `latest_release` resolves to the tag
+# of the repo's latest GitHub release; `openedx_release` to the platform release
+# the latest Tutor release pins (OPENEDX_COMMON_VERSION).
+refs:
+  tutor: {repo: overhangio/tutor, ref: latest_release}
+  tutor_discovery: {repo: overhangio/tutor-discovery, ref: latest_release}
+  platform: {repo: openedx/openedx-platform, ref: openedx_release}
+
+eol_soon_months: 12
+window: {years_back: 3, years_ahead: 4}
+
+open_edx:
+  label: Open edX
+  declared_key: Open edX
+  source_note: https://docs.openedx.org/en/latest/community/release_notes/index.html
+  tag_repo: openedx/openedx-platform
+  # A release's date is the commit its <prefix><name>.1 tag points at.
+  tag_prefixes: [release/, open-release/]
+  detect: {source: tutor, path: tutor/templates/config/defaults.yml, pattern: 'OPENEDX_COMMON_VERSION: "release/([a-z]+)\.'}
+  # Releases not cut yet, so not tagged. Remove an entry once its .1 tag exists.
+  planned:
+    - {name: Willow, date: 2027-02}
+
+products:
+  python:
+    label: Python
+    declared_key: Python
+    eol_slug: python
+    detect: {source: tutor, path: tutor/templates/build/openedx/Dockerfile, pattern: 'ARG PYTHON_VERSION=(\d+\.\d+)'}
+  django:
+    label: Django
+    declared_key: Django
+    eol_slug: django
+    cycles: lts
+    detect: {source: platform, path: requirements/edx/base.txt, pattern: '(?m)^django==(\d+\.\d+)'}
+  ubuntu:
+    label: Ubuntu
+    declared_key: Ubuntu
+    eol_slug: ubuntu
+    cycles: lts
+    detect: {source: tutor, path: tutor/templates/build/openedx/Dockerfile, pattern: 'FROM docker\.io/ubuntu:(\d+\.\d+)'}
+  node:
+    label: Node
+    declared_key: Node
+    eol_slug: nodejs
+    cycles: lts
+    detect: {source: tutor, path: tutor/templates/build/openedx/Dockerfile, pattern: '--node=(\d+)'}
+  react:
+    label: React
+    declared_key: React
+    eol_slug: react
+    detect: {source: platform, path: package.json, pattern: '"react":\s*"\^?(\d+)'}
+  mongo:
+    label: Mongo
+    declared_key: Mongo
+    eol_slug: mongodb
+    cycles: major
+    detect: {source: tutor, path: tutor/templates/config/defaults.yml, pattern: 'DOCKER_IMAGE_MONGODB: "docker\.io/mongo:(\d+\.\d+)'}
+  mysql:
+    label: MySQL
+    declared_key: MySQL
+    eol_slug: mysql
+    cycles: lts
+    detect: {source: tutor, path: tutor/templates/config/defaults.yml, pattern: 'DOCKER_IMAGE_MYSQL: "docker\.io/mysql:(\d+\.\d+)'}
+  elasticsearch:
+    label: Elasticsearch
+    declared_key: Elasticsearch
+    eol_slug: elasticsearch
+    cycles: latest_minor_per_major
+    detect: {source: tutor_discovery, path: tutordiscovery/plugin.py, pattern: 'elasticsearch:(\d+\.\d+)'}
+    # endoflife.date tracks Elasticsearch minors and no longer lists 7.17.
+    extra_cycles:
+      - {cycle: "7.17", start: 2022-02, end: 2026-01}
+  redis:
+    label: Redis
+    declared_key: Redis
+    eol_slug: redis
+    cycles: latest_minor_per_major
+    detect: {source: tutor, path: tutor/templates/config/defaults.yml, pattern: 'DOCKER_IMAGE_REDIS: "docker\.io/redis:(\d+\.\d+)'}

@@ -316,6 +316,18 @@ def test_views_without_maintenance_files_mark_them_unavailable(built, tmp_path):
     assert upgrades["upgrade_jobs"] is None and upgrades["redundant_prs"] is None
     assert all(wave["available"] is False for wave in upgrades["waves"])
     assert all(campaign["available"] is False for campaign in upgrades["campaigns"])
+    assert json.loads((tmp_path / "support_window.json").read_text())["available"] is False
+
+
+def test_support_window_carries_products_and_drift(built):
+    _, files = built
+    window = files["support_window.json"]
+    assert window["available"] is True
+    assert window["edit_url"].endswith("/edit/master/barcalendar.py")
+    products = {product["product"]: product for product in window["products"]}
+    assert products["python"]["status"] == "drift"
+    assert sum(window["summary"].values()) == len(products)
+    assert all(sum(cycle["current"] for cycle in product["cycles"]) <= 1 for product in products.values())
 
 
 def test_checks_carry_catalog_groups(built):

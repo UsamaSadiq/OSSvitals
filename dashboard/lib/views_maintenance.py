@@ -1,4 +1,4 @@
-"""Views built from the collect-maintenance files: Components and Upgrades."""
+"""Views built from the collect-maintenance files: Components, Upgrades and Support Window."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -22,6 +22,7 @@ UPGRADE_JOB_FIELDS = [
 ]
 WAVE_RECORD_FIELDS = [REPO_COL, "status", "pr_url", "pr_title", "pr_age_days"]
 CAMPAIGN_RECORD_FIELDS = [*WAVE_RECORD_FIELDS, "pinned", "runtime_exposed"]
+SUPPORT_WINDOW_SOURCE = "endoflife.date, Tutor release files and repo-tools barcalendar.py"
 REDUNDANT_FIELDS = [REPO_COL, "bot_pr_url", "superseded_by_url", "superseded_by_merged", "confidence"]
 
 
@@ -31,6 +32,7 @@ def maintenance_keys(waves_config: dict[str, Any], campaigns_config: dict[str, A
         maintenance.UPGRADE_JOBS,
         maintenance.REDUNDANT_PRS,
         maintenance.FIX_PRS,
+        maintenance.SUPPORT_WINDOWS,
         *(maintenance.wave_file(wave_id) for wave_id in waves_config),
         *(maintenance.campaign_file(campaign_id) for campaign_id in campaigns_config or {}),
     ]
@@ -167,6 +169,25 @@ def build_upgrades(ctx: BuildContext) -> dict[str, Any]:
             for campaign_id, campaign in ctx.config("campaigns").get("campaigns", {}).items()
         ],
         redundant_prs=_redundant(ctx.maintenance.get(maintenance.REDUNDANT_PRS)),
+    )
+
+
+def build_support_window(ctx: BuildContext) -> dict[str, Any]:
+    payload = ctx.maintenance.get(maintenance.SUPPORT_WINDOWS)
+    if payload is None:
+        return envelope(ctx, SUPPORT_WINDOW_SOURCE, available=False)
+    meta = payload["metadata"]
+    return envelope(
+        ctx,
+        SUPPORT_WINDOW_SOURCE,
+        available=True,
+        **_stamps(payload),
+        declared_url=meta.get("declared_url"),
+        edit_url=meta.get("edit_url"),
+        refs=meta.get("refs", {}),
+        window=meta.get("window", {}),
+        summary=meta.get("summary", {}),
+        products=payload["records"],
     )
 
 
