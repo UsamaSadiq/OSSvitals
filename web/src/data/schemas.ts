@@ -460,6 +460,42 @@ export const upgradesSchema = view({
     .nullable(),
 });
 
+export const SUPPORT_STATUSES = ["drift", "eol", "eol_soon", "ok", "unknown"] as const;
+
+const supportCycleSchema = z.object({
+  cycle: z.string(),
+  start: isoString,
+  end: isoString.nullable(),
+  lts: z.boolean(),
+  current: z.boolean(),
+});
+
+const supportProductSchema = z.object({
+  product: z.string(),
+  label: z.string(),
+  source_note: z.string(),
+  declared: z.string().nullable(),
+  declared_kind: z.enum(["declared", "follows_tutor", "missing"]),
+  detected: z.string().nullable(),
+  detected_url: z.string().nullable(),
+  current: z.string().nullable(),
+  current_end: isoString.nullable(),
+  status: z.enum(SUPPORT_STATUSES),
+  reason: z.string(),
+  cycles: z.array(supportCycleSchema),
+});
+
+export const supportWindowSchema = view({
+  available: z.boolean(),
+  collected_at: isoString.nullable().optional(),
+  declared_url: z.string().nullable().optional(),
+  edit_url: z.string().nullable().optional(),
+  refs: z.record(z.string(), z.object({ repo: z.string(), ref: z.string().nullable() })).optional(),
+  window: z.object({ years_back: int.optional(), years_ahead: int.optional() }).optional(),
+  summary: z.record(z.string(), int).optional(),
+  products: z.array(supportProductSchema).optional(),
+});
+
 const levelSchema = z.enum(["pass", "warn", "fail", "unknown"]);
 
 const subscoreSchema = z.object({ value: nullableNumber, help: z.string() });
@@ -534,6 +570,7 @@ export const VIEW_SCHEMAS = {
   repo_checks: repoChecksSchema,
   components: componentsSchema,
   upgrades: upgradesSchema,
+  support_window: supportWindowSchema,
   repo_detail: repoDetailSchema,
 } as const;
 
@@ -561,4 +598,8 @@ export type RepoHistoryView = View<"repo_history">;
 export type RepoChecksView = View<"repo_checks">;
 export type ComponentsView = View<"components">;
 export type UpgradesView = View<"upgrades">;
+export type SupportWindowView = View<"support_window">;
+export type SupportProduct = NonNullable<SupportWindowView["products"]>[number];
+export type SupportCycle = SupportProduct["cycles"][number];
+export type SupportStatus = SupportProduct["status"];
 export type RepoDetailView = View<"repo_detail">;

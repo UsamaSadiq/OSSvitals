@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import {
   AlertIcon,
+  CalendarIcon,
   ChecklistIcon,
   ComponentsIcon,
   GaugeIcon,
@@ -26,6 +27,7 @@ const PAGE_ICONS: Record<string, PageIcon> = {
   "/at_risk": ShieldIcon,
   "/ownership_views": UsersIcon,
   "/maintenance": UpgradeIcon,
+  "/support_window": CalendarIcon,
   "/components": ComponentsIcon,
   "/glossary": ChecklistIcon,
   "/scoring": GaugeIcon,

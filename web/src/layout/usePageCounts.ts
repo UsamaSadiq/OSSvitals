@@ -1,7 +1,7 @@
 import type { View, ViewName } from "../data/schemas";
 import { useView } from "../data/useView";
 import { shownAtRiskCount } from "../pages/AtRisk/atRiskDefaults";
-import { attentionCount, catalogProblemCount, failingUpgradeCount } from "./navCounts";
+import { attentionCount, catalogProblemCount, failingUpgradeCount, supportProblemCount } from "./navCounts";
 
 function useCount<Name extends ViewName>(name: Name, count: (view: View<Name>) => number | null): number | null {
   const state = useView(name);
@@ -18,6 +18,10 @@ export function useAtRiskCount(): number | null {
 
 export function useFailingUpgradeCount(): number | null {
   return useCount("upgrades", failingUpgradeCount);
+}
+
+export function useSupportProblemCount(): number | null {
+  return useCount("support_window", supportProblemCount);
 }
 
 export function useCatalogProblemCount(): number | null {

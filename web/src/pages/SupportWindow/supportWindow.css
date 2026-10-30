@@ -1,0 +1,134 @@
+.sw-section {
+  margin-top: 1.75rem;
+}
+
+.sw-section h2 {
+  margin: 0 0 0.75rem;
+}
+
+.sw-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.sw-chip {
+  --tone: var(--muted);
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--tone);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.sw-chip--drift,
+.sw-chip--eol {
+  --tone: var(--fail);
+}
+
+.sw-chip--eol_soon {
+  --tone: var(--warn);
+}
+
+.sw-chip--ok {
+  --tone: var(--success);
+}
+
+.sw-timeline {
+  overflow-x: auto;
+}
+
+.sw-why {
+  display: inline-block;
+  min-width: 18rem;
+  white-space: normal;
+}
+
+.sw-timeline__row {
+  display: grid;
+  grid-template-columns: 5rem minmax(36rem, 1fr);
+  align-items: center;
+}
+
+.sw-timeline__product {
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.sw-timeline__label {
+  margin: 0 0 0.15rem;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.sw-timeline__cycles {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sw-timeline__cycle {
+  padding-left: 0.75rem;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.sw-timeline__axis,
+.sw-timeline__track {
+  position: relative;
+  height: 1.4rem;
+}
+
+.sw-timeline__tick {
+  position: absolute;
+  bottom: 0.25rem;
+  padding-left: 0.25rem;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.sw-timeline__today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 2px solid var(--accent);
+}
+
+.sw-bar {
+  --tone: var(--surface-alt);
+  position: absolute;
+  top: 0.2rem;
+  height: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--tone);
+}
+
+.sw-bar--open {
+  background: linear-gradient(to right, var(--tone) 60%, transparent);
+  border-right-style: dashed;
+}
+
+.sw-bar--current {
+  --tone: color-mix(in srgb, var(--success) 35%, var(--surface));
+  border: 2px solid var(--text);
+}
+
+.sw-bar--current.sw-bar--drift,
+.sw-bar--current.sw-bar--eol {
+  --tone: color-mix(in srgb, var(--fail) 35%, var(--surface));
+}
+
+.sw-bar--current.sw-bar--eol_soon {
+  --tone: color-mix(in srgb, var(--warn) 35%, var(--surface));
+}
+
+@media (max-width: 720px) {
+  .sw-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

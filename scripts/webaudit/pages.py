@@ -32,6 +32,7 @@ PAGES: list[WebPage] = [
     WebPage("at_risk", "/at_risk"),
     WebPage("ownership_views", "/ownership_views"),
     WebPage("maintenance", "/maintenance"),
+    WebPage("support_window", "/support_window"),
     WebPage("components", "/components"),
     WebPage("glossary", "/glossary"),
     WebPage("scoring", "/scoring"),
