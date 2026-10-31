@@ -1,16 +1,8 @@
 import { useEffect, useState } from "react";
-import type { ZodType } from "zod";
 import { fetchDataJson } from "../../data/load";
 import { useTenant } from "../../tenants/context";
 import {
-  appsSchema,
-  carriedSchema,
-  upgradeSchema,
-  conflictsSchema,
-  driftSchema,
-  fleetMetaSchema,
-  historySchema,
-  updatesSchema,
+  FLEET_VIEWS,
   type AppsView,
   type CarriedView,
   type UpgradeView,
@@ -19,6 +11,7 @@ import {
   type FleetMetaView,
   type HistoryView,
   type UpdatesView,
+  type ViewSpec,
 } from "./schemas";
 
 export interface FleetViews {
@@ -36,28 +29,27 @@ export type FleetState = { status: "loading" } | ({ status: "ready" } & FleetVie
 
 const pending = new Map<string, Promise<FleetViews>>();
 
-async function fetchRequired<T>(org: string, file: string, schema: ZodType<T>): Promise<T> {
-  return schema.parse(await fetchDataJson(org, file));
-}
-
-async function fetchOptional<T>(org: string, file: string, schema: ZodType<T>): Promise<T | null> {
+async function fetchView<T>(org: string, view: ViewSpec<T, true>): Promise<T>;
+async function fetchView<T>(org: string, view: ViewSpec<T, false>): Promise<T | null>;
+async function fetchView<T>(org: string, view: ViewSpec<T>): Promise<T | null> {
   try {
-    return await fetchRequired(org, file, schema);
-  } catch {
+    return view.schema.parse(await fetchDataJson(org, view.file));
+  } catch (error) {
+    if (view.required) throw error;
     return null;
   }
 }
 
 async function loadViews(org: string): Promise<FleetViews> {
   const [apps, drift, history, updates, conflicts, meta, carried, upgrade] = await Promise.all([
-    fetchRequired(org, "apps.json", appsSchema),
-    fetchRequired(org, "drift.json", driftSchema),
-    fetchOptional(org, "drift_history.json", historySchema),
-    fetchOptional(org, "updates.json", updatesSchema),
-    fetchOptional(org, "conflicts.json", conflictsSchema),
-    fetchOptional(org, "meta.json", fleetMetaSchema),
-    fetchOptional(org, "carried_patches.json", carriedSchema),
-    fetchOptional(org, "upgrade_risk.json", upgradeSchema),
+    fetchView(org, FLEET_VIEWS.apps),
+    fetchView(org, FLEET_VIEWS.drift),
+    fetchView(org, FLEET_VIEWS.history),
+    fetchView(org, FLEET_VIEWS.updates),
+    fetchView(org, FLEET_VIEWS.conflicts),
+    fetchView(org, FLEET_VIEWS.meta),
+    fetchView(org, FLEET_VIEWS.carried),
+    fetchView(org, FLEET_VIEWS.upgrade),
   ]);
   return { apps, drift, history, updates, conflicts, meta, carried, upgrade };
 }

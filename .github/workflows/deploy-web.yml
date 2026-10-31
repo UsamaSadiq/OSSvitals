@@ -41,7 +41,9 @@ jobs:
       - name: Fetch data
         working-directory: .
         run: scripts/data_branch_export.sh web/public/data
-      - run: npm run validate-data
+      # A required view that does not match the code's schemas blocks the deploy: the change would break the site.
+      # An optional fleet view that fails is dropped from the bundled fallback instead, as the pages treat it as absent.
+      - run: npm run validate-data -- --allow-optional
       - run: npm run build
         env:
           VITE_DATA_BASE: https://data.ossvitals.org
