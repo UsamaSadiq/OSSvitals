@@ -138,8 +138,8 @@ export function FleetSignals() {
     <section className="page overview" aria-labelledby="page-title">
       <h1 id="page-title">Signals</h1>
       <p>
-        Every signal this dashboard can track, whether it is collected, and where it shows. <strong>Show in my view</strong> hides a signal in
-        this browser only and never changes a fork's status. To change what everyone sees, propose a change to this dashboard's settings.
+        Every signal this dashboard can track, whether it is collected, and where it shows. The switch on each signal hides it in this browser
+        only and never changes a fork's status. To change what everyone sees, propose a change to this dashboard's settings.
       </p>
       <Content />
     </section>

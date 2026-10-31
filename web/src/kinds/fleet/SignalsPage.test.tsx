@@ -132,6 +132,14 @@ describe("fleet pages follow the signal manifest", () => {
     }
   });
 
+  it("keeps the advisory count on the app page but drops the base release when the release gap is hidden", async () => {
+    window.localStorage.setItem(storageKey("moneta"), JSON.stringify(["release_gap"]));
+    serve(files());
+    renderRoute("/apps/burning", META, tenant);
+    expect(await screen.findByText(/1 affecting the upstream release we are built on/)).toBeTruthy();
+    expect(screen.queryByText(/v1\.5\.0, the upstream version we are based on/)).toBeNull();
+  });
+
   it("hides a signal the tenant does not collect everywhere, including its table column and filter chip", async () => {
     const off = structuredClone(MANIFEST_META);
     off.fleet.signals.advisories = { ...off.fleet.signals.advisories, collect: false, show: [] };
