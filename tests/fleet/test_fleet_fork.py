@@ -477,6 +477,11 @@ def test_epss_reaches_the_record_through_the_collector_and_falls_back_to_the_pre
     assert (again["exploitability"]["epss"]["from_previous"], again["exploitability"]["epss"]["as_of"]) == (True, "2026-10-11")
 
 
+def test_stable_tags_skip_names_a_release_pattern_matches_without_a_version():
+    tags = [{"name": "release-latest"}, {"name": "release-1.2.0"}]
+    assert [tag["name"] for tag in fork.stable_tags(tags, re.compile(r"^release-"))] == ["release-1.2.0"]
+
+
 def test_on_the_commits_basis_a_severe_advisory_after_our_last_merge_is_critical_even_before_our_release():
     """Merged 09-12, released 09-20: an advisory from 09-15 postdates the upstream code we ship."""
     advisories = [{"published_at": "2026-09-15T00:00:00Z", "severity": "high", "ghsa_id": "G", "cve_id": None}]

@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrades page: repository names in every table link to the repo on GitHub, and the Redundant PRs tab is hidden when no redundant PRs were found.
 
 ### Fixed
+- The weekly conflict forecast now merges against the same upstream release as the rest of the fleet pages (the app's `release_tag` line, all release pages, newest stable tag as a fallback) instead of the newest release on the first page. On Moneta, twenty forecast against `sdk/v2.54.0` and presenton against `electron-v0.9.12-beta`; they now use `twenty/v2.54.0` and `v0.9.12-beta`.
 - `tox_ini.uses_whitelist_externals` was scored as a plain boolean although the upstream check records True when the deprecated key is still used, so every repo that had already migrated was listed as failing. `check_descriptions.yaml` now declares the column under `inverted` and both loaders flip it once, so a failure means the key is really present.
 - Moneta fork releases no longer pick up upstream tags (default `v2x.y.z` pattern), and a multi-line upstream such as Twenty counts one release line.
 - The accessibility report crashed instead of listing findings (`_sort_key` was undefined).
