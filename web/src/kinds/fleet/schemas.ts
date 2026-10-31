@@ -128,6 +128,7 @@ const driftRecord = z.object({
           from_previous: z.boolean(),
           min: z.number(),
           likely: z.number().int(),
+          likely_uncertain: z.number().int().nullish(),
           top: z.array(
             z.object({
               ghsa_id: nullableString,

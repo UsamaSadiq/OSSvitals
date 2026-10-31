@@ -9,7 +9,17 @@ import requests
 URL = "https://api.first.org/data/v1/epss"
 BATCH = 50
 RETRIES = 3
+TOO_MANY_REQUESTS = 429
+MAX_RETRY_AFTER = 60
 HEADERS = {"Accept": "application/json", "User-Agent": "ossvitals-collector (+https://github.com/UsamaSadiq/OSSvitals)"}
+
+
+def _retry_after(response: requests.Response, attempt: int) -> float:
+    """Honour Retry-After (seconds) when FIRST sends it, within a minute; otherwise back off as for other errors."""
+    try:
+        return min(float(response.headers.get("Retry-After", "")), MAX_RETRY_AFTER)
+    except ValueError:
+        return 5 * (attempt + 1)
 
 
 def _batch(cves: list[str]) -> dict[str, dict[str, Any] | None] | None:
@@ -17,6 +27,9 @@ def _batch(cves: list[str]) -> dict[str, dict[str, Any] | None] | None:
     for attempt in range(RETRIES):
         try:
             response = requests.get(URL, params={"cve": ",".join(cves)}, headers=HEADERS, timeout=30)
+            if response.status_code == TOO_MANY_REQUESTS:
+                time.sleep(_retry_after(response, attempt))
+                continue
             if 400 <= response.status_code < 500:
                 return None
             payload = response.json() if response.ok else None

@@ -96,3 +96,27 @@ def test_a_response_that_is_not_an_object_is_retried_then_treated_as_unreadable(
     monkeypatch.setattr(epss_api.time, "sleep", lambda seconds: None)
     assert epss_api._batch(["CVE-1"]) is None
     assert len(calls) == epss_api.RETRIES
+
+
+def test_uncertain_qualifying_matches_are_counted_beyond_the_top_five():
+    advisories = [advisory(f"GHSA-{index}", f"CVE-{index}") for index in range(7)]
+    scores = {f"CVE-{index}": {"epss": 0.9 - index / 100, "percentile": 0.99, "date": "2026-10-30"} for index in range(7)}
+    record = exploitability(advisories, "1.0.0", MERGED, feeds(lambda cves: {}).kev(), lambda cves: (scores, set()), None, 0.1)["epss"]
+    assert (record["likely"], len(record["top"])) == (7, 5)
+    assert record["likely_uncertain"] == 7
+
+
+def test_a_rate_limit_is_retried_rather_than_ending_the_lookups(monkeypatch):
+    class Response:
+        def __init__(self, status, payload=None):
+            self.status_code, self.ok, self._payload, self.headers = status, status == 200, payload, {"Retry-After": "2"}
+
+        def json(self):
+            return self._payload
+
+    answers = iter([Response(429), Response(200, {"data": [{"cve": "CVE-1", "epss": "0.2", "percentile": "0.9", "date": "2026-10-30"}]})])
+    waits = []
+    monkeypatch.setattr(epss_api.requests, "get", lambda *args, **kwargs: next(answers))
+    monkeypatch.setattr(epss_api.time, "sleep", waits.append)
+    assert epss_api._batch(["CVE-1"]) == {"CVE-1": {"epss": 0.2, "percentile": 0.9, "date": "2026-10-30"}}
+    assert waits == [2.0]
