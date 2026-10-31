@@ -45,7 +45,15 @@ describe("listApps", () => {
       behind_by: null,
       behind_release: null,
       severe_since_fork_release: null,
+      severe_since_our_code: null,
     });
+  });
+
+  it("lists the severe advisories since the upstream code we ship", () => {
+    const records = drift.records.map((entry) =>
+      entry.repo === "alpha" && entry.advisories ? { ...entry, advisories: { ...entry.advisories, severe_since_our_code: 4 } } : entry,
+    );
+    expect(listApps(apps, { ...drift, records }, {}).find((entry) => entry.repo === "alpha")).toMatchObject({ severe_since_our_code: 4 });
   });
 
   it("filters by status and class", () => {

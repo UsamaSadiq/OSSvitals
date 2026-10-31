@@ -1,4 +1,4 @@
-import { formatDay, type ForkRow } from "./rows";
+import { applyingAdvisories, formatDay, type ForkRow } from "./rows";
 import type { SignalKey } from "./signals";
 
 interface CsvColumn {
@@ -21,7 +21,7 @@ const COLUMNS: readonly CsvColumn[] = [
   { header: "last_upstream_sync", value: ({ drift }) => formatDay(drift.last_upstream_merge) },
   { header: "our_release", signal: "fork_release", value: ({ drift }) => drift.fork_release?.tag },
   { header: "upstream_release", signal: "upstream_release", value: ({ drift }) => drift.upstream_release?.tag },
-  { header: "new_advisories", signal: "advisories", value: ({ drift }) => drift.advisories?.since_fork_release },
+  { header: "applying_advisories", signal: "advisories", value: ({ drift }) => applyingAdvisories(drift) },
   { header: "licence", value: ({ app }) => app.licence },
 ];
 

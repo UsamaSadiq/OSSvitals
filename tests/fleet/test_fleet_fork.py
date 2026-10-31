@@ -475,3 +475,26 @@ def test_epss_reaches_the_record_through_the_collector_and_falls_back_to_the_pre
     down = Feeds(lambda: KEV, None, NOW, 7, lambda cves: {})
     again = fleet.collect_fork(api_for(ROUTES), "Org", APP, SETTINGS, NOW, merged_by, record, down)
     assert (again["exploitability"]["epss"]["from_previous"], again["exploitability"]["epss"]["as_of"]) == (True, "2026-10-11")
+
+
+def test_on_the_commits_basis_a_severe_advisory_after_our_last_merge_is_critical_even_before_our_release():
+    """Merged 09-12, released 09-20: an advisory from 09-15 postdates the upstream code we ship."""
+    advisories = [{"published_at": "2026-09-15T00:00:00Z", "severity": "high", "ghsa_id": "G", "cve_id": None}]
+    record = collect({**ROUTES, "repos/up/demo/security-advisories?per_page=100": advisories})
+    assert record["status_basis"] == "commits"
+    assert (record["advisories"]["since_fork_release"], record["advisories"]["since_our_code"], record["advisories"]["severe_since_our_code"]) == (0, 1, 1)
+    assert record["status"] == "critical"
+
+
+def test_an_advisory_older_than_our_last_merge_does_not_count_on_the_commits_basis():
+    advisories = [{"published_at": "2026-09-01T00:00:00Z", "severity": "critical", "ghsa_id": "G", "cve_id": None}]
+    record = collect({**ROUTES, "repos/up/demo/security-advisories?per_page=100": advisories})
+    assert (record["advisories"]["severe_since_our_code"], record["status"]) == (0, "lagging")
+
+
+def test_our_code_dates_from_the_earlier_of_merge_and_release():
+    """Released 09-01, merged 09-12: the release ships code from before an advisory of 09-05."""
+    from collectors.fleet import fork as fleet_fork
+
+    assert fleet_fork.code_since("2026-09-12T00:00:00Z", "2026-09-01T00:00:00Z") == "2026-09-01T00:00:00Z"
+    assert fleet_fork.code_since("2026-09-12T00:00:00Z", None) == "2026-09-12T00:00:00Z"

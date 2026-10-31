@@ -31,7 +31,7 @@ const ROW: ForkRow = {
     days_since_upstream_merge: 164,
     fork_release: null,
     upstream_release: { tag: "v2.45.0", date: null },
-    advisories: { published: 9, since_fork_release: 2, source: "x" },
+    advisories: { published: 9, since_fork_release: 5, affecting_fork_release: 2, source: "x" },
     promotion: null,
   },
 };
@@ -39,7 +39,7 @@ const ROW: ForkRow = {
 describe("forksCsv", () => {
   it("writes a header and one escaped row per fork", () => {
     expect(forksCsv([ROW]).split("\n")).toEqual([
-      "app,status,status_basis,upstream_base,upstream_latest,releases_behind,version_gap,behind_by,behind_release,ahead_by,last_upstream_sync,our_release,upstream_release,new_advisories,licence",
+      "app,status,status_basis,upstream_base,upstream_latest,releases_behind,version_gap,behind_by,behind_release,ahead_by,last_upstream_sync,our_release,upstream_release,applying_advisories,licence",
       'twenty,critical,release,twenty/v2.40.0,twenty/v2.45.0,5,minor,4849,4372,47,2026-04-30,,v2.45.0,2,"AGPL-3.0, ""quoted"""',
       "",
     ]);

@@ -149,10 +149,24 @@ def release_distance(api: Api, base: str, owner: str, production: str, upstream_
     return {"behind_release": comparison["behind_by"], "ahead_release": comparison["ahead_by"]} if comparison else None
 
 
+def code_since(merged_at: str, release_date: str | None) -> str:
+    """The earlier of our last upstream merge and our latest release: a release cut before the merge still ships
+    the older upstream code."""
+    return min(merged_at, release_date) if release_date else merged_at
+
+
 def advisory_summary(
-    api: Api, upstream: str, since: str | None, severe: list[str], base_release: str | None = None, published: list[dict[str, Any]] | None = None
+    api: Api,
+    upstream: str,
+    since: str | None,
+    severe: list[str],
+    base_release: str | None = None,
+    published: list[dict[str, Any]] | None = None,
+    code_since: str | None = None,
 ) -> dict[str, Any]:
-    """``published`` is the upstream's advisory list when the caller already has it."""
+    """``published`` is the upstream's advisory list when the caller already has it. ``code_since`` is when the
+    upstream code we ship was taken (see ``code_since``); an advisory fixed in code we already merged still counts
+    until the next sync, since GitHub gives no reliable fix commit to tell otherwise."""
     if published is None:
         published = api(f"repos/{upstream}/security-advisories?per_page=100") or []
     base_version = version_key(base_release) if base_release else None
@@ -169,11 +183,14 @@ def advisory_summary(
         for advisory in sorted(published, key=lambda advisory: advisory["published_at"], reverse=True)
     ]
     newer = [item for item in items if item["after_our_release"]]
+    since_code = [item for item in items if code_since is not None and item["published_at"] > code_since]
     affecting = [item for item in items if item["affects_fork_release"]]
     return {
         "published": len(items),
         "since_fork_release": len(newer),
         "severe_since_fork_release": sum(1 for item in newer if item["severity"] in severe),
+        "since_our_code": len(since_code),
+        "severe_since_our_code": sum(1 for item in since_code if item["severity"] in severe),
         "affecting_fork_release": len(affecting),
         "severe_affecting_fork_release": sum(1 for item in affecting if item["severity"] in severe),
         "base_release": base_release,

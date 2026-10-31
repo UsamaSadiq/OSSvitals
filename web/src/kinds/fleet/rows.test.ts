@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advisoryNotice, driftHeadline, forkRows, needingAttention, overviewStats, releaseGapText, severity, sortedForks, statusCounts } from "./rows";
+import { advisoryNotice, applyingAdvisories, driftHeadline, forkRows, needingAttention, overviewStats, releaseGapText, severity, sortedForks, statusCounts } from "./rows";
 import type { AppRecord, DriftRecord } from "./schemas";
 
 function app(repo: string, kind: AppRecord["class"] = "fork"): AppRecord {
@@ -75,6 +75,17 @@ describe("release gap wording", () => {
     expect(advisoryNotice({ ...onRelease, status_basis: "commits", release_gap: null })).toBeNull();
     expect(advisoryNotice({ ...drift("a", "critical", 1), advisories: { ...advisories, since_fork_release: 2 } })).toBe("2 new upstream advisories since our latest release");
     expect(advisoryNotice({ ...drift("a", "critical", 1), advisories: undefined })).toBeNull();
+    const sinceSync = { ...advisories, since_fork_release: 0, since_our_code: 1 };
+    expect(advisoryNotice({ ...drift("a", "critical", 1), advisories: sinceSync })).toBe("1 new upstream advisory since the upstream code we ship");
+  });
+
+  it("counts the advisories that apply on each status basis", () => {
+    const advisories = { published: 9, since_fork_release: 1, affecting_fork_release: 3, since_our_code: 5, source: "x" };
+    const onRelease = { ...drift("a", "critical", 1), status_basis: "release" as const, release_gap: gap, advisories };
+    expect(applyingAdvisories(onRelease)).toBe(3);
+    expect(applyingAdvisories({ ...onRelease, status_basis: "commits", release_gap: null })).toBe(5);
+    expect(applyingAdvisories({ ...onRelease, status_basis: "commits", release_gap: null, advisories: { ...advisories, since_our_code: undefined } })).toBe(1);
+    expect(applyingAdvisories({ ...onRelease, advisories: undefined })).toBeNull();
   });
 
   it("breaks severity ties by releases behind before commits behind", () => {

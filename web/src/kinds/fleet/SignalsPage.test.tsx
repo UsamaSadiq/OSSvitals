@@ -243,9 +243,9 @@ describe("fleet pages follow the signal manifest", () => {
     serve(files(off, withoutAdvisories));
     renderRoute("/apps", META, tenant);
     await screen.findAllByRole("article");
-    expect(screen.queryByRole("button", { name: "New advisories" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Advisories that apply" })).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "Table" }));
-    expect(screen.queryByRole("columnheader", { name: /New advisories/ })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: /Advisories that apply/ })).toBeNull();
     expect(screen.getByRole("columnheader", { name: /Built on upstream/ })).toBeTruthy();
   });
 

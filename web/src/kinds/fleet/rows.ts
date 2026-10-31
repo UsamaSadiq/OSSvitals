@@ -115,8 +115,8 @@ export function overviewStats(forks: readonly ForkRow[], originals: number, carr
       {
         key: "advisories",
         signal: "advisories",
-        label: "With new advisories",
-        count: forks.filter((row) => (row.drift.advisories?.since_fork_release ?? 0) > 0).length,
+        label: "With advisories that apply",
+        count: forks.filter((row) => (applyingAdvisories(row.drift) ?? 0) > 0).length,
         to: appsPath({ advisories: "1" }),
       },
       {
@@ -145,6 +145,14 @@ export function needingAttention(forks: readonly ForkRow[], showGap = true): For
   return sortedForks(forks, showGap).filter((row) => ATTENTION_STATUSES.some((status) => status === row.drift.status));
 }
 
+/** The advisories that decide status: affecting our base release, or published since the upstream code we ship. */
+export function applyingAdvisories(drift: DriftRecord): number | null {
+  const advisories = drift.advisories;
+  if (!advisories) return null;
+  if (drift.release_gap && drift.status_basis === "release") return advisories.affecting_fork_release ?? 0;
+  return advisories.since_our_code ?? advisories.since_fork_release;
+}
+
 export function advisoryLabel(count: number): string {
   return `${count} new upstream ${count === 1 ? "advisory" : "advisories"}`;
 }
@@ -157,6 +165,9 @@ export function advisoryNotice(drift: DriftRecord, showGap = true): string | nul
     const affecting = advisories.affecting_fork_release ?? 0;
     const base = showGap ? `${gap.base}, our base` : "the upstream release we are built on";
     return affecting > 0 ? `${affecting} upstream ${affecting === 1 ? "advisory affects" : "advisories affect"} ${base}` : null;
+  }
+  if (advisories.since_our_code !== undefined) {
+    return advisories.since_our_code > 0 ? `${advisoryLabel(advisories.since_our_code)} since the upstream code we ship` : null;
   }
   return advisories.since_fork_release > 0 ? `${advisoryLabel(advisories.since_fork_release)} since our latest release` : null;
 }

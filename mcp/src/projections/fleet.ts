@@ -47,6 +47,7 @@ export function projectAppSummary(app: AppRecord, drift: DriftRecord | undefined
     open_pull_requests: app.open_pull_requests ?? null,
     severe_since_fork_release: drift?.advisories?.severe_since_fork_release ?? null,
     severe_affecting_fork_release: drift?.advisories?.severe_affecting_fork_release ?? null,
+    severe_since_our_code: drift?.advisories?.severe_since_our_code ?? null,
   };
 }
 
@@ -67,6 +68,8 @@ function projectAdvisoryCounts(advisories: DriftRecord["advisories"]) {
     published: advisories.published,
     since_fork_release: advisories.since_fork_release,
     severe_since_fork_release: advisories.severe_since_fork_release ?? null,
+    since_our_code: advisories.since_our_code ?? null,
+    severe_since_our_code: advisories.severe_since_our_code ?? null,
     affecting_fork_release: advisories.affecting_fork_release ?? null,
     severe_affecting_fork_release: advisories.severe_affecting_fork_release ?? null,
     base_release: advisories.base_release ?? null,
