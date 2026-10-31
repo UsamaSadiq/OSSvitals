@@ -2,7 +2,7 @@ import { screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { isPageVisible, visibleSections } from "../pages/catalog";
 import { OPENEDX_SITE_META, renderRoute } from "../test/renderRoute";
-import { monetaTenant } from "./moneta";
+import { fleetTenant } from "../kinds/fleet";
 import { openedxTenant } from "./openedx";
 import { tenantFor } from "./registry";
 
@@ -17,7 +17,7 @@ vi.mock("../data/useView", () => ({
 
 describe("tenant registry", () => {
   it("returns the matching tenant and falls back to openedx for unknown orgs", () => {
-    expect(tenantFor("moneta")).toBe(monetaTenant);
+    expect(tenantFor("moneta")).toMatchObject({ org: "moneta", paletteCopy: fleetTenant("moneta").paletteCopy });
     expect(tenantFor("openedx")).toBe(openedxTenant);
     expect(tenantFor("someone-else")).toBe(openedxTenant);
   });
@@ -42,7 +42,7 @@ describe("page manifest", () => {
 describe("a tenant with only meta.json", () => {
   it("renders its own nav and requests no openedx view", async () => {
     requested.length = 0;
-    renderRoute("/", { ...OPENEDX_SITE_META, name: "Moneta Status", tagline: "Fork health" }, monetaTenant);
+    renderRoute("/", { ...OPENEDX_SITE_META, name: "Moneta Status", tagline: "Fork health" }, fleetTenant("moneta"));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Moneta Status" })).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Pages" });

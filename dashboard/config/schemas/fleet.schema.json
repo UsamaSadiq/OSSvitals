@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Fleet settings after a tenant's fleet.yaml is merged over dashboard/config/_kinds/fleet/defaults.yaml.",
+  "type": "object",
+  "required": ["version", "branches", "fork_release_tag", "history_days", "pages", "feature_flags", "freshness", "statuses", "signals"],
+  "$defs": {
+    "surfaces": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["card", "table", "detail", "attention", "overview_tile", "csv", "filter"]}
+    },
+    "signal": {
+      "type": "object",
+      "required": ["collect", "show"],
+      "properties": {
+        "collect": {"type": "boolean"},
+        "show": {"$ref": "#/$defs/surfaces"}
+      }
+    },
+    "plain_signal": {
+      "$ref": "#/$defs/signal",
+      "unevaluatedProperties": false
+    }
+  },
+  "properties": {
+    "version": {"type": "integer", "minimum": 1},
+    "branches": {
+      "type": "object",
+      "required": ["production"],
+      "properties": {
+        "production": {"type": "string"},
+        "staging": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "fork_release_tag": {"type": "string", "format": "regex"},
+    "history_days": {"type": "integer", "minimum": 1},
+    "pages": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^/"}},
+    "feature_flags": {"type": "object", "additionalProperties": {"type": "boolean"}},
+    "freshness": {
+      "type": "object",
+      "required": ["stale_threshold_hours", "critically_stale_threshold_hours"],
+      "properties": {
+        "stale_threshold_hours": {"type": "integer", "minimum": 1},
+        "critically_stale_threshold_hours": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "statuses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["key", "label"],
+        "properties": {
+          "key": {"type": "string"},
+          "label": {"type": "string"},
+          "color": {"type": "string"},
+          "min_behind": {"type": "integer", "minimum": 0},
+          "min_days_since_upstream_merge": {"type": "integer", "minimum": 0},
+          "min_releases_behind": {"type": "integer", "minimum": 1},
+          "min_version_gap": {"enum": ["patch", "minor", "major"]},
+          "min_days_behind_release": {"type": "integer", "minimum": 0},
+          "on_severe_advisory": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "signals": {
+      "type": "object",
+      "properties": {
+        "fork_release": {"$ref": "#/$defs/plain_signal"},
+        "upstream_release": {"$ref": "#/$defs/plain_signal"},
+        "release_gap": {"$ref": "#/$defs/plain_signal"},
+        "advisories": {
+          "$ref": "#/$defs/signal",
+          "required": ["severe"],
+          "properties": {"severe": {"type": "array", "items": {"enum": ["critical", "high", "medium", "low"]}}},
+          "unevaluatedProperties": false
+        },
+        "promotion": {"$ref": "#/$defs/plain_signal"},
+        "ci": {"$ref": "#/$defs/plain_signal"},
+        "pull_requests": {"$ref": "#/$defs/plain_signal"},
+        "maintainers": {"$ref": "#/$defs/plain_signal"},
+        "upstream_activity": {
+          "$ref": "#/$defs/signal",
+          "required": ["quiet_days"],
+          "properties": {"quiet_days": {"type": "integer", "minimum": 1}},
+          "unevaluatedProperties": false
+        },
+        "conflicts": {"$ref": "#/$defs/plain_signal"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

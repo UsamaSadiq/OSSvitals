@@ -25,6 +25,6 @@
     "worker-configuration.d.ts",
     "../web/src/data/schemas.ts",
     "../web/src/data/parse.ts",
-    "../web/src/tenants/moneta/schemas.ts"
+    "../web/src/kinds/fleet/schemas.ts"
   ]
 }

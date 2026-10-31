@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { appsSchema, conflictsSchema, driftSchema } from "../../../web/src/tenants/moneta/schemas.ts";
+import { appsSchema, conflictsSchema, driftSchema } from "../../../web/src/kinds/fleet/schemas.ts";
 import {
   REPO_PATTERN,
   getApp,

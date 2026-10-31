@@ -3,7 +3,7 @@ import {
   appsSchema,
   conflictsSchema,
   driftSchema,
-} from "../../web/src/tenants/moneta/schemas.ts";
+} from "../../web/src/kinds/fleet/schemas.ts";
 import appsJson from "./fixtures/moneta/views/apps.json";
 import conflictsJson from "./fixtures/moneta/views/conflicts.json";
 import driftJson from "./fixtures/moneta/views/drift.json";
@@ -70,6 +70,14 @@ describe("getApp", () => {
 
   it("returns undefined for an unknown repo", () => {
     expect(getApp(apps, drift, "nope")).toBeUndefined();
+  });
+
+  it("returns null advisories and releases for a tenant that does not collect them", () => {
+    const record = drift.records.find((entry) => entry.repo === "alpha");
+    const { advisories: _advisories, fork_release: _fork, upstream_release: _upstream, ...core } = record!;
+    const app = getApp(apps, { ...drift, records: [core] }, "alpha");
+    expect(app).toMatchObject({ advisories: null, fork_release: null, upstream_release: null });
+    expect(listApps(apps, { ...drift, records: [core] }, {})[0]).toMatchObject({ severe_since_fork_release: null });
   });
 
   it("truncates long descriptions and change notes to 300 characters", () => {

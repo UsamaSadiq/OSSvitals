@@ -1,0 +1,57 @@
+name: Collect fleet status
+
+# Reads a fleet tenant's public forks and their upstreams through the GitHub API (the daily `api`
+# signals its fleet.yaml enables) and publishes views/, badges/ and VERSIONS.md to <org>/ on the
+# orphan `data` branch. The drift history is extended from the previous run's file. Read-only:
+# nothing here writes to the tenant's repos. Fleet tenants do not use the CSV or scoring path.
+
+on:
+  schedule:
+    - cron: "23 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: collect-fleet-moneta
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    env:
+      ORG: moneta
+      OUT_DIR: ${{ github.workspace }}/out/fleet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Fetch the data branch
+        run: git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: python scripts/collect_fleet.py --org "$ORG" --out-dir "$OUT_DIR" --previous-dir "data-branch/$ORG/views"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to data branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p "data-branch/$ORG"
+          cp -R "$OUT_DIR"/. "data-branch/$ORG/"
+          cd data-branch
+          git add "$ORG"
+          if git diff --cached --quiet; then
+            echo "$ORG data unchanged."
+            exit 0
+          fi
+          git commit -m "chore(data): update $ORG fork status $(date -u +%F)"
+          git push origin data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
