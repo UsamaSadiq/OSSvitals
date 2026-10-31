@@ -9,6 +9,7 @@ from collectors.fleet import fork
 from collectors.fleet.release_gap import release_gap
 
 if TYPE_CHECKING:
+    from collectors.fleet.feeds import Feeds
     from collectors.fleet.settings import FleetSettings
 
 Api = Callable[[str], Any]
@@ -27,6 +28,7 @@ class ForkContext:
         now: datetime,
         merged_by: MergedBy = lambda *_: None,
         previous: dict[str, Any] | None = None,
+        feeds: Feeds | None = None,
     ) -> None:
         self.api = api
         self.org = org
@@ -35,6 +37,7 @@ class ForkContext:
         self.now = now
         self.merged_by = merged_by
         self.previous = previous
+        self.feeds = feeds
         self.base = f"repos/{org}/{app['repo']}"
         self.upstream = app["upstream"]
         self.owner = self.upstream.split("/")[0]
@@ -70,6 +73,10 @@ class ForkContext:
     @cached_property
     def upstream_release(self) -> dict[str, Any] | None:
         return fork.latest_upstream_release(self.api, self.upstream, self.upstream_releases, self.upstream_pattern)
+
+    @cached_property
+    def upstream_advisories(self) -> list[dict[str, Any]]:
+        return self.api(f"repos/{self.upstream}/security-advisories?per_page=100") or []
 
     @cached_property
     def base_ref(self) -> str:

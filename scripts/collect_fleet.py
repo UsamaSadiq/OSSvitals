@@ -14,9 +14,10 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Callable
 
-from collectors import github, publish
+from collectors import github, kev, publish
 from collectors.fleet import badges, history, inventory, meta, versions
 from collectors.fleet.collect import collect_clone_signal, collect_fork
+from collectors.fleet.feeds import KEV_CACHE, Feeds
 from collectors.fleet.settings import FleetSettings, load_settings
 from collectors.fleet.signals import API, CLONE
 from dashboard.lib.clock import now_utc
@@ -34,6 +35,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--tier", choices=[API, CLONE], default=API)
     parser.add_argument("--repo", action="append", default=[], help="Limit to these repos; default is every app.")
     parser.add_argument("--previous-dir", type=Path, help="Views published by the last run; its drift history is extended.")
+    parser.add_argument("--feed-cache-dir", type=Path, help="Feed copies published by the last run (<org>/feeds), used when a feed is down.")
     return parser.parse_args()
 
 
@@ -51,7 +53,7 @@ def _apps(org: str, repos: list[str]) -> tuple[str, list[dict[str, Any]]]:
 
 
 def collect(
-    settings: FleetSettings, repos: list[str], previous: dict[str, dict[str, Any]] | None = None
+    settings: FleetSettings, repos: list[str], previous: dict[str, dict[str, Any]] | None = None, feeds: Feeds | None = None
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     github_org, apps = _apps(settings.org, repos)
     previous = previous or {}
@@ -62,7 +64,7 @@ def collect(
         record = _isolated(app["repo"], lambda: inventory.collect_app(api, github_org, app, settings.production, github.file_content))
         if app["class"] != "fork":
             return record, None
-        drift = _isolated(app["repo"], lambda: collect_fork(api, github_org, app, settings, now, github.merged_by_logins, previous.get(app["repo"])))
+        drift = _isolated(app["repo"], lambda: collect_fork(api, github_org, app, settings, now, github.merged_by_logins, previous.get(app["repo"]), feeds))
         return record, drift
 
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
@@ -81,6 +83,27 @@ def _previous_drift(previous_dir: Path | None) -> dict[str, dict[str, Any]]:
     return {record["repo"]: record for record in _previous_records(previous_dir, DRIFT_FILE) if "error" not in record}
 
 
+def _read_json(path: Path | None) -> dict[str, Any] | None:
+    try:
+        return json.loads(path.read_text(encoding="utf-8")) if path and path.exists() else None
+    except ValueError:
+        return None
+
+
+def _feeds(settings: FleetSettings, cache_dir: Path | None) -> Feeds | None:
+    """Only built when a feed signal is collected, so other tenants never download a feed."""
+    if not settings.collects("exploitability"):
+        return None
+    cached = _read_json(cache_dir / KEV_CACHE if cache_dir else None)
+    return Feeds(kev.catalogue, cached, now_utc(), settings.signal("exploitability")["max_age_days"])
+
+
+def _publish_feeds(feeds: Feeds | None, out_dir: Path) -> None:
+    copy = feeds.kev_cache_to_publish() if feeds else None
+    if copy:
+        publish.write(out_dir / "feeds" / KEV_CACHE, copy)
+
+
 def _updates(org: str) -> list[dict[str, Any]]:
     updates = get_config("updates", org).get("updates", [])
     return sorted(updates, key=lambda update: update["date"], reverse=True)
@@ -91,7 +114,8 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     previous_history = _previous_records(args.previous_dir, HISTORY_FILE)
     repos = [app["repo"] for app in _apps(settings.org, args.repo)[1]]
     previous = history.with_last_licence(_previous_drift(args.previous_dir), previous_history, repos)
-    records, drift = collect(settings, args.repo, previous)
+    feeds = _feeds(settings, args.feed_cache_dir)
+    records, drift = collect(settings, args.repo, previous, feeds)
     healthy = [record for record in records if "error" not in record]
     if not healthy:
         print("No app could be collected; not writing.")
@@ -116,6 +140,7 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     for record in (record for record in drift if "error" not in record):
         publish.write(args.out_dir / "badges" / f"{record['repo']}.json", badges.badge(record, settings.statuses))
     (args.out_dir / "VERSIONS.md").write_text(versions.render(records, drift, day), encoding="utf-8")
+    _publish_feeds(feeds, args.out_dir)
     print(f"{org}: {len(healthy)}/{len(records)} apps, {len(drift)} forks")
     return 0
 

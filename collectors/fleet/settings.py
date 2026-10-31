@@ -47,8 +47,9 @@ class FleetSettings:
     def collects(self, key: str) -> bool:
         return self.signal(key)["collect"]
 
-    def enabled_signals(self, tier: str) -> list[str]:
-        return [signal.key for signal in SIGNALS if signal.tier == tier and self.collects(signal.key)]
+    def enabled_signals(self, *tiers: str) -> list[str]:
+        """In registry order, which is also the order of the fields in a fork record."""
+        return [signal.key for signal in SIGNALS if signal.tier in tiers and self.collects(signal.key)]
 
 
 def merge(base: Any, override: Any) -> Any:

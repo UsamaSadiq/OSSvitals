@@ -90,6 +90,7 @@ function projectDriftDetail(drift: DriftRecord | undefined) {
     upstream_release: drift.upstream_release ?? null,
     release_lag: drift.release_lag ?? null,
     licence_watch: drift.licence_watch ?? null,
+    exploitability: drift.exploitability ?? null,
     advisories: projectAdvisoryCounts(drift.advisories),
   };
 }

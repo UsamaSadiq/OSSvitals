@@ -11,15 +11,18 @@ T = TypeVar("T")
 
 API = "api"
 CLONE = "clone"
+FEED = "feed"
+RECORD_TIERS = (API, FEED)
 
 
 @dataclass(frozen=True)
 class Signal:
-    """``api`` signals add fields to the daily fork record; ``clone`` signals write their own ``views/<key>.json``."""
+    """``api`` and ``feed`` signals add fields to the daily fork record (``feed`` ones also read an outside feed shared
+    by the run); ``clone`` signals write their own ``views/<key>.json``."""
 
     key: str
     collect: Callable[[ForkContext], dict[str, Any]]
-    tier: Literal["api", "clone"] = API
+    tier: Literal["api", "clone", "feed"] = API
     cadence: Literal["daily", "weekly"] = "daily"
     needs: tuple[str, ...] = ()
     thresholds: tuple[str, ...] = ()

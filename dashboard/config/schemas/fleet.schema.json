@@ -94,6 +94,12 @@
           "properties": {"notice_days": {"type": "integer", "minimum": 1}},
           "unevaluatedProperties": false
         },
+        "exploitability": {
+          "$ref": "#/$defs/signal",
+          "required": ["max_age_days"],
+          "properties": {"max_age_days": {"type": "integer", "minimum": 1}},
+          "unevaluatedProperties": false
+        },
         "conflicts": {"$ref": "#/$defs/plain_signal"}
       },
       "additionalProperties": false

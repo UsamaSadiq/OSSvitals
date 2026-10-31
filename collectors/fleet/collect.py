@@ -7,7 +7,8 @@ from typing import Any
 from collectors.fleet.context import Api, ForkContext, MergedBy
 from collectors.fleet.registry import BY_KEY
 from collectors.fleet.settings import FleetSettings
-from collectors.fleet.signals import API
+from collectors.fleet.feeds import Feeds
+from collectors.fleet.signals import RECORD_TIERS
 from collectors.fleet.status import DriftSignals, classify
 
 
@@ -43,11 +44,12 @@ def collect_fork(
     now: datetime,
     merged_by: MergedBy = lambda *_: None,
     previous: dict[str, Any] | None = None,
+    feeds: Feeds | None = None,
 ) -> dict[str, Any]:
-    """``previous`` is this fork's record from the last published run, for signals that compare over time."""
-    ctx = ForkContext(api, org, app, settings, now, merged_by, previous)
+    """``previous`` is this fork's record from the last published run; ``feeds`` are the outside feeds shared by the run."""
+    ctx = ForkContext(api, org, app, settings, now, merged_by, previous, feeds)
     record = core(ctx)
-    for key in settings.enabled_signals(API):
+    for key in settings.enabled_signals(*RECORD_TIERS):
         record.update(BY_KEY[key].collect(ctx))
     drift = drift_signals(record)
     return {**record, "status": classify(settings.statuses, drift), "status_basis": drift.basis}

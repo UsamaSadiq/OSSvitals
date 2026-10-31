@@ -39,6 +39,12 @@ export const SIGNAL_CATALOGUE = [
     description: "Upstream's licence file on the branch we track: whether it changed recently, and whether it matches the licence we list.",
     failureField: "licence_watch",
   },
+  {
+    key: "exploitability",
+    label: "Known exploited",
+    description: "Upstream advisories that apply to our code and appear in CISA's catalog of known exploited vulnerabilities. Collected daily from CISA.",
+    failureField: "exploitability",
+  },
   { key: "conflicts", label: "Sync forecast", description: "The files a sync with upstream's head and latest release would conflict on. Collected weekly." },
 ] as const satisfies readonly SignalInfo[];
 

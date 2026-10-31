@@ -61,6 +61,7 @@ const DRIFT = {
   maintainers: [{ login: "alice", merged: 12 }, { login: "bob", merged: 3 }],
   upstream_activity: { pushed_at: "2026-10-01T00:00:00Z", idle_days: 11, quiet: false },
   licence_watch: { present: true, path: "LICENSE", sha: "s1", spdx: "AGPL-3.0", declared: "AGPL-3.0", matches_declared: true, changed_on: null, previous_spdx: null },
+  exploitability: { basis: "release", considered: 3, without_cve: 1, known_exploited: [], kev_as_of: "2026-10-12", kev_from_cache: false },
 };
 
 const HISTORY = ["2026-09-01", "2026-09-02"].map((date, index) => ({

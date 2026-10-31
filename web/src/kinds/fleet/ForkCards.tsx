@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { exploitedNotice } from "./exploited";
 import { licenceNotice } from "./licence";
 import { appPath } from "./paths";
 import { StatusPill } from "./StatusPill";
@@ -30,6 +31,7 @@ function ForkCard({ row }: { row: ForkRow }) {
       </p>
       {isShown("advisories", "card") && <Notice text={advisoryNotice(drift, showGap)} />}
       {isShown("licence_watch", "card") && <Notice text={licenceNotice(drift.licence_watch)} />}
+      {isShown("exploitability", "card") && <Notice text={exploitedNotice(drift.exploitability)} />}
       <p className="fork-card__licence">{app.licence ?? "Licence not recorded"}</p>
     </article>
   );
