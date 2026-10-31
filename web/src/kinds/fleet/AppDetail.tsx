@@ -12,7 +12,9 @@ import { trendOf } from "./insights";
 import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
 import { formatDay, pluralise, releaseGapText, type ForkRow } from "./rows";
 import type { ConflictRecord, DriftRecord, HistoryRow } from "./schemas";
+import type { SignalKey } from "./signals";
 import { useFleetViews, type FleetViews } from "./useFleetViews";
+import { useSignalVisibility } from "./visibility";
 import "./fleet.css";
 
 function Fact({ term, children }: { term: string; children: ReactNode }) {
@@ -49,14 +51,19 @@ const CI_TEXT = { passing: "Passing", failing: "Failing", pending: "Running", no
 
 function ReleaseFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined }) {
   const { app, drift } = row;
+  const { isShown } = useSignalVisibility();
+  const ours = isShown("fork_release", "detail");
+  const upstream = isShown("upstream_release", "detail");
   return (
     <>
-      <Fact term="Our latest release">{ourRelease(drift.fork_release, githubOrg, app.repo)}</Fact>
-      {drift.release_candidate && <Fact term="Release candidate pending">{drift.release_candidate.tag}</Fact>}
-      <Fact term="Upstream latest release">
-        {drift.upstream_release && app.upstream_url ? external(`${app.upstream_url}/releases`, releaseText(drift.upstream_release)) : "–"}
-      </Fact>
-      {drift.release_lag && (
+      {ours && <Fact term="Our latest release">{ourRelease(drift.fork_release ?? null, githubOrg, app.repo)}</Fact>}
+      {ours && drift.release_candidate && <Fact term="Release candidate pending">{drift.release_candidate.tag}</Fact>}
+      {upstream && (
+        <Fact term="Upstream latest release">
+          {drift.upstream_release && app.upstream_url ? external(`${app.upstream_url}/releases`, releaseText(drift.upstream_release)) : "–"}
+        </Fact>
+      )}
+      {upstream && drift.release_lag && (
         <Fact term="Upstream releases since our last sync">
           {drift.release_lag.upstream_releases_since_sync}
           {drift.release_lag.upstream_ahead_of_our_release_days !== null &&
@@ -70,17 +77,19 @@ function ReleaseFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | un
 function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined }) {
   const { drift } = row;
   const { advisories, promotion, ci, pull_requests: pulls, upstream_activity: activity } = drift;
+  const { isShown } = useSignalVisibility();
+  const shown = (key: SignalKey) => isShown(key, "detail");
   return (
     <>
-      <Fact term="Built on upstream">
+      {shown("release_gap") && <Fact term="Built on upstream">
         {drift.release_gap ? releaseGapText(drift.release_gap) : "No upstream release found in our history"}
         {drift.release_gap && drift.release_gap.releases_behind > 0 && (
           <span className="app-fact__note">{`The oldest upstream release we lack came out ${drift.release_gap.days_behind} days ago.`}</span>
         )}
         <span className="app-fact__note">{STATUS_BASIS_NOTE[drift.status_basis ?? "commits"]}</span>
-      </Fact>
+      </Fact>}
       <Fact term="Behind upstream">{pluralise(drift.behind_by, "commit")}</Fact>
-      {drift.behind_release != null && drift.upstream_release && (
+      {shown("upstream_release") && drift.behind_release != null && drift.upstream_release && (
         <Fact term="Behind latest release">{`${pluralise(drift.behind_release, "commit")} behind ${drift.upstream_release.tag}`}</Fact>
       )}
       <Fact term="Our patches">{pluralise(drift.ahead_by, "commit")}</Fact>
@@ -88,23 +97,26 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
         {formatDay(drift.last_upstream_merge)} ({drift.days_since_upstream_merge} days ago)
       </Fact>
       <ReleaseFacts row={row} githubOrg={githubOrg} />
-      {advisories && (
+      {shown("advisories") && advisories && (
         <Fact term="Upstream advisories">
           {advisories.since_fork_release} published after our latest release, {advisories.published} in total
-          {advisories.base_release && `, ${advisories.affecting_fork_release ?? 0} affecting ${advisories.base_release}, the upstream version we are based on`}
+          {advisories.base_release &&
+            `, ${advisories.affecting_fork_release ?? 0} affecting ${shown("release_gap") ? `${advisories.base_release}, the upstream version we are based on` : "the upstream release we are built on"}`}
         </Fact>
       )}
-      <Fact term="Not yet promoted">
-        {promotion ? `${pluralise(promotion.unpromoted_commits, "commit")} on staging not yet released` : "No staging branch"}
-      </Fact>
-      {ci && <Fact term="Checks on our release branch">{CI_TEXT[ci.state]}</Fact>}
-      {pulls && (
+      {shown("promotion") && (
+        <Fact term="Not yet promoted">
+          {promotion ? `${pluralise(promotion.unpromoted_commits, "commit")} on staging not yet released` : "No staging branch"}
+        </Fact>
+      )}
+      {shown("ci") && ci && <Fact term="Checks on our release branch">{CI_TEXT[ci.state]}</Fact>}
+      {shown("pull_requests") && pulls && (
         <Fact term="Open pull requests">
           {pulls.open}
           {pulls.sync_pull && <> · {external(pulls.sync_pull.url, `upstream sync open (#${pulls.sync_pull.number})`)}</>}
         </Fact>
       )}
-      {activity && (
+      {shown("upstream_activity") && activity && (
         <Fact term="Upstream activity">
           Last push {formatDay(activity.pushed_at)}
           {activity.quiet && " (quiet)"}
@@ -162,6 +174,7 @@ function Maintainers({ drift }: { drift: DriftRecord }) {
 
 function Facts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined }) {
   const { app, drift } = row;
+  const { isShown } = useSignalVisibility();
   return (
     <dl className="app-facts">
       <ForkFacts row={row} githubOrg={githubOrg} />
@@ -171,7 +184,7 @@ function Facts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined
       </Fact>
       <Fact term="Upstream project">{app.upstream ?? "–"}</Fact>
       <Integrations row={row} />
-      <Maintainers drift={drift} />
+      {isShown("maintainers", "detail") && <Maintainers drift={drift} />}
     </dl>
   );
 }
@@ -185,6 +198,7 @@ interface DetailProps {
 
 function Detail({ row, githubOrg, history, conflict }: DetailProps) {
   const { app, drift } = row;
+  const { isShown } = useSignalVisibility();
   usePageTitle(app.repo);
   return (
     <section className="page app-detail" aria-labelledby="page-title">
@@ -207,8 +221,8 @@ function Detail({ row, githubOrg, history, conflict }: DetailProps) {
           <p className="detail-notes">{app.what_we_changed}</p>
         </section>
       )}
-      <Advisories drift={drift} />
-      <Conflicts record={conflict} />
+      {isShown("advisories", "detail") && <Advisories drift={drift} />}
+      {isShown("conflicts", "detail") && <Conflicts record={conflict} />}
       <section className="overview-section" aria-labelledby="links-heading">
         <h2 id="links-heading">Links</h2>
         <Links row={row} githubOrg={githubOrg} />

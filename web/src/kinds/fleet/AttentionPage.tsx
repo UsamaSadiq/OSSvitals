@@ -9,12 +9,14 @@ import { appPath } from "./paths";
 import { STATUS_LABELS, forkRows, needingAttention, type ForkRow } from "./rows";
 import type { ConflictRecord } from "./schemas";
 import { useFleetViews, type FleetViews } from "./useFleetViews";
+import { useSignalVisibility } from "./visibility";
 import "./fleet.css";
 
 const GROUPS = ["critical", "stale"] as const;
 
 function AttentionCard({ row, conflict }: { row: ForkRow; conflict: ConflictRecord | undefined }) {
   const { app, drift } = row;
+  const { isShown } = useSignalVisibility();
   const headingId = `attention-${app.repo}`;
   return (
     <article className={`fork-card fork-card--${drift.status}`} aria-labelledby={headingId}>
@@ -25,7 +27,7 @@ function AttentionCard({ row, conflict }: { row: ForkRow; conflict: ConflictReco
         <StatusPill status={drift.status} />
       </header>
       <ul className="attention-reasons">
-        {attentionReasons(row, conflict).map((reason) => (
+        {attentionReasons(row, conflict, (key) => isShown(key, "attention")).map((reason) => (
           <li key={reason}>{reason}</li>
         ))}
       </ul>
@@ -51,10 +53,11 @@ function Group({ status, rows, views }: { status: (typeof GROUPS)[number]; rows:
 
 function Content() {
   const state = useFleetViews();
+  const { isShown } = useSignalVisibility();
   if (state.status === "loading") return <Loading label="Loading fork status…" />;
   if (state.status === "error") return <ErrorState title="The fork status data could not be loaded." detail={state.message} />;
   const forks = forkRows(state.apps.records, state.drift.records);
-  const urgent = needingAttention(forks);
+  const urgent = needingAttention(forks, isShown("release_gap", "attention"));
   if (urgent.length === 0) return <EmptyState kind="good" title="No fork is stale or critical." />;
   return (
     <>

@@ -7,15 +7,22 @@ import { FleetApps } from "./Apps";
 import { FleetAttention } from "./AttentionPage";
 import { FleetOverview } from "./Overview";
 import { FleetPaletteHost } from "./PaletteHost";
+import { FleetSignals } from "./SignalsPage";
+import { SignalVisibilityProvider } from "./visibility";
 
 const routes: RouteObject[] = [
   {
-    element: <Shell />,
+    element: (
+      <SignalVisibilityProvider>
+        <Shell />
+      </SignalVisibilityProvider>
+    ),
     children: [
       { index: true, element: <FleetOverview /> },
       { path: "apps", element: <FleetApps /> },
       { path: "attention", element: <FleetAttention /> },
       { path: "apps/:repo", element: <AppDetail /> },
+      { path: "signals", element: <FleetSignals /> },
       { path: "*", element: <NotFound /> },
     ],
   },
@@ -32,6 +39,10 @@ export function fleetTenant(org: string): Tenant {
           { path: "/apps", title: "Apps" },
           { path: "/attention", title: "Needs attention" },
         ],
+      },
+      {
+        title: "Settings",
+        pages: [{ path: "/signals", title: "Signals" }],
       },
     ],
     routes,

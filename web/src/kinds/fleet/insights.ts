@@ -1,5 +1,6 @@
 import { advisoryNotice, pluralise, releaseGapText, type ForkRow } from "./rows";
 import type { ConflictRecord, HistoryRow } from "./schemas";
+import type { SignalKey } from "./signals";
 
 export interface StatusChange {
   date: string;
@@ -55,18 +56,17 @@ export function trendDirection(points: readonly TrendPoint[]): "falling-behind" 
   return "steady";
 }
 
-export function attentionReasons(row: ForkRow, conflict: ConflictRecord | undefined): string[] {
+export function attentionReasons(row: ForkRow, conflict: ConflictRecord | undefined, isShown: (key: SignalKey) => boolean = () => true): string[] {
   const { drift } = row;
   const conflicts = conflict?.against_upstream_head;
+  const gap = isShown("release_gap") ? drift.release_gap : null;
   const reasons = [
-    drift.release_gap
-      ? `Built on ${releaseGapText(drift.release_gap)}`
-      : `${pluralise(drift.behind_by, "commit")} behind upstream, last synced ${drift.days_since_upstream_merge} days ago`,
-    advisoryNotice(drift),
-    drift.ci?.state === "failing" ? "Checks are failing on our release branch" : null,
-    drift.fork_release === null ? "We have not cut a release of our own yet" : null,
-    conflicts && !conflicts.clean ? `Syncing with upstream would conflict on ${pluralise(conflicts.conflicted_total, "file")}` : null,
-    drift.upstream_activity?.quiet ? "Upstream has gone quiet" : null,
+    gap ? `Built on ${releaseGapText(gap)}` : `${pluralise(drift.behind_by, "commit")} behind upstream, last synced ${drift.days_since_upstream_merge} days ago`,
+    isShown("advisories") ? advisoryNotice(drift, isShown("release_gap")) : null,
+    isShown("ci") && drift.ci?.state === "failing" ? "Checks are failing on our release branch" : null,
+    isShown("fork_release") && drift.fork_release === null ? "We have not cut a release of our own yet" : null,
+    isShown("conflicts") && conflicts && !conflicts.clean ? `Syncing with upstream would conflict on ${pluralise(conflicts.conflicted_total, "file")}` : null,
+    isShown("upstream_activity") && drift.upstream_activity?.quiet ? "Upstream has gone quiet" : null,
   ];
   return reasons.filter((reason): reason is string => reason !== null);
 }

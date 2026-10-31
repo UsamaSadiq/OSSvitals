@@ -127,6 +127,21 @@ export const historySchema = view(historyRow);
 export const updatesSchema = view(update);
 export const conflictsSchema = view(conflictRecord);
 
+const manifestSignal = z.object({
+  collect: z.boolean(),
+  show: z.array(z.string()),
+  tier: z.string().default("api"),
+  cadence: z.string().default("daily"),
+  thresholds: z.array(z.string()).default([]),
+  settings: z.record(z.string(), z.unknown()).default({}),
+});
+const manifestStatus = z.looseObject({ key: z.string(), label: z.string(), color: z.string().optional() });
+
+export const fleetMetaSchema = z.looseObject({
+  kind: z.string().optional(),
+  fleet: z.object({ signals: z.record(z.string(), manifestSignal), statuses: z.array(manifestStatus) }).optional(),
+});
+
 export type AppRecord = z.infer<typeof appRecord>;
 export type DriftRecord = z.infer<typeof driftRecord>;
 export type ReleaseGap = z.infer<typeof releaseGap>;
@@ -140,3 +155,7 @@ export type DriftView = z.infer<typeof driftSchema>;
 export type HistoryView = z.infer<typeof historySchema>;
 export type UpdatesView = z.infer<typeof updatesSchema>;
 export type ConflictsView = z.infer<typeof conflictsSchema>;
+export type FleetMetaView = z.infer<typeof fleetMetaSchema>;
+export type FleetManifest = NonNullable<FleetMetaView["fleet"]>;
+export type ManifestSignal = z.infer<typeof manifestSignal>;
+export type ManifestStatus = z.infer<typeof manifestStatus>;

@@ -124,3 +124,22 @@ describe("needingAttention", () => {
     expect(needingAttention(rows).map((row) => row.app.repo)).toEqual(["b", "c", "a"]);
   });
 });
+
+describe("release gap hidden", () => {
+  it("keeps the advisory count that decided the status but does not name the base release", () => {
+    const record = {
+      ...drift("a", "critical", 1),
+      status_basis: "release" as const,
+      release_gap: { base: "v4.18.0", base_ref: "v26.1.0", latest: "v4.19.0", releases_behind: 1, level: "minor" as const, days_behind: 3 },
+      advisories: { published: 1, since_fork_release: 0, affecting_fork_release: 1, source: "x" },
+    };
+    expect(advisoryNotice(record, false)).toBe("1 upstream advisory affects the upstream release we are built on");
+  });
+
+  it("orders by commits behind, the distance the surface shows", () => {
+    const far = { app: app("far"), drift: { ...drift("far", "lagging", 10), release_gap: { base: "1", base_ref: "1", latest: "9", releases_behind: 9, level: "major" as const, days_behind: 1 } } };
+    const near = { app: app("near"), drift: drift("near", "lagging", 500) };
+    expect(sortedForks([near, far]).map((row) => row.app.repo)).toEqual(["far", "near"]);
+    expect(sortedForks([far, near], false).map((row) => row.app.repo)).toEqual(["near", "far"]);
+  });
+});

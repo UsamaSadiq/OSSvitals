@@ -1,5 +1,6 @@
 import { appsPath } from "./paths";
 import type { AppRecord, DriftRecord, ReleaseGap } from "./schemas";
+import type { SignalKey } from "./signals";
 
 export const STATUS_ORDER = ["in-sync", "lagging", "stale", "critical"] as const;
 
@@ -43,12 +44,14 @@ export function formatDay(iso: string | null): string {
   return iso ? iso.slice(0, 10) : "–";
 }
 
-export function byDrift(a: ForkRow, b: ForkRow): number {
-  return (b.drift.release_gap?.releases_behind ?? 0) - (a.drift.release_gap?.releases_behind ?? 0) || b.drift.behind_by - a.drift.behind_by;
+export function byDrift(a: ForkRow, b: ForkRow, showGap = true): number {
+  const gapOrder = showGap ? (b.drift.release_gap?.releases_behind ?? 0) - (a.drift.release_gap?.releases_behind ?? 0) : 0;
+  return gapOrder || b.drift.behind_by - a.drift.behind_by;
 }
 
-export function sortedForks(rows: readonly ForkRow[]): ForkRow[] {
-  return [...rows].sort((a, b) => severity(b.drift.status) - severity(a.drift.status) || byDrift(a, b));
+/** Most severe first, then furthest behind by whichever distance that surface shows. */
+export function sortedForks(rows: readonly ForkRow[], showGap = true): ForkRow[] {
+  return [...rows].sort((a, b) => severity(b.drift.status) - severity(a.drift.status) || byDrift(a, b, showGap));
 }
 
 export function pluralise(count: number, noun: string): string {
@@ -72,8 +75,9 @@ export interface DriftHeadline {
   text: string;
 }
 
-export function driftHeadline(drift: DriftRecord): DriftHeadline {
-  const gap = drift.release_gap;
+/** Falls back to commits behind when the release gap is not shown on that surface. */
+export function driftHeadline(drift: DriftRecord, showGap = true): DriftHeadline {
+  const gap = showGap ? drift.release_gap : null;
   if (gap?.releases_behind === 0) return { count: 0, text: `releases behind (on upstream's latest, ${gap.base})` };
   if (gap) return { count: gap.releases_behind, text: `${gap.releases_behind === 1 ? "release" : "releases"} behind upstream (${gap.base} → ${gap.latest})` };
   return { count: drift.behind_by, text: `${drift.behind_by === 1 ? "commit" : "commits"} behind upstream` };
@@ -81,6 +85,7 @@ export function driftHeadline(drift: DriftRecord): DriftHeadline {
 
 export interface OverviewStat {
   key: string;
+  signal?: SignalKey;
   label: string;
   count: number;
   to: string;
@@ -103,17 +108,19 @@ export function overviewStats(forks: readonly ForkRow[], originals: number): Ove
     extras: [
       {
         key: "advisories",
+        signal: "advisories",
         label: "With new advisories",
         count: forks.filter((row) => (row.drift.advisories?.since_fork_release ?? 0) > 0).length,
         to: appsPath({ advisories: "1" }),
       },
       {
         key: "unpromoted",
+        signal: "promotion",
         label: "Not yet promoted",
         count: forks.filter((row) => (row.drift.promotion?.unpromoted_commits ?? 0) > 0).length,
         to: appsPath({ unpromoted: "1" }),
       },
-      { key: "no-release", label: "No release yet", count: forks.filter((row) => row.drift.fork_release === null).length, to: appsPath({ no_release: "1" }) },
+      { key: "no-release", signal: "fork_release", label: "No release yet", count: forks.filter((row) => row.drift.fork_release === null).length, to: appsPath({ no_release: "1" }) },
     ],
     licences: licences.map((licence) => ({
       key: licence,
@@ -127,20 +134,22 @@ export function overviewStats(forks: readonly ForkRow[], originals: number): Ove
 
 const ATTENTION_STATUSES: readonly Status[] = ["critical", "stale"];
 
-export function needingAttention(forks: readonly ForkRow[]): ForkRow[] {
-  return sortedForks(forks).filter((row) => ATTENTION_STATUSES.some((status) => status === row.drift.status));
+export function needingAttention(forks: readonly ForkRow[], showGap = true): ForkRow[] {
+  return sortedForks(forks, showGap).filter((row) => ATTENTION_STATUSES.some((status) => status === row.drift.status));
 }
 
 export function advisoryLabel(count: number): string {
   return `${count} new upstream ${count === 1 ? "advisory" : "advisories"}`;
 }
 
-export function advisoryNotice(drift: DriftRecord): string | null {
+/** With the release gap hidden, the base release is not named, but the count still matches what decided the status. */
+export function advisoryNotice(drift: DriftRecord, showGap = true): string | null {
   const { advisories, release_gap: gap } = drift;
   if (!advisories) return null;
   if (gap && drift.status_basis === "release") {
     const affecting = advisories.affecting_fork_release ?? 0;
-    return affecting > 0 ? `${affecting} upstream ${affecting === 1 ? "advisory affects" : "advisories affect"} ${gap.base}, our base` : null;
+    const base = showGap ? `${gap.base}, our base` : "the upstream release we are built on";
+    return affecting > 0 ? `${affecting} upstream ${affecting === 1 ? "advisory affects" : "advisories affect"} ${base}` : null;
   }
   return advisories.since_fork_release > 0 ? `${advisoryLabel(advisories.since_fork_release)} since our latest release` : null;
 }

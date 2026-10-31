@@ -1,4 +1,5 @@
 import { isStatus, statusCounts, type ForkRow, type Status } from "./rows";
+import type { SignalKey } from "./signals";
 
 export const PARAMS = {
   status: "status",
@@ -28,6 +29,18 @@ export function parseFilters(params: URLSearchParams): ForkFilters {
     noRelease: params.get(PARAMS.noRelease) === "1",
     unpromoted: params.get(PARAMS.unpromoted) === "1",
     app: params.get(PARAMS.app) || null,
+  };
+}
+
+const SIGNAL_OF_FLAG = { advisories: "advisories", noRelease: "fork_release", unpromoted: "promotion" } as const satisfies Record<string, SignalKey>;
+
+/** A filter for a signal that is not shown is ignored, even if a shared link still carries it. */
+export function withoutHiddenFilters(filters: ForkFilters, isShown: (key: SignalKey) => boolean): ForkFilters {
+  return {
+    ...filters,
+    advisories: filters.advisories && isShown(SIGNAL_OF_FLAG.advisories),
+    noRelease: filters.noRelease && isShown(SIGNAL_OF_FLAG.noRelease),
+    unpromoted: filters.unpromoted && isShown(SIGNAL_OF_FLAG.unpromoted),
   };
 }
 

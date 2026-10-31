@@ -12,11 +12,13 @@ import { FilterBar } from "./FilterBar";
 import { ForkCards } from "./ForkCards";
 import { StatusPill } from "./StatusPill";
 import { forksCsv } from "./csv";
-import { applyFilters, parseFilters } from "./filters";
+import { applyFilters, parseFilters, withoutHiddenFilters } from "./filters";
 import { appPath } from "./paths";
 import { byDrift, forkRows, formatDay, releaseGapText, severity, sortedForks, type ForkRow } from "./rows";
 import type { AppRecord } from "./schemas";
+import type { SignalKey } from "./signals";
 import { useFleetViews } from "./useFleetViews";
+import { useSignalVisibility, type SignalVisibility } from "./visibility";
 import "./fleet.css";
 
 function ExternalLink({ href, children }: { href: string; children: string }) {
@@ -100,6 +102,20 @@ const FORK_COLUMNS: Column<ForkRow>[] = [
   },
 ];
 
+const SIGNAL_OF_COLUMN: Readonly<Record<string, SignalKey>> = {
+  "built-on": "release_gap",
+  release: "fork_release",
+  upstream: "upstream_release",
+  advisories: "advisories",
+};
+
+function forkColumns(isShown: SignalVisibility["isShown"]): Column<ForkRow>[] {
+  return FORK_COLUMNS.filter((column) => {
+    const signal = SIGNAL_OF_COLUMN[column.key];
+    return !signal || isShown(signal, "table");
+  });
+}
+
 const ORIGINAL_COLUMNS: Column<AppRecord>[] = [
   { key: "app", header: "App", cell: (app) => <ExternalLink href={app.url}>{app.repo}</ExternalLink>, sortValue: (app) => app.repo.toLowerCase() },
   { key: "description", header: "What it does", cell: (app) => app.description ?? "–" },
@@ -121,7 +137,7 @@ function Explainer() {
   );
 }
 
-function forkTabs(forks: readonly ForkRow[], org: string): TabItem[] {
+function forkTabs(forks: readonly ForkRow[], org: string, isShown: SignalVisibility["isShown"]): TabItem[] {
   return [
     { id: "cards", label: "Cards", content: () => <ForkCards rows={forks} /> },
     {
@@ -130,16 +146,16 @@ function forkTabs(forks: readonly ForkRow[], org: string): TabItem[] {
       content: () => (
         <>
           <p className="fork-export">
-            <DownloadButton label="Download CSV" filename={`${org}-forks.csv`} mimeType="text/csv" content={() => forksCsv(sortedForks(forks))} />
+            <DownloadButton label="Download CSV" filename={`${org}-forks.csv`} mimeType="text/csv" content={() => forksCsv(sortedForks(forks, isShown("release_gap", "csv")), (key) => isShown(key, "csv"))} />
           </p>
           <DataTable
             caption="Forks and how far each has drifted from its upstream"
             captionHidden
-            columns={FORK_COLUMNS}
-            rows={sortedForks(forks)}
+            columns={forkColumns(isShown)}
+            rows={sortedForks(forks, isShown("release_gap", "table"))}
             rowKey={({ app }) => app.repo}
             initialSort={{ key: "status", direction: "descending" }}
-            tieBreak={byDrift}
+            tieBreak={(a, b) => byDrift(a, b, isShown("release_gap", "table"))}
           />
         </>
       ),
@@ -149,12 +165,13 @@ function forkTabs(forks: readonly ForkRow[], org: string): TabItem[] {
 
 function Forks({ forks }: { forks: readonly ForkRow[] }) {
   const { org } = useTenant();
+  const { isShown } = useSignalVisibility();
   const [params] = useSearchParams();
-  const shown = applyFilters(forks, parseFilters(params));
+  const shown = applyFilters(forks, withoutHiddenFilters(parseFilters(params), (key) => isShown(key, "filter")));
   return (
     <>
       <FilterBar rows={forks} shown={shown.length} />
-      {shown.length === 0 ? <EmptyState kind="info" title="No forks match these filters." /> : <Tabs label="Fork view" tabs={forkTabs(shown, org)} />}
+      {shown.length === 0 ? <EmptyState kind="info" title="No forks match these filters." /> : <Tabs label="Fork view" tabs={forkTabs(shown, org, isShown)} />}
     </>
   );
 }
