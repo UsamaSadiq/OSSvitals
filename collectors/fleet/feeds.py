@@ -58,7 +58,7 @@ class Feeds:
         kev_cache: dict[str, Any] | None,
         now: datetime,
         max_age_days: int,
-        fetch_epss: Callable[[list[str]], dict[str, dict[str, Any]] | None] = lambda cves: None,
+        fetch_epss: Callable[[list[str]], dict[str, dict[str, Any] | None]] = lambda cves: {},
     ) -> None:
         self._fetch_kev = fetch_kev
         self._fetch_epss = fetch_epss
@@ -101,23 +101,20 @@ class Feeds:
         except (TypeError, KeyError, AttributeError):
             return None
 
-    def epss(self, cves: list[str]) -> dict[str, dict[str, Any]] | None:
-        """Scores for ``cves``, each looked up at most once per run and shared across forks. After one failed lookup
-        the run stops asking FIRST, and every later caller gets None (and falls back to its previous scores)."""
+    def epss(self, cves: list[str]) -> tuple[dict[str, dict[str, Any]], set[str]]:
+        """This run's scores for ``cves`` and the CVEs that could not be looked up. Each CVE is asked about at most
+        once per run and shared across forks; once a lookup fails, the run stops asking FIRST."""
         with self._epss_lock:
             missing = sorted({cve for cve in cves if cve not in self._epss})
             if missing and not self._epss_failed:
                 try:
-                    found = self._fetch_epss(missing)
+                    found = self._fetch_epss(missing) or {}
                 except (ValueError, TypeError, KeyError, AttributeError):
-                    found = None
-                if found is None:
-                    self._epss_failed = True
-                else:
-                    self._epss.update({cve: found.get(cve) for cve in missing})
-            if any(cve not in self._epss for cve in cves):
-                return None
-            return {cve: score for cve in cves if (score := self._epss[cve])}
+                    found = {}
+                self._epss.update({cve: score for cve, score in found.items() if cve in missing})
+                self._epss_failed = any(cve not in found for cve in missing)
+            scored = {cve: score for cve in cves if (score := self._epss.get(cve))}
+            return scored, {cve for cve in cves if cve not in self._epss}
 
     def kev_cache_to_publish(self) -> dict[str, Any] | None:
         """The copy the next run falls back to; a cached copy keeps its original fetch time so it still ages out."""

@@ -465,3 +465,13 @@ def test_the_previous_record_reaches_signals_that_compare_over_time():
     assert record["licence_watch"]["changed_on"] == "2026-10-12"
     assert record["licence_watch"]["previous_spdx"] == "Apache-2.0"
 
+
+
+def test_epss_reaches_the_record_through_the_collector_and_falls_back_to_the_previous_record():
+    scored = Feeds(lambda: KEV, None, NOW, 7, lambda cves: {cve: {"epss": 0.3, "percentile": 0.99, "date": "2026-10-11"} for cve in cves})
+    record = fleet.collect_fork(api_for(ROUTES), "Org", APP, SETTINGS, NOW, merged_by, feeds=scored)
+    epss = record["exploitability"]["epss"]
+    assert (epss["min"], epss["likely"], epss["top"][0]["cve_id"]) == (SETTINGS.signal("exploitability")["epss_min"], 1, "CVE-2026-1")
+    down = Feeds(lambda: KEV, None, NOW, 7, lambda cves: {})
+    again = fleet.collect_fork(api_for(ROUTES), "Org", APP, SETTINGS, NOW, merged_by, record, down)
+    assert (again["exploitability"]["epss"]["from_previous"], again["exploitability"]["epss"]["as_of"]) == (True, "2026-10-11")
