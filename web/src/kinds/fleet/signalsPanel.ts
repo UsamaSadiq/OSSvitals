@@ -1,4 +1,4 @@
-import type { ConflictsView, DriftRecord, FleetManifest, ManifestStatus } from "./schemas";
+import type { DriftRecord, FleetManifest, ManifestStatus } from "./schemas";
 import { SURFACE_LABELS, type SignalInfo, type SignalKey, type Surface } from "./signals";
 
 export type SignalState = "shown" | "hidden_by_viewer" | "not_shown" | "off";
@@ -21,9 +21,12 @@ export function surfacesText(show: readonly string[]): string {
   return show.map((surface) => SURFACE_LABELS[surface as Surface] ?? surface).join(", ");
 }
 
-/** Forks whose latest record has this signal's field as `null`, or a weekly record carrying an error. */
-export function failedCount(info: SignalInfo, records: readonly DriftRecord[], conflicts: ConflictsView | null): number {
-  if (info.key === "conflicts") return conflicts?.records.filter((record) => record.error).length ?? 0;
+export type WeeklyViews = Readonly<Record<string, { records: readonly { error?: string }[] } | null>>;
+
+/** Forks whose latest record has this signal's field as `null`, or whose weekly record carries an error. */
+export function failedCount(info: SignalInfo, records: readonly DriftRecord[], weekly: WeeklyViews): number {
+  const view = weekly[info.key];
+  if (view !== undefined) return view?.records.filter((record) => record.error).length ?? 0;
   const field = info.failureField;
   return field ? records.filter((record) => field in record && record[field] === null).length : 0;
 }

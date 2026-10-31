@@ -86,12 +86,25 @@ function serve(files: Record<string, unknown>) {
   );
 }
 
+const CARRIED = [
+  {
+    repo: "burning",
+    compared: true,
+    commits: 3,
+    carried: 2,
+    already_upstream: 1,
+    carried_items: [{ sha: "c1", date: "2026-10-01", subject: "Add our sign-in" }],
+    already_upstream_items: [{ sha: "u1", date: "2026-09-20", subject: "Fix a crash" }],
+  },
+];
+
 /** `meta: null` serves no meta.json, like data published before the manifest existed. */
 function files(meta: unknown = MANIFEST_META, drift: Record<string, unknown> = DRIFT) {
   return {
     "apps.json": { metadata, records: [APP] },
     "drift.json": { metadata, records: [drift] },
     "conflicts.json": { metadata, records: CONFLICTS },
+    "carried_patches.json": { metadata, records: CARRIED },
     ...(meta === null ? {} : { "meta.json": meta }),
   };
 }
@@ -110,6 +123,7 @@ const DETAIL_MARKERS: Record<SignalKey, string> = {
   licence_watch: "Upstream licence",
   exploitability: "Known exploited",
   conflicts: "Sync forecast",
+  carried_patches: "Carried patches",
 };
 
 beforeEach(() => {
@@ -171,6 +185,14 @@ describe("fleet pages follow the signal manifest", () => {
     const fact = (await screen.findByText("Known exploited", { selector: "dt" })).closest(".app-fact") as HTMLElement;
     expect(within(fact).getByRole("link", { name: "CVE-2026-1" }).getAttribute("href")).toBe("https://github.com/up/burning/security/advisories/GHSA-1");
     expect(within(fact).getByText(/3 advisories affecting the upstream release we are built on, 1 without a CVE id/)).toBeTruthy();
+  });
+
+  it("lists our patches, those upstream already has first, linked to our commits", async () => {
+    serve(files());
+    renderRoute("/apps/burning", META, tenant);
+    expect(await screen.findByText("3 commits of our own: 2 carried, 1 already in upstream, which drop at the next sync.")).toBeTruthy();
+    const already = screen.getByRole("list", { name: "Already in upstream" });
+    expect(within(already).getByRole("link", { name: "Fix a crash" }).getAttribute("href")).toBe("https://github.com/Org/burning/commit/u1");
   });
 
   it("says when upstream has no licence file", async () => {

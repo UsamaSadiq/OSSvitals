@@ -1,5 +1,5 @@
 import { appsPath } from "./paths";
-import type { AppRecord, DriftRecord, ReleaseGap } from "./schemas";
+import type { AppRecord, CarriedRecord, DriftRecord, ReleaseGap } from "./schemas";
 import type { SignalKey } from "./signals";
 
 export const STATUS_ORDER = ["in-sync", "lagging", "stale", "critical"] as const;
@@ -99,7 +99,13 @@ export interface OverviewStats {
   originals: OverviewStat;
 }
 
-export function overviewStats(forks: readonly ForkRow[], originals: number): OverviewStats {
+/** Forks carrying commits that upstream already has; those drop away at the next sync. */
+function alreadyUpstreamStat(carried: readonly CarriedRecord[]): OverviewStat {
+  const count = carried.filter((record) => (record.already_upstream ?? 0) > 0).length;
+  return { key: "already-upstream", signal: "carried_patches", label: "With patches upstream has", count, to: appsPath() };
+}
+
+export function overviewStats(forks: readonly ForkRow[], originals: number, carried: readonly CarriedRecord[] = []): OverviewStats {
   const counts = statusCounts(forks);
   const licences = [...new Set(forks.flatMap((row) => (row.app.licence ? [row.app.licence] : [])))].sort((a, b) => a.localeCompare(b));
   return {
@@ -121,6 +127,7 @@ export function overviewStats(forks: readonly ForkRow[], originals: number): Ove
         to: appsPath({ unpromoted: "1" }),
       },
       { key: "no-release", signal: "fork_release", label: "No release yet", count: forks.filter((row) => row.drift.fork_release === null).length, to: appsPath({ no_release: "1" }) },
+      ...(carried.length > 0 ? [alreadyUpstreamStat(carried)] : []),
     ],
     licences: licences.map((licence) => ({
       key: licence,

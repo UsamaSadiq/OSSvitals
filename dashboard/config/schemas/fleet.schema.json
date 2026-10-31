@@ -100,7 +100,13 @@
           "properties": {"max_age_days": {"type": "integer", "minimum": 1}},
           "unevaluatedProperties": false
         },
-        "conflicts": {"$ref": "#/$defs/plain_signal"}
+        "conflicts": {"$ref": "#/$defs/plain_signal"},
+        "carried_patches": {
+          "$ref": "#/$defs/signal",
+          "required": ["max_prefetch_blobs"],
+          "properties": {"max_prefetch_blobs": {"type": "integer", "minimum": 0}},
+          "unevaluatedProperties": false
+        }
       },
       "additionalProperties": false
     }

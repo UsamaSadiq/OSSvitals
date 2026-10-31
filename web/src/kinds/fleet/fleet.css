@@ -482,3 +482,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.detail-subheading {
+  margin: 0.75rem 0 0.25rem;
+  font-size: var(--fs-small);
+  color: var(--muted);
+  font-weight: 600;
+}

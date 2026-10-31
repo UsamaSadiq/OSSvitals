@@ -46,6 +46,11 @@ export const SIGNAL_CATALOGUE = [
     failureField: "exploitability",
   },
   { key: "conflicts", label: "Sync forecast", description: "The files a sync with upstream's head and latest release would conflict on. Collected weekly." },
+  {
+    key: "carried_patches",
+    label: "Carried patches",
+    description: "Our own commits on the production branch, and which of them upstream already has, so they drop at the next sync. Collected weekly.",
+  },
 ] as const satisfies readonly SignalInfo[];
 
 export type SignalEntry = (typeof SIGNAL_CATALOGUE)[number];

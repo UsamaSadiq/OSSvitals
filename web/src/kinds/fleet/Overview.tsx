@@ -90,7 +90,7 @@ function Rollup() {
   if (state.status === "loading") return <Loading label="Loading fork status…" />;
   if (state.status === "error") return <ErrorState title="The fork status data could not be loaded." detail={state.message} />;
   const forks = forkRows(state.apps.records, state.drift.records);
-  const stats = overviewStats(forks, state.apps.records.filter((app) => app.class === "original").length);
+  const stats = overviewStats(forks, state.apps.records.filter((app) => app.class === "original").length, state.carried?.records ?? []);
   const extras = stats.extras
     .filter((stat) => !stat.signal || isShown(stat.signal, "overview_tile"))
     .map((stat) => (stat.signal && !isShown(stat.signal, "filter") ? { ...stat, to: appsPath() } : stat));

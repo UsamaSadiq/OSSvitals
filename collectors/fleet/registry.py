@@ -4,6 +4,7 @@ from __future__ import annotations
 from collectors.fleet.signals import Signal
 from collectors.fleet.signals import (
     advisories,
+    carried_patches,
     ci,
     conflicts,
     exploitability,
@@ -32,6 +33,7 @@ SIGNALS: tuple[Signal, ...] = tuple(
         licence_watch,
         exploitability,
         conflicts,
+        carried_patches,
     )
 )
 BY_KEY = {signal.key: signal for signal in SIGNALS}

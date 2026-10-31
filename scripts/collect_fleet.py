@@ -16,7 +16,7 @@ from typing import Any, Callable
 
 from collectors import github, kev, publish
 from collectors.fleet import badges, history, inventory, meta, versions
-from collectors.fleet.collect import collect_clone_signal, collect_fork
+from collectors.fleet.collect import collect_clone_signals, collect_fork
 from collectors.fleet.feeds import KEV_CACHE, Feeds
 from collectors.fleet.settings import FleetSettings, load_settings
 from collectors.fleet.signals import API, CLONE
@@ -145,21 +145,21 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     return 0
 
 
-def _clone_signal_records(key: str, settings: FleetSettings, repos: list[str]) -> list[dict[str, Any]]:
+def clone_signal_records(settings: FleetSettings, keys: list[str], repos: list[str]) -> dict[str, list[dict[str, Any]]]:
+    """Each fork is cloned once and every weekly signal reads that clone."""
     github_org, apps = _apps(settings.org, repos)
     now = now_utc()
-    return [
-        _isolated(app["repo"], lambda app=app: collect_clone_signal(key, github.api_optional, github_org, app, settings, now))
-        for app in apps
-        if app["class"] == "fork"
-    ]
+    by_fork = [collect_clone_signals(keys, github.api_optional, github_org, app, settings, now) for app in apps if app["class"] == "fork"]
+    return {key: [records[key] for records in by_fork] for key in keys}
 
 
 def run_clone_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     """A signal whose every fork failed is not written, so its last good view stays published; the others still are."""
     failed = []
-    for key in settings.enabled_signals(CLONE):
-        records = _clone_signal_records(key, settings, args.repo)
+    keys = settings.enabled_signals(CLONE)
+    by_key = clone_signal_records(settings, keys, args.repo) if keys else {}
+    for key in keys:
+        records = by_key[key]
         if not any("error" not in record for record in records):
             print(f"{key}: no fork could be collected; not writing.")
             failed.append(key)

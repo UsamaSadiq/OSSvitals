@@ -47,8 +47,15 @@ describe("signal panel helpers", () => {
     const ci = SIGNAL_CATALOGUE.find((info) => info.key === "ci")!;
     const promotion = SIGNAL_CATALOGUE.find((info) => info.key === "promotion")!;
     const records = [{ ci: null, promotion: null }, { ci: { state: "passing", total: 1 } }, {}] as never[];
-    expect(failedCount(ci, records, null)).toBe(1);
-    expect(failedCount(promotion, records, null)).toBe(0);
+    expect(failedCount(ci, records, {})).toBe(1);
+    expect(failedCount(promotion, records, {})).toBe(0);
+  });
+
+  it("counts weekly failures from that signal's own view", () => {
+    const carried = SIGNAL_CATALOGUE.find((info) => info.key === "carried_patches")!;
+    const weekly = { carried_patches: { records: [{ error: "clone failed" }, {}] } };
+    expect(failedCount(carried, [], weekly)).toBe(1);
+    expect(failedCount(carried, [], { carried_patches: null })).toBe(0);
   });
 
   it("proposes the opposite of the current setting as lines to merge under signals:", () => {
