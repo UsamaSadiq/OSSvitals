@@ -12,9 +12,10 @@ ITEMS = 10
 NOTE_LINES = 3
 NOTE_WIDTH = 200
 TEST_ROOTS = {"spec", "test", "tests", "__tests__"}
-# Digit groups joined by underscores are one number (Laravel's 2024_03_01_000000); a number running into a hex
-# letter is an Alembic revision id, not a sequence number.
-PREFIX = re.compile(r"^(\d+(?:_\d+)*)(?![0-9a-fA-F])")
+# A date-shaped prefix is one timestamp (Laravel's 2024_03_01_000000, Diesel's 2024-03-01-000000); otherwise the
+# leading number, unless it runs into a hex letter, which makes it an Alembic revision id, not a sequence number.
+DATED = re.compile(r"^(\d{4})[-_](\d{2})[-_](\d{2})[-_](\d{6})")
+PREFIX = re.compile(r"^(\d+)(?![0-9a-fA-F])")
 # Sequential numbers (0042_, 007_) collide when both sides add one; Rails-style timestamps (14 digits) rarely do.
 SEQUENTIAL_DIGITS = 8
 # Specific phrases only: a bare "breaking" also matches fixes such as "heading anchor breaking IME composition".
@@ -59,8 +60,11 @@ def _by_dir(paths: list[str], dir_names: list[str]) -> dict[str, set[str]]:
 
 
 def _prefix(entry: str) -> str | None:
+    dated = DATED.match(entry)
+    if dated:
+        return "".join(dated.groups())
     match = PREFIX.match(entry)
-    return match.group(1).replace("_", "") if match else None
+    return match.group(1) if match else None
 
 
 def _sequential(entries: set[str]) -> bool:

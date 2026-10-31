@@ -26,6 +26,14 @@ def test_laravel_dates_are_timestamps_and_alembic_ids_are_not_numbers():
     assert (laravel["sequential_dirs"], laravel["same_prefix"]) == ([], [])
     alembic = migrations(["alembic/versions/3f2a_ours.py"], ["alembic/versions/3b9c_theirs.py"], ["versions"])
     assert (alembic["sequential_dirs"], alembic["same_prefix"]) == ([], [])
+    diesel = migrations(["migrations/2024-01-01-000000_a/up.sql"], ["migrations/2024-03-05-000000_b/up.sql"], DIRS)
+    assert (diesel["sequential_dirs"], diesel["same_prefix"]) == ([], [])
+
+
+def test_a_sequence_number_followed_by_digits_in_the_name_still_clashes():
+    record = migrations(["app/migrations/0042_2024_cleanup.py"], ["app/migrations/0042_add.py", "app/migrations/0043_x.py"], DIRS)
+    assert record["sequential_dirs"] == ["app/migrations"]
+    assert [clash["prefix"] for clash in record["same_prefix"]] == ["0042"]
 
 
 def test_test_trees_helpers_and_package_markers_are_not_migrations():
