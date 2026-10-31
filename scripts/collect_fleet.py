@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Callable
 
-from collectors import github, kev, publish
+from collectors import epss, github, kev, publish
 from collectors.fleet import badges, history, inventory, meta, versions
 from collectors.fleet.collect import collect_clone_signals, collect_fork
 from collectors.fleet.feeds import KEV_CACHE, Feeds
@@ -95,7 +95,7 @@ def _feeds(settings: FleetSettings, cache_dir: Path | None) -> Feeds | None:
     if not settings.collects("exploitability"):
         return None
     cached = _read_json(cache_dir / KEV_CACHE if cache_dir else None)
-    return Feeds(kev.catalogue, cached, now_utc(), settings.signal("exploitability")["max_age_days"])
+    return Feeds(kev.catalogue, cached, now_utc(), settings.signal("exploitability")["max_age_days"], epss.scores)
 
 
 def _publish_feeds(feeds: Feeds | None, out_dir: Path) -> None:

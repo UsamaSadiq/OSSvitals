@@ -9,7 +9,7 @@ import { Advisories, BadgeSnippet, CarriedPatches, Conflicts, UpgradeRisk } from
 import { Sparkline } from "./Sparkline";
 import { StatusPill } from "./StatusPill";
 import { trendOf } from "./insights";
-import { advisoryUrl, checkedText } from "./exploited";
+import { advisoryUrl, checkedText, epssText } from "./exploited";
 import { contributorsText, healthNotes } from "./health";
 import { licenceHistoryUrl, licenceNotice } from "./licence";
 import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
@@ -185,6 +185,7 @@ function ExploitedFact({ row }: { row: ForkRow }) {
             </span>
           ))}
       <span className="app-fact__note">{checkedText(exploitability)}</span>
+      {exploitability.epss && <span className="app-fact__note">{epssText(exploitability.epss)}</span>}
     </Fact>
   );
 }

@@ -96,8 +96,8 @@
         },
         "exploitability": {
           "$ref": "#/$defs/signal",
-          "required": ["max_age_days"],
-          "properties": {"max_age_days": {"type": "integer", "minimum": 1}},
+          "required": ["max_age_days", "epss_min"],
+          "properties": {"max_age_days": {"type": "integer", "minimum": 1}, "epss_min": {"type": "number", "minimum": 0, "maximum": 1}},
           "unevaluatedProperties": false
         },
         "upstream_health": {
