@@ -199,7 +199,7 @@ def test_meta_view_satisfies_the_tenant_contract():
     view = meta.meta_view("moneta", NOW, branding={"name": "n"}, settings=SETTINGS, github_org="Org")
     assert view["metadata"]["org"] == "moneta"
     assert view["metadata"]["snapshot_timestamp"] == NOW.isoformat()
-    assert view["pages"] == ["/", "/apps", "/attention"]
+    assert view["pages"] == ["/", "/apps", "/attention", "/signals"]
     assert view["stale_threshold_hours"] == 48
     assert view["critically_stale_threshold_hours"] == 168
     assert "enable_maintainer_views" in view["feature_flags"]

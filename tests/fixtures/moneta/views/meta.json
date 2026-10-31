@@ -9,7 +9,8 @@
   "pages": [
     "/",
     "/apps",
-    "/attention"
+    "/attention",
+    "/signals"
   ],
   "branding": {
     "name": "Moneta FOSS Status",

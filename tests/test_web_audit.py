@@ -39,7 +39,7 @@ def test_web_audit_inventory_is_unique_and_resolvable():
 
 
 def test_each_org_has_its_own_page_inventory():
-    assert [page.name for page in resolve_pages([], "moneta")] == ["overview", "apps", "apps_filtered", "attention", "app_detail", "not_found"]
+    assert [page.name for page in resolve_pages([], "moneta")] == ["overview", "apps", "apps_filtered", "attention", "app_detail", "signals", "not_found"]
     assert resolve_pages(["overview"], "moneta")[0].path == "/"
 
 

@@ -5,7 +5,7 @@ branches:
   production: "main"
 fork_release_tag: '^v?\d+(\.\d+)+$'
 history_days: 90
-pages: ["/", "/apps", "/attention"]
+pages: ["/", "/apps", "/attention", "/signals"]
 feature_flags:
   enable_maintainer_views: false
 freshness:
