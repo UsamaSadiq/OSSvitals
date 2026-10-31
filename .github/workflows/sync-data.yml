@@ -24,7 +24,9 @@ env:
 
 jobs:
   sync:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # A failed run may still have published: fleet matrix legs and weekly signals publish on their own.
+    # The mirror is idempotent and validates before uploading, so it runs after failures too.
+    if: github.event_name != 'workflow_run' || contains(fromJSON('["success", "failure"]'), github.event.workflow_run.conclusion)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

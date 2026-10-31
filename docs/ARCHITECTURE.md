@@ -24,8 +24,8 @@ A separate Cloudflare Worker at `mcp.ossvitals.org` exposes the published views 
 (claude.ai, Claude Code, Cursor). It is stateless and read-only: each request fetches the view files
 from the tenant's site, caches them for five minutes, and returns compact projections. It holds no
 secrets and has no write tools. The tenant is part of the path (`/<org>/mcp`); the root `/mcp`
-endpoint lists tenants only. The tool set depends on the tenant kind in `mcp/src/tenants.ts`
-(`health` for the openedx pipeline, `drift` for fork tracking).
+endpoint lists tenants only. The tool set depends on the tenant kind in `dashboard/config/tenants.json`
+(`health` for the openedx pipeline, `fleet` for fork tracking).
 
 ## Selecting the org
 
