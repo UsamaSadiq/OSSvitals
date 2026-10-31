@@ -103,7 +103,7 @@ describe("moneta fleet tools", () => {
   it("get_app adds weekly signal counts, null when a weekly view is missing", async () => {
     const client = await connect(["upgrade_risk"]);
     const { text } = await call(client, "get_app", { repo: "alpha" });
-    expect(JSON.parse(text).weekly_signals).toEqual({ carried_patches: { carried: 9, already_upstream: 3 }, upgrade_risk: null });
+    expect(JSON.parse(text).weekly_signals).toEqual({ carried_patches: { compared: true, commits: expect.any(Number), carried: 9, already_upstream: 3 }, upgrade_risk: null });
     await client.close();
   });
 
@@ -132,6 +132,22 @@ describe("moneta fleet tools", () => {
       text: "Carried patches are not collected for moneta, or have not been published yet",
     });
     expect((await call(client, "get_upgrade_risk", { repo: "alpha" })).text).toContain("Upgrade risks are not collected");
+    await client.close();
+  });
+
+  it("get_app fails when a weekly view is unreachable rather than calling it not collected", async () => {
+    const deps: HandlerDeps = {
+      fetch: async (input) => (String(input).includes("carried_patches") ? new Response("down", { status: 503 }) : fakeFetch()(input)),
+      limiter: neverLimit,
+      base: BASE,
+    };
+    const transport = new StreamableHTTPClientTransport(new URL("https://mcp.ossvitals.org/moneta/mcp"), {
+      fetch: (input, init) => handle(new Request(input, init), deps),
+    });
+    const client = new Client({ name: "test", version: "0" });
+    await client.connect(transport);
+    const result = await call(client, "get_app", { repo: "alpha" });
+    expect(result).toMatchObject({ isError: true, text: expect.stringContaining("HTTP 503") });
     await client.close();
   });
 

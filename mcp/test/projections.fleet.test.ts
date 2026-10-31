@@ -151,7 +151,7 @@ describe("weekly signal projections", () => {
     expect(projectUpgradeRisk({ repo: "alpha", error: "clone failed" })).toMatchObject({ error: "clone failed", migrations: null, release_notes: null });
   });
 
-  it("counts numbering risks and flagged releases for get_app", () => {
+  it("counts clashes, sequential folders and flagged releases separately for get_app", () => {
     const upgrade = {
       metadata: { generated_at: "x", org: "moneta" },
       records: [
@@ -162,7 +162,12 @@ describe("weekly signal projections", () => {
         },
       ],
     };
-    expect(weeklySummary(null, upgrade, "ALPHA")).toEqual({ carried_patches: null, upgrade_risk: { numbering_risks: 2, flagged_releases: 1 } });
+    expect(weeklySummary(null, upgrade, "ALPHA")).toEqual({
+      carried_patches: null,
+      upgrade_risk: { same_prefix_clashes: 1, sequential_dirs: 1, flagged_releases: 1 },
+    });
     expect(weeklySummary(null, upgrade, "beta")).toEqual({ carried_patches: null, upgrade_risk: null });
+    const failed = { metadata: upgrade.metadata, records: [{ repo: "alpha", error: "clone failed" }] };
+    expect(weeklySummary(failed, failed, "alpha")).toEqual({ carried_patches: { error: "clone failed" }, upgrade_risk: { error: "clone failed" } });
   });
 });

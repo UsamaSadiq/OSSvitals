@@ -235,19 +235,26 @@ export function getUpgradeRisk(upgrade: UpgradeView, repo: string) {
   return record ? projectUpgradeRisk(record) : undefined;
 }
 
+function carriedSummary(record: CarriedRecord) {
+  if (record.error !== undefined) return { error: record.error };
+  return { compared: record.compared ?? null, commits: record.commits ?? null, carried: record.carried ?? null, already_upstream: record.already_upstream ?? null };
+}
+
+function upgradeSummary(record: UpgradeRecord) {
+  if (record.error !== undefined) return { error: record.error };
+  return {
+    same_prefix_clashes: record.migrations?.same_prefix.length ?? null,
+    sequential_dirs: record.migrations?.sequential_dirs.length ?? null,
+    flagged_releases: record.release_notes?.flagged.length ?? null,
+  };
+}
+
 /** Counts only, so get_app can say a weekly signal has something to look at without a second call. */
 export function weeklySummary(carried: CarriedView | null, upgrade: UpgradeView | null, repo: string) {
   const patches = carried ? findByRepo(carried.records, repo) : undefined;
   const risk = upgrade ? findByRepo(upgrade.records, repo) : undefined;
-  const migrations = risk?.migrations;
   return {
-    carried_patches: patches && !patches.error ? { carried: patches.carried ?? null, already_upstream: patches.already_upstream ?? null } : null,
-    upgrade_risk:
-      risk && !risk.error
-        ? {
-            numbering_risks: migrations ? migrations.same_prefix.length + migrations.sequential_dirs.length : null,
-            flagged_releases: risk.release_notes?.flagged.length ?? null,
-          }
-        : null,
+    carried_patches: patches ? carriedSummary(patches) : null,
+    upgrade_risk: risk ? upgradeSummary(risk) : null,
   };
 }
