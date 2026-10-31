@@ -195,7 +195,8 @@
         "cadence": "daily",
         "thresholds": [],
         "settings": {
-          "max_age_days": 7
+          "max_age_days": 7,
+          "epss_min": 0.1
         }
       },
       "upstream_health": {

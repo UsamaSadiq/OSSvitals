@@ -122,6 +122,24 @@ const driftRecord = z.object({
       ),
       kev_as_of: z.string(),
       kev_from_cache: z.boolean(),
+      epss: z
+        .object({
+          as_of: nullableString,
+          from_previous: z.boolean(),
+          min: z.number(),
+          likely: z.number().int(),
+          top: z.array(
+            z.object({
+              ghsa_id: nullableString,
+              cve_id: z.string(),
+              severity: nullableString,
+              epss: z.number(),
+              percentile: z.number(),
+              certain: z.boolean().nullish(),
+            }),
+          ),
+        })
+        .nullish(),
     })
     .nullish(),
 });
