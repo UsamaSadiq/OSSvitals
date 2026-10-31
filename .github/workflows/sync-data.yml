@@ -37,32 +37,23 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm install --global wrangler@4.146.0
       - run: scripts/data_branch_export.sh "$RUNNER_TEMP/data"
-      # A tenant whose views fail their schemas keeps its last good copy in the bucket: its views are left
-      # out of this upload, the other tenants still sync, and the run fails afterwards so it gets noticed.
+      # A tenant whose views fail their schemas keeps its last good copy in the bucket: --prune leaves its views
+      # out of this upload (exit 3), the other tenants still sync, and the run fails afterwards so it gets noticed.
+      # Any other non-zero exit means the check itself broke, so nothing is uploaded.
       - name: Validate every tenant's views
         id: validate
         working-directory: web
         run: |
           npm ci
-          failed=""
-          for org in $(jq -r 'keys[]' ../dashboard/config/tenants.json); do
-            if [ ! -d "$RUNNER_TEMP/data/$org/views" ]; then
-              echo "No views published for $org yet"
-              continue
-            fi
-            if ! npm run validate-data -- --org "$org" --dir "$RUNNER_TEMP/data/$org/views"; then
-              failed="$failed $org"
-              rm -rf "$RUNNER_TEMP/data/$org/views"
-            fi
-          done
-          echo "failed=${failed# }" >> "$GITHUB_OUTPUT"
+          status=0
+          npm run validate-data -- --root "$RUNNER_TEMP/data" --prune || status=$?
+          if [ "$status" -ne 0 ] && [ "$status" -ne 3 ]; then exit "$status"; fi
+          echo "pruned=$([ "$status" -eq 3 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - run: scripts/sync_r2.sh "$RUNNER_TEMP/data" "$BUCKET"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - if: steps.validate.outputs.failed != ''
+      - if: steps.validate.outputs.pruned == 'true'
         run: |
-          echo "::error::Views failed validation and were not uploaded for: $FAILED"
+          echo "::error::Some tenants' views failed validation and were not uploaded; see the validate step."
           exit 1
-        env:
-          FAILED: ${{ steps.validate.outputs.failed }}

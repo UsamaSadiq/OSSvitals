@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { FLEET_VIEWS } from "../kinds/fleet/schemas.ts";
 import { parseView } from "./parse.ts";
 import { VIEW_NAMES, viewFileName } from "./schemas.ts";
@@ -14,12 +15,25 @@ interface Check {
 
 const HEALTH_CHECKS: Check[] = VIEW_NAMES.map((name) => ({ file: viewFileName(name), required: true, parse: (raw) => parseView(name, raw) }));
 
-const FLEET_CHECKS: Check[] = Object.values(FLEET_VIEWS).map(({ file, schema, required }) => ({ file, required, parse: (raw) => schema.parse(raw) }));
+const SITE_META = "meta.json";
+
+/** Every tenant's meta.json must also pass the shared site check, which decides whether the data host is trusted. */
+function fleetCheck({ file, schema, required }: { file: string; schema: { parse: (raw: unknown) => unknown }; required: boolean }): Check {
+  if (file !== SITE_META) return { file, required, parse: (raw) => schema.parse(raw) };
+  return { file, required: true, parse: (raw) => [parseView("meta", raw), schema.parse(raw)] };
+}
+
+const FLEET_CHECKS: Check[] = Object.values(FLEET_VIEWS).map(fleetCheck);
 
 const CHECKS: Record<TenantKind, Check[]> = { health: HEALTH_CHECKS, fleet: FLEET_CHECKS };
 
+function describe(error: unknown): string {
+  if (error instanceof z.ZodError) return error.issues.map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`).join("; ");
+  return error instanceof Error ? error.message : String(error);
+}
+
 function failure(file: string, error: unknown): ViewCheck {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = describe(error);
   return { file, outcome: "fail", message: message.startsWith(`${file}:`) ? message : `${file}: ${message}` };
 }
 

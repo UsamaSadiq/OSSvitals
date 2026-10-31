@@ -22,7 +22,7 @@ describe("checkViews", () => {
   it("lets a fleet tenant skip optional views but not apps or drift", async () => {
     const results = await checkViews("fleet", readFrom({ "apps.json": fixture("apps.json") }));
     const outcome = Object.fromEntries(results.map((result) => [result.file, result.outcome]));
-    expect(outcome).toMatchObject({ "apps.json": "ok", "drift.json": "fail", "conflicts.json": "absent", "meta.json": "absent" });
+    expect(outcome).toMatchObject({ "apps.json": "ok", "drift.json": "fail", "conflicts.json": "absent", "meta.json": "fail" });
   });
 
   it("names the file and the field when a fleet view has the wrong shape", async () => {
@@ -32,6 +32,13 @@ describe("checkViews", () => {
     const failed = results.find((result) => result.file === "drift.json");
     expect(failed?.outcome).toBe("fail");
     expect(failed?.message).toMatch(/^drift\.json: .*status/s);
+  });
+
+  it("checks a fleet meta.json with the site check the data host must pass", async () => {
+    const meta = fixture("meta.json") as { metadata: object };
+    const bumped = { ...meta, metadata: { ...meta.metadata, schema_version: 99 } };
+    const results = await checkViews("fleet", async (file) => (file === "meta.json" ? bumped : fixture(file)));
+    expect(results.find((result) => result.file === "meta.json")).toMatchObject({ outcome: "fail", message: expect.stringMatching(/schema_version 99/) });
   });
 
   it("requires every health view", async () => {
