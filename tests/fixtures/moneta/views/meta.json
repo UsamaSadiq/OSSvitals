@@ -184,6 +184,20 @@
           "notice_days": 30
         }
       },
+      "exploitability": {
+        "collect": true,
+        "show": [
+          "card",
+          "detail",
+          "attention"
+        ],
+        "tier": "feed",
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {
+          "max_age_days": 7
+        }
+      },
       "conflicts": {
         "collect": true,
         "show": [

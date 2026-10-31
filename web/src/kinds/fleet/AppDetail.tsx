@@ -9,6 +9,7 @@ import { Advisories, BadgeSnippet, Conflicts } from "./DetailSections";
 import { Sparkline } from "./Sparkline";
 import { StatusPill } from "./StatusPill";
 import { trendOf } from "./insights";
+import { advisoryUrl, checkedText } from "./exploited";
 import { licenceHistoryUrl, licenceNotice } from "./licence";
 import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
 import { formatDay, pluralise, releaseGapText, type ForkRow } from "./rows";
@@ -124,6 +125,7 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
         </Fact>
       )}
       {shown("licence_watch") && drift.licence_watch && <LicenceFact row={row} />}
+      {shown("exploitability") && drift.exploitability && <ExploitedFact row={row} />}
     </>
   );
 }
@@ -146,6 +148,32 @@ function LicenceFact({ row }: { row: ForkRow }) {
         `No licence file on ${branch}`
       )}
       {notice && <span className="app-fact__note">{notice}</span>}
+    </Fact>
+  );
+}
+
+function listedText(item: { date_added?: string | null; certain?: boolean | null }): string {
+  const parts = [item.date_added ? `listed ${formatDay(item.date_added)}` : null, item.certain === false ? "may apply" : null].filter(Boolean);
+  return parts.length > 0 ? ` (${parts.join(", ")})` : "";
+}
+
+function ExploitedFact({ row }: { row: ForkRow }) {
+  const { app, drift } = row;
+  const exploitability = drift.exploitability;
+  if (!exploitability) return null;
+  const known = exploitability.known_exploited;
+  return (
+    <Fact term="Known exploited">
+      {known.length === 0
+        ? "None"
+        : known.map((item, index) => (
+            <span key={`${item.ghsa_id ?? item.cve_id}-${index}`}>
+              {index > 0 && ", "}
+              {item.ghsa_id && app.upstream_url ? external(advisoryUrl(app.upstream_url, item.ghsa_id), item.cve_id) : item.cve_id}
+              {listedText(item)}
+            </span>
+          ))}
+      <span className="app-fact__note">{checkedText(exploitability)}</span>
     </Fact>
   );
 }

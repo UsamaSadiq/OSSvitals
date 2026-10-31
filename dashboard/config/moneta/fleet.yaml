@@ -6,3 +6,5 @@ fork_release_tag: '^v2\d\.\d{1,2}\.\d+$'
 signals:
   promotion:
     collect: true
+  exploitability:
+    collect: true

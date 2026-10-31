@@ -1,6 +1,7 @@
 import { advisoryNotice, pluralise, releaseGapText, type ForkRow } from "./rows";
 import type { ConflictRecord, HistoryRow } from "./schemas";
 import type { SignalKey } from "./signals";
+import { exploitedNotice } from "./exploited";
 import { licenceNotice } from "./licence";
 
 export interface StatusChange {
@@ -69,6 +70,7 @@ export function attentionReasons(row: ForkRow, conflict: ConflictRecord | undefi
     isShown("conflicts") && conflicts && !conflicts.clean ? `Syncing with upstream would conflict on ${pluralise(conflicts.conflicted_total, "file")}` : null,
     isShown("upstream_activity") && drift.upstream_activity?.quiet ? "Upstream has gone quiet" : null,
     isShown("licence_watch") ? licenceNotice(drift.licence_watch) : null,
+    isShown("exploitability") ? exploitedNotice(drift.exploitability) : null,
   ];
   return reasons.filter((reason): reason is string => reason !== null);
 }

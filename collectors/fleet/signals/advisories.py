@@ -10,7 +10,7 @@ from collectors.fleet.signals import Signal
 def collect(ctx: ForkContext) -> dict[str, Any]:
     since = ctx.fork_release["date"] if ctx.fork_release else None
     severe = ctx.settings.signal("advisories")["severe"]
-    return {"advisories": fork.advisory_summary(ctx.api, ctx.upstream, since, severe, ctx.base_release)}
+    return {"advisories": fork.advisory_summary(ctx.api, ctx.upstream, since, severe, ctx.base_release, ctx.upstream_advisories)}
 
 
 SIGNAL = Signal("advisories", collect, thresholds=("on_severe_advisory",))

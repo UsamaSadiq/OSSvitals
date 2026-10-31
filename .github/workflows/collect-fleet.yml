@@ -57,7 +57,7 @@ jobs:
         run: git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-previous
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: python scripts/collect_fleet.py --org "$ORG" --out-dir "$OUT_DIR" --previous-dir "data-previous/$ORG/views"
+      - run: python scripts/collect_fleet.py --org "$ORG" --out-dir "$OUT_DIR" --previous-dir "data-previous/$ORG/views" --feed-cache-dir "data-previous/$ORG/feeds"
         env:
           PYTHONPATH: ${{ github.workspace }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

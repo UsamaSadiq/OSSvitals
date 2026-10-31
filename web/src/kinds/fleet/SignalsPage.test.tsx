@@ -65,6 +65,7 @@ const DRIFT = {
   maintainers: [{ login: "alice", merged: 12 }, { login: "bob", merged: 3 }],
   upstream_activity: { pushed_at: "2026-10-01T00:00:00Z", idle_days: 11, quiet: false },
   licence_watch: { present: true, path: "LICENSE", sha: "s1", spdx: "AGPL-3.0", declared: "AGPL-3.0", matches_declared: true, changed_on: null, previous_spdx: null },
+  exploitability: { basis: "release", considered: 3, without_cve: 1, known_exploited: [], kev_as_of: "2026-10-12", kev_from_cache: false },
 };
 
 const CONFLICTS = [
@@ -107,6 +108,7 @@ const DETAIL_MARKERS: Record<SignalKey, string> = {
   maintainers: "Maintainers",
   upstream_activity: "Upstream activity",
   licence_watch: "Upstream licence",
+  exploitability: "Known exploited",
   conflicts: "Sync forecast",
 };
 
@@ -154,6 +156,21 @@ describe("fleet pages follow the signal manifest", () => {
     const fact = (await screen.findByText("Upstream licence")).closest(".app-fact") as HTMLElement;
     expect(within(fact).getByText(notice)).toBeTruthy();
     expect(within(fact).getByRole("link", { name: "LICENSE on main" }).getAttribute("href")).toBe("https://github.com/up/burning/commits/main/LICENSE");
+  });
+
+  it("shows a known exploited advisory on the card, the app page and needs attention", async () => {
+    const known = { ghsa_id: "GHSA-1", cve_id: "CVE-2026-1", severity: "high", date_added: "2026-10-02" };
+    const exploited = { ...DRIFT, exploitability: { ...DRIFT.exploitability, known_exploited: [known] } };
+    serve(files(MANIFEST_META, exploited));
+    const notice = "CVE-2026-1 is in CISA's known exploited vulnerabilities catalog";
+    const { router } = renderRoute("/apps", META, tenant);
+    expect(within(await screen.findByRole("article", { name: "burning" })).getByText(notice)).toBeTruthy();
+    await router.navigate("/attention");
+    expect(await screen.findByText(notice)).toBeTruthy();
+    await router.navigate("/apps/burning");
+    const fact = (await screen.findByText("Known exploited", { selector: "dt" })).closest(".app-fact") as HTMLElement;
+    expect(within(fact).getByRole("link", { name: "CVE-2026-1" }).getAttribute("href")).toBe("https://github.com/up/burning/security/advisories/GHSA-1");
+    expect(within(fact).getByText(/3 advisories affecting the upstream release we are built on, 1 without a CVE id/)).toBeTruthy();
   });
 
   it("says when upstream has no licence file", async () => {

@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 from collectors.fleet import collect as fleet, fork, inventory, meta
-from collectors.fleet.registry import SIGNALS
+from collectors.fleet.feeds import Feeds
+from collectors.fleet.registry import BY_KEY, SIGNALS
 from collectors.fleet.settings import DEFAULTS_PATH, build_settings, load_settings
 from dashboard.lib.config import get_config, read_config_file
 
@@ -52,7 +53,7 @@ ROUTES = {
     ],
     "repos/up/demo/security-advisories?per_page=100": [
         {"published_at": "2026-09-01T00:00:00Z", "severity": "critical", "ghsa_id": "GHSA-old"},
-        {"published_at": "2026-09-25T00:00:00Z", "severity": "low", "ghsa_id": "GHSA-low", "summary": "s", "html_url": "u"},
+        {"published_at": "2026-09-25T00:00:00Z", "severity": "low", "ghsa_id": "GHSA-low", "cve_id": "CVE-2026-1", "summary": "s", "html_url": "u"},
     ],
     f"{BASE}/compare/foss-main...foss-sandbox": {"ahead_by": 4},
     f"{BASE}/commits/foss-main/check-runs?per_page=100": {"check_runs": [{"conclusion": "success"}, {"conclusion": None}]},
@@ -69,8 +70,12 @@ def merged_by(owner, name, base):
     return ["bob", "alice", "bob"] if (owner, name, base) == ("Org", "demo", "foss-main") else None
 
 
+KEV = {"catalogVersion": "2026.10.30", "vulnerabilities": [{"cveID": "CVE-2026-1", "dateAdded": "2026-10-01"}]}
+FEEDS = Feeds(lambda: KEV, None, NOW, 7)
+
+
 def collect(routes=ROUTES, app=APP):
-    return fleet.collect_fork(api_for(routes), "Org", app, SETTINGS, NOW, merged_by)
+    return fleet.collect_fork(api_for(routes), "Org", app, SETTINGS, NOW, merged_by, feeds=FEEDS)
 
 
 def test_fork_record_reports_drift_release_and_promotion():
@@ -414,12 +419,13 @@ def test_pagination_continues_past_a_page_with_no_stable_release():
 def settings_with(collect):
     """Moneta's settings with only the given optional signals collected."""
     keys = {signal.key for signal in SIGNALS}
-    signals = {key: {"collect": key in collect} for key in keys}
+    wanted = set(collect) | {need for key in collect for need in BY_KEY[key].needs}
+    signals = {key: {"collect": key in wanted} for key in keys}
     return build_settings("moneta", read_config_file(DEFAULTS_PATH), {**read_config_file("config/moneta/fleet.yaml"), "signals": signals})
 
 
 CORE_FIELDS = ["repo", "production_branch", "ahead_by", "behind_by", "last_upstream_merge", "days_since_upstream_merge", "status", "status_basis"]
-API_KEYS = [signal.key for signal in SIGNALS if signal.tier == "api"]
+API_KEYS = [signal.key for signal in SIGNALS if signal.tier in ("api", "feed")]
 
 
 def test_with_every_signal_off_the_record_is_the_core_on_the_commits_basis():
@@ -430,14 +436,14 @@ def test_with_every_signal_off_the_record_is_the_core_on_the_commits_basis():
 
 @pytest.mark.parametrize("key", API_KEYS)
 def test_each_signal_alone_adds_only_its_own_fields(key):
-    alone = fleet.collect_fork(api_for(ROUTES), "Org", APP, settings_with({key}), NOW, merged_by)
+    alone = fleet.collect_fork(api_for(ROUTES), "Org", APP, settings_with({key}), NOW, merged_by, feeds=FEEDS)
     full = collect()
     added = [field for field in alone if field not in CORE_FIELDS]
     assert added and all(alone[field] == full[field] for field in added)
 
 
 def test_every_signal_on_gives_the_full_record_in_registry_order():
-    record = fleet.collect_fork(api_for(ROUTES), "Org", APP, settings_with(set(API_KEYS)), NOW, merged_by)
+    record = fleet.collect_fork(api_for(ROUTES), "Org", APP, settings_with(set(API_KEYS)), NOW, merged_by, feeds=FEEDS)
     assert record == collect()
 
 

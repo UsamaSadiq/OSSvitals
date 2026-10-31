@@ -149,8 +149,12 @@ def release_distance(api: Api, base: str, owner: str, production: str, upstream_
     return {"behind_release": comparison["behind_by"], "ahead_release": comparison["ahead_by"]} if comparison else None
 
 
-def advisory_summary(api: Api, upstream: str, since: str | None, severe: list[str], base_release: str | None = None) -> dict[str, Any]:
-    published = api(f"repos/{upstream}/security-advisories?per_page=100") or []
+def advisory_summary(
+    api: Api, upstream: str, since: str | None, severe: list[str], base_release: str | None = None, published: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    """``published`` is the upstream's advisory list when the caller already has it."""
+    if published is None:
+        published = api(f"repos/{upstream}/security-advisories?per_page=100") or []
     base_version = version_key(base_release) if base_release else None
     items = [
         {
