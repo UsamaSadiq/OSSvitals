@@ -7,6 +7,7 @@ from collectors.fleet.signals import (
     ci,
     conflicts,
     fork_release,
+    licence_watch,
     maintainers,
     promotion,
     pull_requests,
@@ -27,6 +28,7 @@ SIGNALS: tuple[Signal, ...] = tuple(
         pull_requests,
         maintainers,
         upstream_activity,
+        licence_watch,
         conflicts,
     )
 )

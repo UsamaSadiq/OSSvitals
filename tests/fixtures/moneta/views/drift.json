@@ -89,6 +89,16 @@
         "releases_behind": 1,
         "level": "minor",
         "days_behind": 40
+      },
+      "licence_watch": {
+        "present": true,
+        "path": "LICENSE",
+        "sha": "sha-alpha",
+        "spdx": "AGPL-3.0",
+        "declared": "AGPL-3.0",
+        "matches_declared": true,
+        "changed_on": null,
+        "previous_spdx": null
       }
     },
     {
@@ -141,7 +151,17 @@
       "behind_release": 0,
       "ahead_release": 12,
       "status_basis": "commits",
-      "release_gap": null
+      "release_gap": null,
+      "licence_watch": {
+        "present": true,
+        "path": "LICENSE",
+        "sha": "sha-beta",
+        "spdx": "MIT",
+        "declared": "MIT",
+        "matches_declared": true,
+        "changed_on": null,
+        "previous_spdx": null
+      }
     },
     {
       "repo": "gamma",
@@ -193,7 +213,17 @@
       "behind_release": 0,
       "ahead_release": 12,
       "status_basis": "commits",
-      "release_gap": null
+      "release_gap": null,
+      "licence_watch": {
+        "present": true,
+        "path": "LICENSE",
+        "sha": "sha-gamma",
+        "spdx": "MIT",
+        "declared": "MIT",
+        "matches_declared": true,
+        "changed_on": null,
+        "previous_spdx": null
+      }
     }
   ]
 }

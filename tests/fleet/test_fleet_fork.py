@@ -61,6 +61,7 @@ ROUTES = {
         {"number": 8, "title": "Fix login", "head": {"ref": "fix"}, "html_url": "https://x/8"},
     ],
     "repos/up/demo": {"pushed_at": "2026-04-01T00:00:00Z"},
+    "repos/up/demo/license?ref=main": {"path": "LICENSE", "sha": "lic1", "license": {"spdx_id": "MIT"}},
 }
 
 
@@ -449,3 +450,11 @@ def test_a_disabled_signal_costs_no_api_calls():
 
     fleet.collect_fork(api, "Org", APP, settings_with(set()), NOW, merged_by)
     assert calls == [f"{BASE}/compare/up:main...foss-main"]
+
+
+def test_the_previous_record_reaches_signals_that_compare_over_time():
+    previous = {"licence_watch": {"present": True, "path": "LICENSE", "sha": "old", "spdx": "Apache-2.0", "changed_on": None}}
+    record = fleet.collect_fork(api_for(ROUTES), "Org", APP, SETTINGS, NOW, merged_by, previous)
+    assert record["licence_watch"]["changed_on"] == "2026-10-12"
+    assert record["licence_watch"]["previous_spdx"] == "Apache-2.0"
+

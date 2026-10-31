@@ -64,6 +64,7 @@ const DRIFT = {
   pull_requests: { open: 2, sync_pull: { number: 4, title: "Sync", url: "https://x/4" } },
   maintainers: [{ login: "alice", merged: 12 }, { login: "bob", merged: 3 }],
   upstream_activity: { pushed_at: "2026-10-01T00:00:00Z", idle_days: 11, quiet: false },
+  licence_watch: { present: true, path: "LICENSE", sha: "s1", spdx: "AGPL-3.0", declared: "AGPL-3.0", matches_declared: true, changed_on: null, previous_spdx: null },
 };
 
 const CONFLICTS = [
@@ -105,6 +106,7 @@ const DETAIL_MARKERS: Record<SignalKey, string> = {
   pull_requests: "Open pull requests",
   maintainers: "Maintainers",
   upstream_activity: "Upstream activity",
+  licence_watch: "Upstream licence",
   conflicts: "Sync forecast",
 };
 
