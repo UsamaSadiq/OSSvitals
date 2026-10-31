@@ -173,9 +173,8 @@ const upgradeRecord = z.object({
       ours: z.number().int(),
       upstream: z.number().int(),
       shared_dirs: z.array(z.string()),
+      sequential_dirs: z.array(z.string()).default([]),
       same_prefix: z.array(z.object({ dir: z.string(), prefix: z.string(), ours: z.array(z.string()), upstream: z.array(z.string()) })),
-      ours_items: z.array(z.string()),
-      upstream_items: z.array(z.string()),
     })
     .nullish(),
   release_notes: z

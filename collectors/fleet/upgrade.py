@@ -1,98 +1,133 @@
-"""What could bite at the next sync: migrations added on both sides, and upstream release notes that flag breaking changes."""
+"""What could bite at the next sync: migrations on both sides, and upstream release notes that flag breaking changes."""
 from __future__ import annotations
 
 import re
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from collectors.fleet.patches import LISTING, _git
-from collectors.fleet.ranges import version_key
+from collectors.fleet.patches import _git
+from collectors.fleet.ranges import _padded, version_key
 
 ITEMS = 10
 NOTE_LINES = 3
 NOTE_WIDTH = 200
 TEST_ROOTS = {"spec", "test", "tests", "__tests__"}
 PREFIX = re.compile(r"^(\d+)")
+# Sequential numbers (0042_, 007_) collide when both sides add one; Rails-style timestamps (14 digits) rarely do.
+SEQUENTIAL_DIGITS = 8
 # Specific phrases only: a bare "breaking" also matches fixes such as "heading anchor breaking IME composition".
 BREAKING = re.compile(
-    r"breaking[ _-]?changes?|(?-i:\bBREAKING\b)|backwards?[- ]incompatible|upgrade steps? (is |are )?required"
-    r"|migration (is )?required|requires? (a )?(manual|database) migration|manual migration",
+    r"not backwards?[- ]compatible|breaking[ _-]?changes?|(?-i:\bBREAKING\b)|^breaking\b|backwards?[- ]incompatible"
+    r"|incompatible changes?|^major changes$|upgrade steps? (is |are )?required|migrations? (is |are )?required"
+    r"|requires? (a )?(manual|database) migration|manual migration",
     re.IGNORECASE,
 )
+NEGATED = re.compile(r"\b(no|non|not|without|zero)\b[\w\s-]{0,15}$", re.IGNORECASE)
 
 
-def added_files(directory: Path, revisions: str) -> list[str]:
-    listed = _git(directory, "log", "--format=", "--name-only", "-z", "--diff-filter=A", *LISTING, revisions)
-    return sorted({path.strip("\n") for path in listed.split("\0") if path.strip("\n")})
+def net_added(directory: Path, base: str, tip: str) -> list[str]:
+    """Files present at ``tip`` but not at ``base``: a migration added and later removed or renamed does not count."""
+    listed = _git(directory, "diff", "--name-only", "-z", "--no-renames", "--diff-filter=A", base, tip)
+    return sorted({path for path in listed.split("\0") if path})
 
 
-def migration_dir(path: str, dir_names: list[str]) -> str | None:
-    """The migrations folder a file sits in, unless it lives under a test tree."""
+def migration(path: str, dir_names: list[str]) -> tuple[str, str] | None:
+    """The migrations folder and the entry name directly in it (a file, or a one-level folder as Prisma uses);
+    nothing under a test tree, deeper helpers, or a package's ``__init__.py``."""
     parts = PurePosixPath(path).parts
-    if parts and parts[0] in TEST_ROOTS:
+    if any(part in TEST_ROOTS for part in parts) or parts[-1] == "__init__.py":
         return None
-    for index in range(len(parts) - 1, 0, -1):
-        if parts[index - 1] in dir_names:
-            return "/".join(parts[:index])
+    for depth in (1, 2):
+        index = len(parts) - depth
+        if index >= 1 and parts[index - 1] in dir_names:
+            return "/".join(parts[:index]), parts[index]
     return None
 
 
-def _by_dir(paths: list[str], dir_names: list[str]) -> dict[str, list[str]]:
-    grouped: dict[str, list[str]] = {}
+def _by_dir(paths: list[str], dir_names: list[str]) -> dict[str, set[str]]:
+    grouped: dict[str, set[str]] = {}
     for path in paths:
-        folder = migration_dir(path, dir_names)
-        if folder:
-            grouped.setdefault(folder, []).append(path)
+        found = migration(path, dir_names)
+        if found:
+            grouped.setdefault(found[0], set()).add(found[1])
     return grouped
 
 
-def _prefix(path: str) -> str | None:
-    match = PREFIX.match(PurePosixPath(path).name)
+def _prefix(entry: str) -> str | None:
+    match = PREFIX.match(entry)
     return match.group(1) if match else None
 
 
-def migrations(ours: list[str], theirs: list[str], dir_names: list[str]) -> dict[str, Any]:
-    """Folders where both sides added migrations, and files in one folder sharing a number prefix.
+def _sequential(entries: set[str]) -> bool:
+    prefixes = [prefix for prefix in map(_prefix, entries) if prefix]
+    return bool(prefixes) and all(len(prefix) < SEQUENTIAL_DIGITS for prefix in prefixes)
 
-    A file both sides added under the same path is one migration we took from upstream, not ours.
+
+def migrations(ours: list[str], theirs: list[str], dir_names: list[str]) -> dict[str, Any]:
+    """Migrations we carry against those upstream added since our last sync.
+
+    ``ours`` and ``theirs`` are files present at each tip but not at the merge base; an entry both sides have is one
+    migration we took from upstream. A risk is a number used on both sides in one folder, or both sides adding
+    sequentially numbered migrations to one folder (they need renumbering or a merge migration).
     """
-    ours = sorted(set(ours) - set(theirs))
     our_dirs, their_dirs = _by_dir(ours, dir_names), _by_dir(theirs, dir_names)
+    our_dirs = {folder: entries - their_dirs.get(folder, set()) for folder, entries in our_dirs.items()}
+    our_dirs = {folder: entries for folder, entries in our_dirs.items() if entries}
     shared = sorted(set(our_dirs) & set(their_dirs))
     same_prefix = [
-        {"dir": folder, "prefix": prefix, "ours": [p for p in our_dirs[folder] if _prefix(p) == prefix], "upstream": [p for p in their_dirs[folder] if _prefix(p) == prefix]}
+        {
+            "dir": folder,
+            "prefix": prefix,
+            "ours": sorted(entry for entry in our_dirs[folder] if _prefix(entry) == prefix),
+            "upstream": sorted(entry for entry in their_dirs[folder] if _prefix(entry) == prefix),
+        }
         for folder in shared
-        for prefix in sorted({_prefix(p) for p in our_dirs[folder]} & {_prefix(p) for p in their_dirs[folder]} - {None})
+        for prefix in sorted({_prefix(entry) for entry in our_dirs[folder]} & {_prefix(entry) for entry in their_dirs[folder]} - {None})
     ]
-    our_files = [path for paths in our_dirs.values() for path in paths]
-    their_files = [path for paths in their_dirs.values() for path in paths]
     return {
-        "ours": len(our_files),
-        "upstream": len(their_files),
+        "ours": sum(len(entries) for entries in our_dirs.values()),
+        "upstream": sum(len(entries) for entries in their_dirs.values()),
         "shared_dirs": shared,
+        "sequential_dirs": [folder for folder in shared if _sequential(our_dirs[folder] | their_dirs[folder])],
         "same_prefix": same_prefix,
-        "ours_items": sorted(our_files, reverse=True)[:ITEMS],
-        "upstream_items": sorted(their_files, reverse=True)[:ITEMS],
     }
 
 
-def _newer(release: dict[str, Any], base_release: str | None, merged_at: str) -> bool:
-    if base_release:
-        return version_key(release["tag_name"]) > version_key(base_release)
-    return release["published_at"] > merged_at
+def _flags(line: str) -> bool:
+    """A match counts unless a negation ("no", "non", "without") comes just before it in the same clause."""
+    return any(not NEGATED.search(line[: match.start()]) for match in BREAKING.finditer(line))
 
 
 def _flagged_lines(body: str | None) -> list[str]:
     lines = [line.strip().lstrip("#*- ").strip() for line in (body or "").splitlines()]
-    return [line[:NOTE_WIDTH] for line in lines if line and BREAKING.search(line)][:NOTE_LINES]
+    flagged = [line[:NOTE_WIDTH] for line in lines if line and _flags(line)]
+    return list(dict.fromkeys(flagged))[:NOTE_LINES]
+
+
+def _newer(tag: str, than: str) -> bool:
+    left, right = _padded(version_key(tag), version_key(than))
+    return left > right
+
+
+def _synced_floor(releases: list[dict[str, Any]], merged_at: str) -> str | None:
+    """Without a known base release: the highest release out by our last upstream merge."""
+    out = [release["tag_name"] for release in releases if release["published_at"] <= merged_at]
+    best: str | None = None
+    for tag in out:
+        if best is None or _newer(tag, best):
+            best = tag
+    return best
 
 
 def release_notes(releases: list[dict[str, Any]], base_release: str | None, merged_at: str) -> dict[str, Any]:
-    """Upstream releases we have not synced yet, keeping those whose notes flag breaking changes or required steps."""
-    pending = [release for release in releases if _newer(release, base_release, merged_at)]
+    """Upstream releases above the one our production branch is built on, keeping those whose notes flag breaking
+    changes or required steps. Without a base, releases above the newest one out by our last merge count, so a
+    backport on an older line is not mistaken for something we lack."""
+    floor = base_release or _synced_floor(releases, merged_at)
+    pending = [release for release in releases if (_newer(release["tag_name"], floor) if floor else release["published_at"] > merged_at)]
     flagged = [
         {"tag": release["tag_name"], "url": release.get("html_url"), "published_at": release.get("published_at"), "lines": lines}
         for release in pending
         if (lines := _flagged_lines(release.get("body")))
     ]
-    return {"basis": "release" if base_release else "commits", "since": base_release, "releases": len(pending), "flagged": flagged[:ITEMS]}
+    return {"basis": "release" if base_release else "commits", "since": floor, "releases": len(pending), "flagged": flagged[:ITEMS]}

@@ -10,15 +10,16 @@ from collectors.fleet.signals import CLONE, Signal
 
 
 def collect(ctx: ForkContext) -> dict[str, Any]:
-    """Migrations from both sides since our last sync (from the shared clone) and flagged upstream release notes."""
+    """Migrations we carry against those upstream added since our last sync (from the shared clone), and release notes
+    above the upstream release our production branch is built on."""
     dir_names = ctx.settings.signal("upgrade_risk")["migration_dirs"]
     ours = f"refs/heads/{ctx.production}"
     merge_base = _git(ctx.clone, "merge-base", UPSTREAM_HEAD_REF, ours).strip()
-    ours_added = upgrade.added_files(ctx.clone, f"{UPSTREAM_HEAD_REF}..{ours}")
-    theirs_added = upgrade.added_files(ctx.clone, f"{merge_base}..{UPSTREAM_HEAD_REF}")
+    carried = upgrade.net_added(ctx.clone, merge_base, ours)
+    added_upstream = upgrade.net_added(ctx.clone, merge_base, UPSTREAM_HEAD_REF)
     return {
-        "migrations": upgrade.migrations(ours_added, theirs_added, dir_names),
-        "release_notes": upgrade.release_notes(ctx.upstream_releases, ctx.base_release, ctx.merged_at),
+        "migrations": upgrade.migrations(carried, added_upstream, dir_names),
+        "release_notes": upgrade.release_notes(ctx.upstream_releases, ctx.production_base_release, ctx.merged_at),
     }
 
 

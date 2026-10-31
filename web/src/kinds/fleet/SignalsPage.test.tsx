@@ -105,9 +105,8 @@ const UPGRADE = [
       ours: 2,
       upstream: 5,
       shared_dirs: ["db/migrate"],
-      same_prefix: [{ dir: "db/migrate", prefix: "20261006", ours: ["db/migrate/20261006_ours.rb"], upstream: ["db/migrate/20261006_theirs.rb"] }],
-      ours_items: [],
-      upstream_items: [],
+      sequential_dirs: [],
+      same_prefix: [{ dir: "db/migrate", prefix: "20261006", ours: ["20261006_ours.rb"], upstream: ["20261006_theirs.rb"] }],
     },
     release_notes: {
       basis: "release",
@@ -220,8 +219,8 @@ describe("fleet pages follow the signal manifest", () => {
   it("shows upgrade risks on the app page and needs attention", async () => {
     serve(files());
     const { router } = renderRoute("/attention", META, tenant);
-    expect(await screen.findByText("We and upstream both added migrations in db/migrate since our last sync; 1 migration number used on both sides")).toBeTruthy();
-    expect(screen.getByText("1 upstream release since v1.5.0 flags breaking changes or required upgrade steps")).toBeTruthy();
+    expect(await screen.findByText("1 migration number in db/migrate is used by both us and upstream")).toBeTruthy();
+    expect(screen.getByText("1 upstream release after v1.5.0 flags breaking changes or required upgrade steps")).toBeTruthy();
     await router.navigate("/apps/burning");
     expect(await screen.findByText("db/migrate: number 20261006 is used by 20261006_ours.rb and 20261006_theirs.rb")).toBeTruthy();
     const section = screen.getByRole("heading", { name: "Upgrade risk" }).closest("section") as HTMLElement;

@@ -127,15 +127,18 @@ export function UpgradeRisk({ record }: { record: UpgradeRecord | undefined }) {
   const notices = upgradeNotices(record);
   return (
     <Section id="upgrade-heading" title="Upgrade risk">
-      <p className="caption">Checked weekly: migrations added on both sides since our last sync, and upstream release notes we have not synced yet.</p>
+      <p className="caption">
+        Checked weekly: the migrations we carry against those upstream added since our last sync, and notes of upstream releases above the one
+        our release branch is built on.
+      </p>
       {notices.length === 0 && <p>Nothing flagged for the next sync.</p>}
       {migrations && (
-        <p>{`Migrations since our last sync: ${migrations.ours} of ours, ${migrations.upstream} from upstream.`}</p>
+        <p>{`We carry ${pluralise(migrations.ours, "migration")}; upstream added ${migrations.upstream} since our last sync${migrations.shared_dirs.length > 0 ? `, both in ${migrations.shared_dirs.join(", ")}` : ""}.`}</p>
       )}
-      {migrationsNotice(migrations ?? undefined) && <p className="detail-notes">{`${migrationsNotice(migrations ?? undefined)}: check their order before syncing.`}</p>}
+      {migrationsNotice(migrations ?? undefined) && <p className="detail-notes">{`${migrationsNotice(migrations ?? undefined)}: renumber or add a merge migration when syncing.`}</p>}
       {migrations?.same_prefix.map((clash) => (
         <p key={`${clash.dir}-${clash.prefix}`} className="detail-notes">
-          {`${clash.dir}: number ${clash.prefix} is used by ${[...clash.ours, ...clash.upstream].map((path) => path.split("/").pop()).join(" and ")}`}
+          {`${clash.dir}: number ${clash.prefix} is used by ${[...clash.ours, ...clash.upstream].join(" and ")}`}
         </p>
       ))}
       {notes && notes.flagged.length > 0 && (
@@ -151,8 +154,8 @@ export function UpgradeRisk({ record }: { record: UpgradeRecord | undefined }) {
                 ) : (
                   release.tag
                 )}
-                {release.lines.map((line) => (
-                  <span key={line} className="caption">{` ${line}`}</span>
+                {release.lines.map((line, index) => (
+                  <span key={`${release.tag}-${index}`} className="caption">{` ${line}`}</span>
                 ))}
               </li>
             ))}

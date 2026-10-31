@@ -16,8 +16,9 @@
           "server/migrations"
         ],
         "same_prefix": [],
-        "ours_items": [],
-        "upstream_items": []
+        "sequential_dirs": [
+          "server/migrations"
+        ]
       },
       "release_notes": {
         "basis": "release",
@@ -42,8 +43,7 @@
         "upstream": 1,
         "shared_dirs": [],
         "same_prefix": [],
-        "ours_items": [],
-        "upstream_items": []
+        "sequential_dirs": []
       },
       "release_notes": {
         "basis": "commits",
