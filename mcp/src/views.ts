@@ -3,9 +3,13 @@ import type { z } from "zod";
 const CACHE_TTL_SECONDS = 300;
 
 export class ViewUnavailable extends Error {
-  constructor(org: string, view: string, reason: string) {
+  /** True when the view is not published at all, as opposed to unreachable or malformed. */
+  readonly missing: boolean;
+
+  constructor(org: string, view: string, reason: string, missing = false) {
     super(`View ${view} for ${org} is unavailable: ${reason}`);
     this.name = "ViewUnavailable";
+    this.missing = missing;
   }
 }
 
@@ -34,8 +38,8 @@ async function fetchJsonText(deps: ViewDeps, org: string, name: string, url: str
   const response = await deps.fetch(url).catch(() => {
     throw new ViewUnavailable(org, name, "network error");
   });
-  if (response.status !== 200) throw new ViewUnavailable(org, name, `HTTP ${response.status}`);
-  if (!isJsonContentType(response)) throw new ViewUnavailable(org, name, "not published");
+  if (response.status !== 200) throw new ViewUnavailable(org, name, `HTTP ${response.status}`, response.status === 404);
+  if (!isJsonContentType(response)) throw new ViewUnavailable(org, name, "not published", true);
   return response.text();
 }
 

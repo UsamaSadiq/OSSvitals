@@ -1,15 +1,20 @@
 import type {
   AppRecord,
   AppsView,
+  CarriedRecord,
+  CarriedView,
   ConflictRecord,
   ConflictsView,
   DriftRecord,
   DriftView,
+  UpgradeRecord,
+  UpgradeView,
 } from "../../../web/src/kinds/fleet/schemas.ts";
 import { truncate } from "../text.ts";
 
 const DESCRIPTION_LIMIT = 300;
 const CONFLICT_FILE_LIMIT = 50;
+const LIST_LIMIT = 20;
 
 export const REPO_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
 
@@ -154,4 +159,116 @@ export function projectConflicts(record: ConflictRecord) {
 export function getConflictForecast(conflicts: ConflictsView, repo: string) {
   const record = findByRepo(conflicts.records, repo);
   return record ? projectConflicts(record) : undefined;
+}
+
+type PatchItem = NonNullable<CarriedRecord["carried_items"]>[number];
+
+function projectPatches(items: PatchItem[] | undefined) {
+  return (items ?? []).slice(0, LIST_LIMIT).map((item) => ({ sha: item.sha, date: item.date, subject: truncate(item.subject, DESCRIPTION_LIMIT) }));
+}
+
+function errorField(error: string | undefined) {
+  return error === undefined ? {} : { error };
+}
+
+export function projectCarried(record: CarriedRecord) {
+  return {
+    repo: record.repo,
+    ...errorField(record.error),
+    compared: record.compared ?? null,
+    commits: record.commits ?? null,
+    carried: record.carried ?? null,
+    already_upstream: record.already_upstream ?? null,
+    carried_items: projectPatches(record.carried_items),
+    already_upstream_items: projectPatches(record.already_upstream_items),
+  };
+}
+
+export function getCarriedPatches(carried: CarriedView, repo: string) {
+  const record = findByRepo(carried.records, repo);
+  return record ? projectCarried(record) : undefined;
+}
+
+type Migrations = NonNullable<UpgradeRecord["migrations"]>;
+type ReleaseNotes = NonNullable<UpgradeRecord["release_notes"]>;
+
+function projectMigrations(migrations: Migrations) {
+  return {
+    ours: migrations.ours,
+    upstream: migrations.upstream,
+    shared_dirs: migrations.shared_dirs.slice(0, LIST_LIMIT),
+    sequential_dirs_count: migrations.sequential_dirs.length,
+    sequential_dirs: migrations.sequential_dirs.slice(0, LIST_LIMIT),
+    same_prefix_count: migrations.same_prefix.length,
+    same_prefix: migrations.same_prefix.slice(0, LIST_LIMIT).map((clash) => ({
+      dir: clash.dir,
+      prefix: clash.prefix,
+      ours: clash.ours.slice(0, LIST_LIMIT),
+      upstream: clash.upstream.slice(0, LIST_LIMIT),
+    })),
+  };
+}
+
+function projectReleaseNotes(notes: ReleaseNotes) {
+  return {
+    basis: notes.basis,
+    since: notes.since,
+    releases: notes.releases,
+    flagged: notes.flagged.slice(0, LIST_LIMIT).map((release) => ({
+      tag: truncate(release.tag, DESCRIPTION_LIMIT),
+      url: release.url,
+      published_at: release.published_at,
+      lines: release.lines.slice(0, LIST_LIMIT).map((line) => truncate(line, DESCRIPTION_LIMIT)),
+    })),
+  };
+}
+
+export function projectUpgradeRisk(record: UpgradeRecord) {
+  return {
+    repo: record.repo,
+    ...errorField(record.error),
+    migrations: record.migrations ? projectMigrations(record.migrations) : null,
+    release_notes: record.release_notes ? projectReleaseNotes(record.release_notes) : null,
+  };
+}
+
+export function getUpgradeRisk(upgrade: UpgradeView, repo: string) {
+  const record = findByRepo(upgrade.records, repo);
+  return record ? projectUpgradeRisk(record) : undefined;
+}
+
+function carriedSummary(record: CarriedRecord) {
+  if (record.error !== undefined) return { error: record.error };
+  return { compared: record.compared ?? null, commits: record.commits ?? null, carried: record.carried ?? null, already_upstream: record.already_upstream ?? null };
+}
+
+function upgradeSummary(record: UpgradeRecord) {
+  if (record.error !== undefined) return { error: record.error };
+  return {
+    same_prefix_clashes: record.migrations?.same_prefix.length ?? null,
+    sequential_dirs: record.migrations?.sequential_dirs.length ?? null,
+    flagged_releases: record.release_notes?.flagged.length ?? null,
+  };
+}
+
+/** A weekly view as get_app sees it: loaded, not published for the tenant, or unreachable with the reason. */
+export type WeeklyView<View> = View | null | { unavailable: string };
+
+function summarise<View extends { records: Record[] }, Record extends { repo: string }>(
+  view: WeeklyView<View>,
+  repo: string,
+  summary: (record: Record) => unknown,
+) {
+  if (view === null) return null;
+  if ("unavailable" in view) return { error: view.unavailable };
+  const record = findByRepo(view.records, repo);
+  return record ? summary(record) : null;
+}
+
+/** Counts only, so get_app can say a weekly signal has something to look at without a second call. */
+export function weeklySummary(carried: WeeklyView<CarriedView>, upgrade: WeeklyView<UpgradeView>, repo: string) {
+  return {
+    carried_patches: summarise(carried, repo, carriedSummary),
+    upgrade_risk: summarise(upgrade, repo, upgradeSummary),
+  };
 }
