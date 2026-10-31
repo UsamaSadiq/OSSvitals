@@ -41,3 +41,20 @@ def test_a_change_stays_marked_for_the_notice_window_then_clears():
 def test_a_removed_licence_file_counts_as_a_change():
     record = watch({"present": False, "path": None, "sha": None, "spdx": None}, MIT, "MIT", TODAY, 30)
     assert (record["present"], record["changed_on"]) == (False, "2026-10-31")
+
+
+def test_no_licence_file_on_both_runs_is_not_a_change():
+    absent = {"present": False, "path": None, "sha": None, "spdx": None}
+    assert watch(absent, {**absent, "changed_on": None}, "MIT", TODAY, 30)["changed_on"] is None
+
+
+def test_an_added_licence_file_is_recorded_as_previously_absent():
+    absent = {"present": False, "path": None, "sha": None, "spdx": None}
+    record = watch(MIT, absent, "MIT", TODAY, 30)
+    assert (record["changed_on"], record["previous_present"]) == ("2026-10-31", False)
+
+
+def test_the_change_and_what_it_was_clear_together_after_the_window():
+    previous = {**MIT, "changed_on": "2026-09-01", "previous_spdx": "Apache-2.0", "previous_present": True}
+    record = watch(MIT, previous, "MIT", TODAY, 30)
+    assert (record["changed_on"], record["previous_spdx"], record["previous_present"]) == (None, None, None)

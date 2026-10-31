@@ -90,6 +90,7 @@ const driftRecord = z.object({
       matches_declared: z.boolean().nullable(),
       changed_on: nullableString,
       previous_spdx: nullableString,
+      previous_present: z.boolean().nullish(),
     })
     .nullish(),
 });

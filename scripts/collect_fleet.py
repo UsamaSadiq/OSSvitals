@@ -88,7 +88,10 @@ def _updates(org: str) -> list[dict[str, Any]]:
 
 def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     generated_at = now_utc()
-    records, drift = collect(settings, args.repo, _previous_drift(args.previous_dir))
+    previous_history = _previous_records(args.previous_dir, HISTORY_FILE)
+    repos = [app["repo"] for app in _apps(settings.org, args.repo)[1]]
+    previous = history.with_last_licence(_previous_drift(args.previous_dir), previous_history, repos)
+    records, drift = collect(settings, args.repo, previous)
     healthy = [record for record in records if "error" not in record]
     if not healthy:
         print("No app could be collected; not writing.")
@@ -104,7 +107,7 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
         "drift_history": meta.records_view(
             org,
             generated_at,
-            history.append(_previous_records(args.previous_dir, HISTORY_FILE), drift, day, settings.values["history_days"]),
+            history.append(previous_history, drift, day, settings.values["history_days"]),
         ),
         "updates": meta.records_view(org, generated_at, _updates(org)),
     }

@@ -98,7 +98,8 @@
         "declared": "AGPL-3.0",
         "matches_declared": true,
         "changed_on": null,
-        "previous_spdx": null
+        "previous_spdx": null,
+        "previous_present": null
       }
     },
     {
@@ -160,7 +161,8 @@
         "declared": "MIT",
         "matches_declared": true,
         "changed_on": null,
-        "previous_spdx": null
+        "previous_spdx": null,
+        "previous_present": null
       }
     },
     {
@@ -222,7 +224,8 @@
         "declared": "MIT",
         "matches_declared": true,
         "changed_on": null,
-        "previous_spdx": null
+        "previous_spdx": null,
+        "previous_present": null
       }
     }
   ]
