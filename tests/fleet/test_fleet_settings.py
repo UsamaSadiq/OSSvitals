@@ -66,7 +66,9 @@ def test_the_manifest_lists_off_signals_as_not_collected_and_not_shown():
     tenant = settings({"signals": {"maintainers": {"collect": False}, "ci": {"show": []}}})
     manifest = meta.signal_manifest(tenant)
     assert list(manifest) == [signal.key for signal in SIGNALS]
-    assert manifest["maintainers"] == {"collect": False, "show": [], "tier": "api", "cadence": "daily"}
+    assert manifest["maintainers"] == {"collect": False, "show": [], "tier": "api", "cadence": "daily", "thresholds": [], "settings": {}}
+    assert manifest["advisories"]["settings"] == {"severe": ["critical", "high"]}
+    assert manifest["advisories"]["thresholds"] == ["on_severe_advisory"]
     assert manifest["ci"]["collect"] is True and manifest["ci"]["show"] == []
     assert manifest["conflicts"]["tier"] == "clone"
 

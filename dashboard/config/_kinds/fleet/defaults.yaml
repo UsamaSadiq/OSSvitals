@@ -41,7 +41,7 @@ statuses:
 signals:
   fork_release:
     collect: true
-    show: ["table", "detail", "csv", "filter"]
+    show: ["table", "detail", "csv", "filter", "overview_tile", "attention"]
   upstream_release:
     collect: true
     show: ["table", "detail", "csv"]
@@ -50,17 +50,17 @@ signals:
     show: ["card", "table", "detail", "csv", "attention"]
   advisories:
     collect: true
-    show: ["card", "table", "detail", "csv", "filter", "attention"]
+    show: ["card", "table", "detail", "csv", "filter", "overview_tile", "attention"]
     severe: ["critical", "high"]
   promotion:
     collect: false
-    show: ["detail", "filter", "attention"]
+    show: ["detail", "filter", "overview_tile"]
   ci:
     collect: true
     show: ["detail", "attention"]
   pull_requests:
     collect: true
-    show: ["table", "detail"]
+    show: ["detail"]
   maintainers:
     collect: true
     show: ["detail"]

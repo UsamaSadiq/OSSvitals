@@ -51,10 +51,14 @@
           "table",
           "detail",
           "csv",
-          "filter"
+          "filter",
+          "overview_tile",
+          "attention"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {}
       },
       "upstream_release": {
         "collect": true,
@@ -64,7 +68,9 @@
           "csv"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {}
       },
       "release_gap": {
         "collect": true,
@@ -76,7 +82,13 @@
           "attention"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [
+          "min_version_gap",
+          "min_releases_behind",
+          "min_days_behind_release"
+        ],
+        "settings": {}
       },
       "advisories": {
         "collect": true,
@@ -86,20 +98,32 @@
           "detail",
           "csv",
           "filter",
+          "overview_tile",
           "attention"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [
+          "on_severe_advisory"
+        ],
+        "settings": {
+          "severe": [
+            "critical",
+            "high"
+          ]
+        }
       },
       "promotion": {
         "collect": true,
         "show": [
           "detail",
           "filter",
-          "attention"
+          "overview_tile"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {}
       },
       "ci": {
         "collect": true,
@@ -108,16 +132,19 @@
           "attention"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {}
       },
       "pull_requests": {
         "collect": true,
         "show": [
-          "table",
           "detail"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {}
       },
       "maintainers": {
         "collect": true,
@@ -125,7 +152,9 @@
           "detail"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {}
       },
       "upstream_activity": {
         "collect": true,
@@ -134,7 +163,11 @@
           "attention"
         ],
         "tier": "api",
-        "cadence": "daily"
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {
+          "quiet_days": 120
+        }
       },
       "conflicts": {
         "collect": true,
@@ -143,7 +176,9 @@
           "attention"
         ],
         "tier": "clone",
-        "cadence": "weekly"
+        "cadence": "weekly",
+        "thresholds": [],
+        "settings": {}
       }
     },
     "statuses": [
@@ -155,17 +190,28 @@
       {
         "key": "lagging",
         "label": "Lagging",
-        "color": "yellow"
+        "color": "yellow",
+        "min_version_gap": "minor",
+        "min_releases_behind": 3,
+        "min_behind": 50,
+        "min_days_since_upstream_merge": 30
       },
       {
         "key": "stale",
         "label": "Stale",
-        "color": "orange"
+        "color": "orange",
+        "min_version_gap": "major",
+        "min_days_behind_release": 90,
+        "min_behind": 500,
+        "min_days_since_upstream_merge": 90
       },
       {
         "key": "critical",
         "label": "Critical",
-        "color": "red"
+        "color": "red",
+        "min_behind": 2000,
+        "min_days_since_upstream_merge": 180,
+        "on_severe_advisory": true
       }
     ]
   }
