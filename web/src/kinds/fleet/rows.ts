@@ -158,5 +158,8 @@ export function advisoryNotice(drift: DriftRecord, showGap = true): string | nul
     const base = showGap ? `${gap.base}, our base` : "the upstream release we are built on";
     return affecting > 0 ? `${affecting} upstream ${affecting === 1 ? "advisory affects" : "advisories affect"} ${base}` : null;
   }
+  if (advisories.since_upstream_merge !== undefined) {
+    return advisories.since_upstream_merge > 0 ? `${advisoryLabel(advisories.since_upstream_merge)} since our last upstream sync` : null;
+  }
   return advisories.since_fork_release > 0 ? `${advisoryLabel(advisories.since_fork_release)} since our latest release` : null;
 }

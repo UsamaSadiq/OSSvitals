@@ -67,6 +67,8 @@ const driftRecord = z.object({
     published: z.number().int(),
     since_fork_release: z.number().int(),
     severe_since_fork_release: z.number().int().optional(),
+    since_upstream_merge: z.number().int().optional(),
+    severe_since_upstream_merge: z.number().int().optional(),
     affecting_fork_release: z.number().int().optional(),
     severe_affecting_fork_release: z.number().int().optional(),
     base_release: z.string().nullish(),

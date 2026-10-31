@@ -67,6 +67,8 @@ function projectAdvisoryCounts(advisories: DriftRecord["advisories"]) {
     published: advisories.published,
     since_fork_release: advisories.since_fork_release,
     severe_since_fork_release: advisories.severe_since_fork_release ?? null,
+    since_upstream_merge: advisories.since_upstream_merge ?? null,
+    severe_since_upstream_merge: advisories.severe_since_upstream_merge ?? null,
     affecting_fork_release: advisories.affecting_fork_release ?? null,
     severe_affecting_fork_release: advisories.severe_affecting_fork_release ?? null,
     base_release: advisories.base_release ?? null,

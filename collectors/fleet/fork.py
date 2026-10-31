@@ -150,9 +150,16 @@ def release_distance(api: Api, base: str, owner: str, production: str, upstream_
 
 
 def advisory_summary(
-    api: Api, upstream: str, since: str | None, severe: list[str], base_release: str | None = None, published: list[dict[str, Any]] | None = None
+    api: Api,
+    upstream: str,
+    since: str | None,
+    severe: list[str],
+    base_release: str | None = None,
+    published: list[dict[str, Any]] | None = None,
+    merged_at: str | None = None,
 ) -> dict[str, Any]:
-    """``published`` is the upstream's advisory list when the caller already has it."""
+    """``published`` is the upstream's advisory list when the caller already has it. Advisories published after
+    ``merged_at``, our last upstream merge, postdate the upstream code we ship, whenever we cut our release."""
     if published is None:
         published = api(f"repos/{upstream}/security-advisories?per_page=100") or []
     base_version = version_key(base_release) if base_release else None
@@ -169,11 +176,14 @@ def advisory_summary(
         for advisory in sorted(published, key=lambda advisory: advisory["published_at"], reverse=True)
     ]
     newer = [item for item in items if item["after_our_release"]]
+    since_sync = [item for item in items if merged_at is not None and item["published_at"] > merged_at]
     affecting = [item for item in items if item["affects_fork_release"]]
     return {
         "published": len(items),
         "since_fork_release": len(newer),
         "severe_since_fork_release": sum(1 for item in newer if item["severity"] in severe),
+        "since_upstream_merge": len(since_sync),
+        "severe_since_upstream_merge": sum(1 for item in since_sync if item["severity"] in severe),
         "affecting_fork_release": len(affecting),
         "severe_affecting_fork_release": sum(1 for item in affecting if item["severity"] in severe),
         "base_release": base_release,

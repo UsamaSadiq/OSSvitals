@@ -75,6 +75,8 @@ describe("release gap wording", () => {
     expect(advisoryNotice({ ...onRelease, status_basis: "commits", release_gap: null })).toBeNull();
     expect(advisoryNotice({ ...drift("a", "critical", 1), advisories: { ...advisories, since_fork_release: 2 } })).toBe("2 new upstream advisories since our latest release");
     expect(advisoryNotice({ ...drift("a", "critical", 1), advisories: undefined })).toBeNull();
+    const sinceSync = { ...advisories, since_fork_release: 0, since_upstream_merge: 1 };
+    expect(advisoryNotice({ ...drift("a", "critical", 1), advisories: sinceSync })).toBe("1 new upstream advisory since our last upstream sync");
   });
 
   it("breaks severity ties by releases behind before commits behind", () => {

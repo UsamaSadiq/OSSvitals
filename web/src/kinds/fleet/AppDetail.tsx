@@ -102,7 +102,8 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
       <ReleaseFacts row={row} githubOrg={githubOrg} />
       {shown("advisories") && advisories && (
         <Fact term="Upstream advisories">
-          {advisories.since_fork_release} published after our latest release, {advisories.published} in total
+          {advisories.since_fork_release} published after our latest release
+          {advisories.since_upstream_merge !== undefined && `, ${advisories.since_upstream_merge} since our last upstream sync`}, {advisories.published} in total
           {advisories.base_release &&
             `, ${advisories.affecting_fork_release ?? 0} affecting ${shown("release_gap") ? `${advisories.base_release}, the upstream version we are based on` : "the upstream release we are built on"}`}
         </Fact>

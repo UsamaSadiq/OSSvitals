@@ -33,10 +33,12 @@ def core(ctx: ForkContext) -> dict[str, Any]:
 
 
 def drift_signals(record: dict[str, Any]) -> DriftSignals:
-    """Status reads only what enabled signals put in the record; a missing gap keeps the commits basis."""
+    """Status reads only what enabled signals put in the record. With a known base release, severe advisories
+    affecting it count; without one (the commits basis), severe advisories published since our last upstream merge,
+    since the code we ship predates their fixes even when our release is newer."""
     gap = record.get("release_gap")
     advisories = record.get("advisories")
-    severe = (advisories["severe_affecting_fork_release"] if gap else advisories["severe_since_fork_release"]) if advisories else 0
+    severe = (advisories["severe_affecting_fork_release"] if gap else advisories["severe_since_upstream_merge"]) if advisories else 0
     return DriftSignals(behind=record["behind_by"], days=record["days_since_upstream_merge"], severe_advisory=severe > 0, gap=gap)
 
 
