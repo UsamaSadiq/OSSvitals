@@ -12,6 +12,7 @@ import { STATUS_LABELS, forkRows, formatDay, isStatus, needingAttention, overvie
 import type { HistoryRow, UpdateRecord } from "./schemas";
 import { useFleetViews } from "./useFleetViews";
 import "./fleet.css";
+import { useSignalVisibility } from "./visibility";
 
 const HIDDEN_WHEN_ZERO = new Set(["unpromoted"]);
 
@@ -85,10 +86,12 @@ function AttentionLink({ count }: { count: number }) {
 
 function Rollup() {
   const state = useFleetViews();
+  const { isShown } = useSignalVisibility();
   if (state.status === "loading") return <Loading label="Loading fork status…" />;
   if (state.status === "error") return <ErrorState title="The fork status data could not be loaded." detail={state.message} />;
   const forks = forkRows(state.apps.records, state.drift.records);
   const stats = overviewStats(forks, state.apps.records.filter((app) => app.class === "original").length);
+  const extras = stats.extras.filter((stat) => !stat.signal || isShown(stat.signal, "overview_tile"));
   return (
     <>
       <CollectionFailures failed={state.drift.failed} />
@@ -99,7 +102,7 @@ function Rollup() {
       </section>
       <section className="overview-section" aria-labelledby="signals-heading">
         <h2 id="signals-heading">Release and advisory signals</h2>
-        <BarChart label="Release and advisory signals" items={[...stats.extras, stats.originals].filter(visibleStat)} tone={neutralTone} />
+        <BarChart label="Release and advisory signals" items={[...extras, stats.originals].filter(visibleStat)} tone={neutralTone} />
       </section>
       <section className="overview-section" aria-labelledby="licences-heading">
         <h2 id="licences-heading">Licences</h2>

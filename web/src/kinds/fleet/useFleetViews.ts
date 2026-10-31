@@ -6,11 +6,13 @@ import {
   appsSchema,
   conflictsSchema,
   driftSchema,
+  fleetMetaSchema,
   historySchema,
   updatesSchema,
   type AppsView,
   type ConflictsView,
   type DriftView,
+  type FleetMetaView,
   type HistoryView,
   type UpdatesView,
 } from "./schemas";
@@ -21,6 +23,7 @@ export interface FleetViews {
   history: HistoryView | null;
   updates: UpdatesView | null;
   conflicts: ConflictsView | null;
+  meta: FleetMetaView | null;
 }
 
 export type FleetState = { status: "loading" } | ({ status: "ready" } & FleetViews) | { status: "error"; message: string };
@@ -40,14 +43,15 @@ async function fetchOptional<T>(org: string, file: string, schema: ZodType<T>): 
 }
 
 async function loadViews(org: string): Promise<FleetViews> {
-  const [apps, drift, history, updates, conflicts] = await Promise.all([
+  const [apps, drift, history, updates, conflicts, meta] = await Promise.all([
     fetchRequired(org, "apps.json", appsSchema),
     fetchRequired(org, "drift.json", driftSchema),
     fetchOptional(org, "drift_history.json", historySchema),
     fetchOptional(org, "updates.json", updatesSchema),
     fetchOptional(org, "conflicts.json", conflictsSchema),
+    fetchOptional(org, "meta.json", fleetMetaSchema),
   ]);
-  return { apps, drift, history, updates, conflicts };
+  return { apps, drift, history, updates, conflicts, meta };
 }
 
 export function clearFleetViews(): void {

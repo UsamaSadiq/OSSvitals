@@ -1,5 +1,6 @@
 import { appsPath } from "./paths";
 import type { AppRecord, DriftRecord, ReleaseGap } from "./schemas";
+import type { SignalKey } from "./signals";
 
 export const STATUS_ORDER = ["in-sync", "lagging", "stale", "critical"] as const;
 
@@ -72,8 +73,9 @@ export interface DriftHeadline {
   text: string;
 }
 
-export function driftHeadline(drift: DriftRecord): DriftHeadline {
-  const gap = drift.release_gap;
+/** Falls back to commits behind when the release gap is not shown on that surface. */
+export function driftHeadline(drift: DriftRecord, showGap = true): DriftHeadline {
+  const gap = showGap ? drift.release_gap : null;
   if (gap?.releases_behind === 0) return { count: 0, text: `releases behind (on upstream's latest, ${gap.base})` };
   if (gap) return { count: gap.releases_behind, text: `${gap.releases_behind === 1 ? "release" : "releases"} behind upstream (${gap.base} → ${gap.latest})` };
   return { count: drift.behind_by, text: `${drift.behind_by === 1 ? "commit" : "commits"} behind upstream` };
@@ -81,6 +83,7 @@ export function driftHeadline(drift: DriftRecord): DriftHeadline {
 
 export interface OverviewStat {
   key: string;
+  signal?: SignalKey;
   label: string;
   count: number;
   to: string;
@@ -103,17 +106,19 @@ export function overviewStats(forks: readonly ForkRow[], originals: number): Ove
     extras: [
       {
         key: "advisories",
+        signal: "advisories",
         label: "With new advisories",
         count: forks.filter((row) => (row.drift.advisories?.since_fork_release ?? 0) > 0).length,
         to: appsPath({ advisories: "1" }),
       },
       {
         key: "unpromoted",
+        signal: "promotion",
         label: "Not yet promoted",
         count: forks.filter((row) => (row.drift.promotion?.unpromoted_commits ?? 0) > 0).length,
         to: appsPath({ unpromoted: "1" }),
       },
-      { key: "no-release", label: "No release yet", count: forks.filter((row) => row.drift.fork_release === null).length, to: appsPath({ no_release: "1" }) },
+      { key: "no-release", signal: "fork_release", label: "No release yet", count: forks.filter((row) => row.drift.fork_release === null).length, to: appsPath({ no_release: "1" }) },
     ],
     licences: licences.map((licence) => ({
       key: licence,

@@ -7,10 +7,15 @@ import { FleetApps } from "./Apps";
 import { FleetAttention } from "./AttentionPage";
 import { FleetOverview } from "./Overview";
 import { FleetPaletteHost } from "./PaletteHost";
+import { SignalVisibilityProvider } from "./visibility";
 
 const routes: RouteObject[] = [
   {
-    element: <Shell />,
+    element: (
+      <SignalVisibilityProvider>
+        <Shell />
+      </SignalVisibilityProvider>
+    ),
     children: [
       { index: true, element: <FleetOverview /> },
       { path: "apps", element: <FleetApps /> },

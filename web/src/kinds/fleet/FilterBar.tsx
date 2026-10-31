@@ -2,8 +2,19 @@ import { useId } from "react";
 import { useSearchParams } from "react-router";
 import { FilterChip } from "../../components/FilterChip";
 import { useParamUpdater } from "../../components/queryParams";
-import { FILTER_PARAMS, PARAMS, appOptions, countsIgnoringStatus, hasActiveFilters, licenceOptions, parseFilters, toggledStatuses } from "./filters";
+import {
+  FILTER_PARAMS,
+  PARAMS,
+  appOptions,
+  countsIgnoringStatus,
+  hasActiveFilters,
+  licenceOptions,
+  parseFilters,
+  toggledStatuses,
+  withoutHiddenFilters,
+} from "./filters";
 import { STATUS_LABELS, STATUS_ORDER, type ForkRow } from "./rows";
+import { useSignalVisibility } from "./visibility";
 
 const ANY = "";
 
@@ -39,7 +50,8 @@ function FacetSelect({
 export function FilterBar({ rows, shown }: { rows: readonly ForkRow[]; shown: number }) {
   const [params, setParams] = useSearchParams();
   const update = useParamUpdater();
-  const filters = parseFilters(params);
+  const { isShown } = useSignalVisibility();
+  const filters = withoutHiddenFilters(parseFilters(params), (key) => isShown(key, "filter"));
   const counts = countsIgnoringStatus(rows, filters);
   const clear = () => setParams((current) => withoutFilters(current), { replace: true });
   return (
@@ -54,15 +66,21 @@ export function FilterBar({ rows, shown }: { rows: readonly ForkRow[]; shown: nu
             {`${STATUS_LABELS[status]} (${counts[status]})`}
           </FilterChip>
         ))}
-        <FilterChip pressed={filters.advisories} onToggle={() => update({ [PARAMS.advisories]: filters.advisories ? null : "1" })}>
-          New advisories
-        </FilterChip>
-        <FilterChip pressed={filters.unpromoted} onToggle={() => update({ [PARAMS.unpromoted]: filters.unpromoted ? null : "1" })}>
-          Not yet promoted
-        </FilterChip>
-        <FilterChip pressed={filters.noRelease} onToggle={() => update({ [PARAMS.noRelease]: filters.noRelease ? null : "1" })}>
-          No release yet
-        </FilterChip>
+        {isShown("advisories", "filter") && (
+          <FilterChip pressed={filters.advisories} onToggle={() => update({ [PARAMS.advisories]: filters.advisories ? null : "1" })}>
+            New advisories
+          </FilterChip>
+        )}
+        {isShown("promotion", "filter") && (
+          <FilterChip pressed={filters.unpromoted} onToggle={() => update({ [PARAMS.unpromoted]: filters.unpromoted ? null : "1" })}>
+            Not yet promoted
+          </FilterChip>
+        )}
+        {isShown("fork_release", "filter") && (
+          <FilterChip pressed={filters.noRelease} onToggle={() => update({ [PARAMS.noRelease]: filters.noRelease ? null : "1" })}>
+            No release yet
+          </FilterChip>
+        )}
       </div>
       <div className="fork-filters__fields">
         <FacetSelect label="App" anyLabel="Any app" options={appOptions(rows)} value={filters.app} onChange={(value) => update({ [PARAMS.app]: value })} />

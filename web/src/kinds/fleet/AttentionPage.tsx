@@ -9,12 +9,14 @@ import { appPath } from "./paths";
 import { STATUS_LABELS, forkRows, needingAttention, type ForkRow } from "./rows";
 import type { ConflictRecord } from "./schemas";
 import { useFleetViews, type FleetViews } from "./useFleetViews";
+import { useSignalVisibility } from "./visibility";
 import "./fleet.css";
 
 const GROUPS = ["critical", "stale"] as const;
 
 function AttentionCard({ row, conflict }: { row: ForkRow; conflict: ConflictRecord | undefined }) {
   const { app, drift } = row;
+  const { isShown } = useSignalVisibility();
   const headingId = `attention-${app.repo}`;
   return (
     <article className={`fork-card fork-card--${drift.status}`} aria-labelledby={headingId}>
@@ -25,7 +27,7 @@ function AttentionCard({ row, conflict }: { row: ForkRow; conflict: ConflictReco
         <StatusPill status={drift.status} />
       </header>
       <ul className="attention-reasons">
-        {attentionReasons(row, conflict).map((reason) => (
+        {attentionReasons(row, conflict, (key) => isShown(key, "attention")).map((reason) => (
           <li key={reason}>{reason}</li>
         ))}
       </ul>
