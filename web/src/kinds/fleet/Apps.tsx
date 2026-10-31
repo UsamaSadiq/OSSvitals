@@ -14,7 +14,7 @@ import { StatusPill } from "./StatusPill";
 import { forksCsv } from "./csv";
 import { applyFilters, parseFilters, withoutHiddenFilters } from "./filters";
 import { appPath } from "./paths";
-import { byDrift, forkRows, formatDay, releaseGapText, severity, sortedForks, type ForkRow } from "./rows";
+import { applyingAdvisories, byDrift, forkRows, formatDay, releaseGapText, severity, sortedForks, type ForkRow } from "./rows";
 import type { AppRecord } from "./schemas";
 import type { SignalKey } from "./signals";
 import { useFleetViews } from "./useFleetViews";
@@ -89,9 +89,9 @@ const FORK_COLUMNS: Column<ForkRow>[] = [
   },
   {
     key: "advisories",
-    header: "New advisories",
-    cell: ({ drift }) => drift.advisories?.since_fork_release ?? "–",
-    sortValue: ({ drift }) => drift.advisories?.since_fork_release ?? -1,
+    header: "Advisories that apply",
+    cell: ({ drift }) => applyingAdvisories(drift) ?? "–",
+    sortValue: ({ drift }) => applyingAdvisories(drift) ?? -1,
     numeric: true,
   },
   {
@@ -132,7 +132,8 @@ function Explainer() {
       branch we release from, before our first release). Status follows how many upstream releases we lack, how big the version jump is, and
       whether a high or critical advisory affects that base. When no upstream release is found in our history, the commit drift against the
       upstream branch decides instead. Release means the newest stable tag we cut; it shows what source is published for each version, not what
-      any particular server is running. New advisories are upstream advisories published on GitHub after our latest release.
+      any particular server is running. Advisories that apply are upstream advisories affecting our base release on the release basis, or, on the commits
+      basis, those published after the upstream code we ship (the earlier of our last upstream merge and our latest release).
     </p>
   );
 }

@@ -68,7 +68,7 @@ export function FilterBar({ rows, shown }: { rows: readonly ForkRow[]; shown: nu
         ))}
         {isShown("advisories", "filter") && (
           <FilterChip pressed={filters.advisories} onToggle={() => update({ [PARAMS.advisories]: filters.advisories ? null : "1" })}>
-            New advisories
+            Advisories that apply
           </FilterChip>
         )}
         {isShown("promotion", "filter") && (

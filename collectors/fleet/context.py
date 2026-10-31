@@ -63,6 +63,10 @@ class ForkContext:
         return self.comparison["merge_base_commit"]["commit"]["committer"]["date"]
 
     @cached_property
+    def code_since(self) -> str:
+        return fork.code_since(self.merged_at, self.fork_release["date"] if self.fork_release else None)
+
+    @cached_property
     def tags(self) -> list[dict[str, Any]]:
         return self.api(f"{self.base}/tags?per_page=100") or []
 
