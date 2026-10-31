@@ -37,9 +37,19 @@ const advisoryItem = z.object({
   affects_fork_release: z.boolean().nullish(),
 });
 
+const releaseGap = z.object({
+  base: z.string(),
+  base_ref: nullableString,
+  latest: z.string(),
+  releases_behind: z.number().int(),
+  level: z.enum(["none", "patch", "minor", "major"]),
+  days_behind: z.number().int(),
+});
+
 const driftRecord = z.object({
   repo: z.string(),
   status: z.string(),
+  status_basis: z.enum(["release", "commits"]).nullish(),
   ahead_by: z.number().int(),
   behind_by: z.number().int(),
   behind_release: z.number().int().nullish(),
@@ -52,6 +62,7 @@ const driftRecord = z.object({
   release_lag: z
     .object({ upstream_releases_since_sync: z.number().int(), upstream_ahead_of_our_release_days: z.number().int().nullable() })
     .nullish(),
+  release_gap: releaseGap.nullish(),
   advisories: z.object({
     published: z.number().int(),
     since_fork_release: z.number().int(),
@@ -98,17 +109,32 @@ function view<Shape extends z.ZodTypeAny>(record: Shape) {
 }
 
 export const appsSchema = view(appRecord);
-export const driftSchema = view(driftRecord);
+const failedRecord = z.object({ repo: z.string(), error: z.string() });
+
+function isFailed(record: unknown): boolean {
+  return failedRecord.safeParse(record).success;
+}
+
+function splitFailed({ metadata, records }: { metadata: z.infer<typeof envelope>; records: unknown[] }) {
+  return { metadata, records: records.filter((record) => !isFailed(record)), failed: records.filter(isFailed) };
+}
+
+export const driftSchema = z
+  .object({ metadata: envelope, records: z.array(z.unknown()) })
+  .transform(splitFailed)
+  .pipe(z.object({ metadata: envelope, records: z.array(driftRecord), failed: z.array(failedRecord) }));
 export const historySchema = view(historyRow);
 export const updatesSchema = view(update);
 export const conflictsSchema = view(conflictRecord);
 
 export type AppRecord = z.infer<typeof appRecord>;
 export type DriftRecord = z.infer<typeof driftRecord>;
+export type ReleaseGap = z.infer<typeof releaseGap>;
 export type AdvisoryItem = z.infer<typeof advisoryItem>;
 export type HistoryRow = z.infer<typeof historyRow>;
 export type UpdateRecord = z.infer<typeof update>;
 export type ConflictRecord = z.infer<typeof conflictRecord>;
+export type FailedRecord = z.infer<typeof failedRecord>;
 export type AppsView = z.infer<typeof appsSchema>;
 export type DriftView = z.infer<typeof driftSchema>;
 export type HistoryView = z.infer<typeof historySchema>;

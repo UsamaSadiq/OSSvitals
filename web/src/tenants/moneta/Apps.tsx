@@ -6,13 +6,14 @@ import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
 import { Tabs, type TabItem } from "../../components/Tabs";
 import { usePageTitle } from "../../layout/pageTitle";
+import { CollectionFailures } from "./CollectionFailures";
 import { FilterBar } from "./FilterBar";
 import { ForkCards } from "./ForkCards";
 import { StatusPill } from "./StatusPill";
 import { forksCsv } from "./csv";
 import { applyFilters, parseFilters } from "./filters";
 import { appPath } from "./paths";
-import { forkRows, formatDay, severity, sortedForks, type ForkRow } from "./rows";
+import { byDrift, forkRows, formatDay, releaseGapText, severity, sortedForks, type ForkRow } from "./rows";
 import type { AppRecord } from "./schemas";
 import { useMonetaViews } from "./useMonetaViews";
 import "./moneta.css";
@@ -40,8 +41,15 @@ const FORK_COLUMNS: Column<ForkRow>[] = [
     numeric: true,
   },
   {
+    key: "built-on",
+    header: "Built on upstream",
+    cell: ({ drift }) => (drift.release_gap ? releaseGapText(drift.release_gap) : "No upstream release found"),
+    sortValue: ({ drift }) => drift.release_gap?.releases_behind ?? -1,
+    numeric: true,
+  },
+  {
     key: "behind",
-    header: "Behind",
+    header: "Commits behind",
     cell: ({ drift }) => `${drift.behind_by.toLocaleString()} commits`,
     sortValue: ({ drift }) => drift.behind_by,
     numeric: true,
@@ -103,9 +111,11 @@ const ORIGINAL_COLUMNS: Column<AppRecord>[] = [
 function Explainer() {
   return (
     <p className="caption">
-      Each fork is compared with its upstream project on the branch we release from. Release means the newest stable tag we cut; it shows what
-      source is published for each version, not what any particular server is running. New advisories are upstream advisories published on GitHub
-      after our latest release.
+      Each fork is judged by the upstream release it is built on: the highest upstream release in the history of our latest release (or of the
+      branch we release from, before our first release). Status follows how many upstream releases we lack, how big the version jump is, and
+      whether a high or critical advisory affects that base. When no upstream release is found in our history, the commit drift against the
+      upstream branch decides instead. Release means the newest stable tag we cut; it shows what source is published for each version, not what
+      any particular server is running. New advisories are upstream advisories published on GitHub after our latest release.
     </p>
   );
 }
@@ -128,7 +138,7 @@ function forkTabs(forks: readonly ForkRow[]): TabItem[] {
             rows={sortedForks(forks)}
             rowKey={({ app }) => app.repo}
             initialSort={{ key: "status", direction: "descending" }}
-            tieBreak={(a, b) => b.drift.behind_by - a.drift.behind_by}
+            tieBreak={byDrift}
           />
         </>
       ),
@@ -158,6 +168,7 @@ function Content() {
       <Explainer />
       <section className="overview-section" aria-labelledby="forks-heading">
         <h2 id="forks-heading">Forks tracked against upstream</h2>
+        <CollectionFailures failed={state.drift.failed} />
         <Forks forks={forks} />
       </section>
       <section className="overview-section" id="originals" aria-labelledby="originals-heading">

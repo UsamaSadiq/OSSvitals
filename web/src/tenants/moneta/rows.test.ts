@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { forkRows, needingAttention, overviewStats, severity, sortedForks, statusCounts } from "./rows";
+import { advisoryNotice, driftHeadline, forkRows, needingAttention, overviewStats, releaseGapText, severity, sortedForks, statusCounts } from "./rows";
 import type { AppRecord, DriftRecord } from "./schemas";
 
 function app(repo: string, kind: AppRecord["class"] = "fork"): AppRecord {
@@ -48,6 +48,40 @@ describe("forkRows", () => {
 describe("sortedForks", () => {
   it("orders by severity, then by commits behind", () => {
     expect(sortedForks(forkRows(APPS, DRIFT)).map((row) => row.app.repo)).toEqual(["b", "c", "a"]);
+  });
+});
+
+describe("release gap wording", () => {
+  const gap = { base: "v4.18.0", base_ref: "v26.10.0", latest: "v4.18.0", releases_behind: 0, level: "none" as const, days_behind: 0 };
+
+  it("says when a fork is on upstream's latest release", () => {
+    expect(releaseGapText(gap)).toBe("v4.18.0, upstream's latest release");
+  });
+
+  it("leads with releases behind when the base release is known, commits otherwise", () => {
+    const behind = { ...gap, latest: "v4.19.1", releases_behind: 2, level: "minor" as const };
+    expect(driftHeadline({ ...drift("a", "lagging", 113), release_gap: behind })).toEqual({ count: 2, text: "releases behind upstream (v4.18.0 → v4.19.1)" });
+    expect(driftHeadline(drift("a", "lagging", 113))).toEqual({ count: 113, text: "commits behind upstream" });
+  });
+
+  it("does not count zero releases as drift", () => {
+    expect(driftHeadline({ ...drift("a", "in-sync", 113), release_gap: gap })).toEqual({ count: 0, text: "releases behind (on upstream's latest, v4.18.0)" });
+  });
+
+  it("explains advisories by the same signal the status used", () => {
+    const advisories = { published: 4, since_fork_release: 0, affecting_fork_release: 1, source: "x" };
+    const onRelease = { ...drift("a", "critical", 1), status_basis: "release" as const, release_gap: gap, advisories };
+    expect(advisoryNotice(onRelease)).toBe("1 upstream advisory affects v4.18.0, our base");
+    expect(advisoryNotice({ ...onRelease, status_basis: "commits", release_gap: null })).toBeNull();
+    expect(advisoryNotice({ ...drift("a", "critical", 1), advisories: { ...advisories, since_fork_release: 2 } })).toBe("2 new upstream advisories since our latest release");
+  });
+
+  it("breaks severity ties by releases behind before commits behind", () => {
+    const rows = forkRows([app("few"), app("many")], [
+      { ...drift("few", "stale", 900), release_gap: { ...gap, releases_behind: 1 } },
+      { ...drift("many", "stale", 10), release_gap: { ...gap, releases_behind: 5 } },
+    ]);
+    expect(sortedForks(rows).map((row) => row.app.repo)).toEqual(["many", "few"]);
   });
 });
 

@@ -5,6 +5,7 @@ import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import { useSiteMeta } from "../../layout/siteMeta";
 import { BarChart, neutralTone } from "./BarChart";
+import { CollectionFailures } from "./CollectionFailures";
 import { appPath, ATTENTION_PATH } from "./paths";
 import { statusChanges } from "./insights";
 import { STATUS_LABELS, forkRows, formatDay, isStatus, needingAttention, overviewStats, type OverviewStat } from "./rows";
@@ -90,6 +91,7 @@ function Rollup() {
   const stats = overviewStats(forks, state.apps.records.filter((app) => app.class === "original").length);
   return (
     <>
+      <CollectionFailures failed={state.drift.failed} />
       <section className="overview-section" aria-labelledby="mix-heading">
         <h2 id="mix-heading">{`Status of our forks (${stats.total.count} tracked)`}</h2>
         <BarChart label="Forks by status" items={stats.statuses} tone={statusTone} />

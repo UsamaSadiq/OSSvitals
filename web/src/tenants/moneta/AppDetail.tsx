@@ -10,7 +10,7 @@ import { Sparkline } from "./Sparkline";
 import { StatusPill } from "./StatusPill";
 import { trendOf } from "./insights";
 import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
-import { formatDay, pluralise, type ForkRow } from "./rows";
+import { formatDay, pluralise, releaseGapText, type ForkRow } from "./rows";
 import type { ConflictRecord, DriftRecord, HistoryRow } from "./schemas";
 import { useMonetaViews, type MonetaViews } from "./useMonetaViews";
 import "./moneta.css";
@@ -40,6 +40,11 @@ function ourRelease(release: DriftRecord["fork_release"], githubOrg: string | un
   return release && githubOrg ? external(releaseUrl(githubOrg, repo, release.tag), releaseText(release)) : releaseText(release);
 }
 
+const STATUS_BASIS_NOTE = {
+  release: "Status is judged on upstream releases and advisories affecting this base.",
+  commits: "Status is judged on commits behind the upstream branch, since no upstream release was found in our history.",
+} as const;
+
 const CI_TEXT = { passing: "Passing", failing: "Failing", pending: "Running", none: "No checks" } as const;
 
 function ReleaseFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined }) {
@@ -67,6 +72,13 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
   const { advisories, promotion, ci, pull_requests: pulls, upstream_activity: activity } = drift;
   return (
     <>
+      <Fact term="Built on upstream">
+        {drift.release_gap ? releaseGapText(drift.release_gap) : "No upstream release found in our history"}
+        {drift.release_gap && drift.release_gap.releases_behind > 0 && (
+          <span className="app-fact__note">{`The oldest upstream release we lack came out ${drift.release_gap.days_behind} days ago.`}</span>
+        )}
+        <span className="app-fact__note">{STATUS_BASIS_NOTE[drift.status_basis ?? "commits"]}</span>
+      </Fact>
       <Fact term="Behind upstream">{pluralise(drift.behind_by, "commit")}</Fact>
       {drift.behind_release != null && drift.upstream_release && (
         <Fact term="Behind latest release">{`${pluralise(drift.behind_release, "commit")} behind ${drift.upstream_release.tag}`}</Fact>

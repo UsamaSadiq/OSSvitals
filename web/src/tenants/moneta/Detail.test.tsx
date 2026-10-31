@@ -41,6 +41,8 @@ const DRIFT = {
   fork_release: { tag: "v1.0.0", date: "2026-09-10T00:00:00Z" },
   release_candidate: { tag: "v1.1.0-rc.1" },
   upstream_release: { tag: "v2.0.0", date: null },
+  status_basis: "release",
+  release_gap: { base: "v1.5.0", base_ref: "v1.0.0", latest: "v2.0.0", releases_behind: 6, level: "major", days_behind: 40 },
   release_lag: { upstream_releases_since_sync: 6, upstream_ahead_of_our_release_days: 19 },
   advisories: {
     published: 4,
@@ -126,6 +128,8 @@ describe("Moneta app detail with the full data set", () => {
     renderRoute("/apps/burning", META, monetaTenant);
     await screen.findByRole("heading", { level: 2, name: "Upstream advisories" });
     expect(screen.getByText("700 commits behind v2.0.0")).toBeTruthy();
+    expect(screen.getByText("v1.5.0 → v2.0.0, 6 releases behind (a major version behind)")).toBeTruthy();
+    expect(screen.getByText(/judged on upstream releases/)).toBeTruthy();
     expect(screen.getByText(/1 affecting v1\.5\.0, the upstream version we are based on/)).toBeTruthy();
     expect(screen.getByText("affects our base version")).toBeTruthy();
   });

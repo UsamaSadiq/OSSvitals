@@ -38,7 +38,7 @@ export function registerDriftTools(server: McpServer, org: string, deps: ViewDep
     "list_apps",
     {
       description:
-        "List every app with its drift status against upstream, optionally filtered by status or class (fork or original).",
+        "List every app with its drift status against upstream, optionally filtered by status or class (fork or original). Status is judged on the upstream release each fork is built on (release_gap) when one is found, otherwise on commits behind the upstream branch (status_basis).",
       inputSchema: z.object({
         status: z.string().max(40).optional(),
         class: z.enum(["fork", "original"]).optional(),

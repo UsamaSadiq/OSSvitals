@@ -74,7 +74,7 @@ describe("Moneta apps page", () => {
     renderRoute("/apps", META, monetaTenant);
     const burning = await screen.findByRole("article", { name: "burning" });
     expect(within(burning).getByRole("link", { name: "burning" }).getAttribute("href")).toBe("/apps/burning");
-    expect(within(burning).getByText("2 new upstream advisories")).toBeTruthy();
+    expect(within(burning).getByText("2 new upstream advisories since our latest release")).toBeTruthy();
     expect(within(burning).getByText("MIT")).toBeTruthy();
     expect(within(burning).queryByText(/Ours /)).toBeNull();
     expect(within(burning).queryByText(/patches/)).toBeNull();
@@ -125,6 +125,24 @@ describe("Moneta apps page", () => {
     const originals = await screen.findByRole("table", { name: /Original projects/ });
     expect(within(forks).getByRole("link", { name: "burning" }).getAttribute("href")).toBe("/apps/burning");
     expect(within(originals).getByText("tool")).toBeTruthy();
+  });
+
+  it("names the forks whose collection failed instead of dropping them silently", async () => {
+    const files: Record<string, unknown> = {
+      "apps.json": { metadata, records: [app("calm", "fork"), app("broken", "fork"), app("tool", "original")] },
+      "drift.json": { metadata, records: [record("calm", "in-sync", 0, 0), { repo: "broken", error: "cannot compare v2 with foss-main" }] },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const body = files[url.split("/").pop() ?? ""];
+        return new Response(JSON.stringify(body), { status: body ? 200 : 404, headers: { "Content-Type": "application/json" } });
+      }),
+    );
+    renderRoute("/apps", META, monetaTenant);
+    expect(await screen.findByText("Collection failed for 1 fork: broken.")).toBeTruthy();
+    expect(screen.getByText("1 of 1 forks")).toBeTruthy();
+    expect(screen.queryByRole("article", { name: "broken" })).toBeNull();
   });
 
   it("explains a data failure instead of showing an empty page", async () => {

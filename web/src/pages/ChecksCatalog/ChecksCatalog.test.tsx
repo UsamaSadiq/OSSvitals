@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata } from "../../data/fixtures";
@@ -144,7 +144,7 @@ describe("Checks Catalog page", () => {
     renderRoute("/glossary");
 
     expect(await screen.findByRole("heading", { level: 1, name: "Checks Catalog" })).toBeInTheDocument();
-    expect(document.title).toBe("Checks Catalog · Open edX Repo Health");
+    await waitFor(() => expect(document.title).toBe("Checks Catalog · Open edX Repo Health"));
     expect(
       screen.getByText(
         "Every health check currently collected, what it measures, whether it feeds the composite score, and how the org is doing on it.",

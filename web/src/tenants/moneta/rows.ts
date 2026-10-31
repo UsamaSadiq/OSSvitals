@@ -1,5 +1,5 @@
 import { appsPath } from "./paths";
-import type { AppRecord, DriftRecord } from "./schemas";
+import type { AppRecord, DriftRecord, ReleaseGap } from "./schemas";
 
 export const STATUS_ORDER = ["in-sync", "lagging", "stale", "critical"] as const;
 
@@ -43,12 +43,40 @@ export function formatDay(iso: string | null): string {
   return iso ? iso.slice(0, 10) : "–";
 }
 
+export function byDrift(a: ForkRow, b: ForkRow): number {
+  return (b.drift.release_gap?.releases_behind ?? 0) - (a.drift.release_gap?.releases_behind ?? 0) || b.drift.behind_by - a.drift.behind_by;
+}
+
 export function sortedForks(rows: readonly ForkRow[]): ForkRow[] {
-  return [...rows].sort((a, b) => severity(b.drift.status) - severity(a.drift.status) || b.drift.behind_by - a.drift.behind_by);
+  return [...rows].sort((a, b) => severity(b.drift.status) - severity(a.drift.status) || byDrift(a, b));
 }
 
 export function pluralise(count: number, noun: string): string {
   return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+const GAP_TEXT: Record<ReleaseGap["level"], string> = {
+  none: "on the latest release",
+  patch: "patch releases only",
+  minor: "a minor version behind",
+  major: "a major version behind",
+};
+
+export function releaseGapText(gap: ReleaseGap): string {
+  if (gap.releases_behind === 0) return `${gap.base}, upstream's latest release`;
+  return `${gap.base} → ${gap.latest}, ${pluralise(gap.releases_behind, "release")} behind (${GAP_TEXT[gap.level]})`;
+}
+
+export interface DriftHeadline {
+  count: number;
+  text: string;
+}
+
+export function driftHeadline(drift: DriftRecord): DriftHeadline {
+  const gap = drift.release_gap;
+  if (gap?.releases_behind === 0) return { count: 0, text: `releases behind (on upstream's latest, ${gap.base})` };
+  if (gap) return { count: gap.releases_behind, text: `${gap.releases_behind === 1 ? "release" : "releases"} behind upstream (${gap.base} → ${gap.latest})` };
+  return { count: drift.behind_by, text: `${drift.behind_by === 1 ? "commit" : "commits"} behind upstream` };
 }
 
 export interface OverviewStat {
@@ -105,4 +133,13 @@ export function needingAttention(forks: readonly ForkRow[]): ForkRow[] {
 
 export function advisoryLabel(count: number): string {
   return `${count} new upstream ${count === 1 ? "advisory" : "advisories"}`;
+}
+
+export function advisoryNotice(drift: DriftRecord): string | null {
+  const { advisories, release_gap: gap } = drift;
+  if (gap && drift.status_basis === "release") {
+    const affecting = advisories.affecting_fork_release ?? 0;
+    return affecting > 0 ? `${affecting} upstream ${affecting === 1 ? "advisory affects" : "advisories affect"} ${gap.base}, our base` : null;
+  }
+  return advisories.since_fork_release > 0 ? `${advisoryLabel(advisories.since_fork_release)} since our latest release` : null;
 }

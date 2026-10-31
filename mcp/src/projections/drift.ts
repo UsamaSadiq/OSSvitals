@@ -35,6 +35,8 @@ export function projectAppSummary(app: AppRecord, drift: DriftRecord | undefined
     repo: app.repo,
     class: app.class,
     status: drift?.status ?? null,
+    status_basis: drift?.status_basis ?? null,
+    release_gap: drift?.release_gap ?? null,
     ahead_by: drift?.ahead_by ?? null,
     behind_by: drift?.behind_by ?? null,
     behind_release: drift?.behind_release ?? null,
@@ -44,6 +46,7 @@ export function projectAppSummary(app: AppRecord, drift: DriftRecord | undefined
     latest_tag: app.latest_tag,
     open_pull_requests: app.open_pull_requests ?? null,
     severe_since_fork_release: drift?.advisories.severe_since_fork_release ?? null,
+    severe_affecting_fork_release: drift?.advisories.severe_affecting_fork_release ?? null,
   };
 }
 
@@ -73,6 +76,8 @@ function projectDriftDetail(drift: DriftRecord | undefined) {
   if (!drift) return { status: null, advisories: null };
   return {
     status: drift.status,
+    status_basis: drift.status_basis ?? null,
+    release_gap: drift.release_gap ?? null,
     ahead_by: drift.ahead_by,
     behind_by: drift.behind_by,
     behind_release: drift.behind_release ?? null,

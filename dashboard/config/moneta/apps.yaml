@@ -9,7 +9,7 @@ apps:
   - {repo: chatwoot, class: fork, upstream: chatwoot/chatwoot, upstream_branch: develop, licence: "MIT", licence_note: "enterprise/ is under a separate licence"}
   - {repo: mautic, class: fork, upstream: mautic/mautic, upstream_branch: "7.x", licence: "GPL-3.0-or-later"}
   - {repo: open-notebook, class: fork, upstream: lfnovo/open-notebook, upstream_branch: main, licence: "MIT", production_branch: main}
-  - {repo: presenton, class: fork, upstream: presenton/presenton, upstream_branch: main, licence: "Apache-2.0", production_branch: main}
+  - {repo: presenton, class: fork, upstream: presenton/presenton, upstream_branch: main, release_tag: '^v\d+\.\d+\.\d+-beta$', licence: "Apache-2.0", production_branch: main}
   - {repo: plane-mcp-server, class: fork, upstream: makeplane/plane-mcp-server, upstream_branch: main, licence: "MIT"}
   - {repo: outline-mcp-server, class: fork, upstream: arbisoft/outline-mcp-server, upstream_branch: main, licence: "MIT"}
   - {repo: zammad-mcp-server, class: original, licence: "MIT"}
