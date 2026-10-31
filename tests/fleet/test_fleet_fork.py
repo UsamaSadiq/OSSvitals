@@ -475,3 +475,8 @@ def test_epss_reaches_the_record_through_the_collector_and_falls_back_to_the_pre
     down = Feeds(lambda: KEV, None, NOW, 7, lambda cves: {})
     again = fleet.collect_fork(api_for(ROUTES), "Org", APP, SETTINGS, NOW, merged_by, record, down)
     assert (again["exploitability"]["epss"]["from_previous"], again["exploitability"]["epss"]["as_of"]) == (True, "2026-10-11")
+
+
+def test_stable_tags_skip_names_a_release_pattern_matches_without_a_version():
+    tags = [{"name": "release-latest"}, {"name": "release-1.2.0"}]
+    assert [tag["name"] for tag in fork.stable_tags(tags, re.compile(r"^release-"))] == ["release-1.2.0"]

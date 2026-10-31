@@ -22,7 +22,7 @@ ADVISORY_ITEMS = 10
 
 
 def stable_tags(tags: list[dict[str, Any]], pattern: re.Pattern[str] = STABLE_TAG) -> list[dict[str, Any]]:
-    stable = [tag for tag in tags if pattern.match(tag["name"])]
+    stable = [tag for tag in tags if pattern.match(tag["name"]) and VERSION.search(tag["name"])]
     return sorted(stable, key=lambda tag: version_key(tag["name"]), reverse=True)
 
 
