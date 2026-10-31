@@ -16,6 +16,7 @@ from collectors.fleet.signals import (
     release_gap,
     upgrade_risk,
     upstream_activity,
+    upstream_health,
     upstream_release,
 )
 
@@ -33,6 +34,7 @@ SIGNALS: tuple[Signal, ...] = tuple(
         upstream_activity,
         licence_watch,
         exploitability,
+        upstream_health,
         conflicts,
         carried_patches,
         upgrade_risk,

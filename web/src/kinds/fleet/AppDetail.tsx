@@ -10,6 +10,7 @@ import { Sparkline } from "./Sparkline";
 import { StatusPill } from "./StatusPill";
 import { trendOf } from "./insights";
 import { advisoryUrl, checkedText } from "./exploited";
+import { contributorsText, healthNotes } from "./health";
 import { licenceHistoryUrl, licenceNotice } from "./licence";
 import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
 import { formatDay, pluralise, releaseGapText, type ForkRow } from "./rows";
@@ -126,6 +127,16 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
       )}
       {shown("licence_watch") && drift.licence_watch && <LicenceFact row={row} />}
       {shown("exploitability") && drift.exploitability && <ExploitedFact row={row} />}
+      {shown("upstream_health") && drift.upstream_health && (
+        <Fact term="Upstream health">
+          {contributorsText(drift.upstream_health.contributors)}
+          {healthNotes(drift.upstream_health, row.app.upstream_branch).map((note) => (
+            <span key={note} className="app-fact__note">
+              {note}
+            </span>
+          ))}
+        </Fact>
+      )}
     </>
   );
 }

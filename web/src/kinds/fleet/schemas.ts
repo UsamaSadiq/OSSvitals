@@ -93,6 +93,24 @@ const driftRecord = z.object({
       previous_present: z.boolean().nullish(),
     })
     .nullish(),
+  upstream_health: z
+    .object({
+      contributors: z
+        .object({
+          commits: z.number().int(),
+          automated_commits: z.number().int().nullish(),
+          people: z.number().int(),
+          half_of_commits_by: z.number().int().nullable(),
+          top_share: z.number().nullable(),
+          truncated: z.boolean().nullish(),
+          as_of: nullableString.optional(),
+        })
+        .nullable(),
+      releases: z.object({ last_year: z.number().int(), days_since_latest: z.number().int().nullable(), median_gap_days: z.number().int().nullable() }),
+      default_branch: nullableString.optional(),
+      tracks_default_branch: z.boolean().nullish(),
+    })
+    .nullish(),
   exploitability: z
     .object({
       basis: z.enum(["release", "commits"]),

@@ -76,7 +76,7 @@ describe("getApp", () => {
     const record = drift.records.find((entry) => entry.repo === "alpha");
     const { advisories: _advisories, fork_release: _fork, upstream_release: _upstream, ...core } = record!;
     const app = getApp(apps, { ...drift, records: [core] }, "alpha");
-    expect(app).toMatchObject({ advisories: null, fork_release: null, upstream_release: null, licence_watch: null, exploitability: null });
+    expect(app).toMatchObject({ advisories: null, fork_release: null, upstream_release: null, licence_watch: null, exploitability: null, upstream_health: null });
     expect(listApps(apps, { ...drift, records: [core] }, {})[0]).toMatchObject({ severe_since_fork_release: null });
   });
 
