@@ -237,6 +237,28 @@ export const fleetMetaSchema = z.looseObject({
   fleet: z.object({ signals: z.record(z.string(), manifestSignal), statuses: z.array(manifestStatus) }).optional(),
 });
 
+export interface ViewSpec<T, Required extends boolean = boolean> {
+  file: string;
+  schema: z.ZodType<T>;
+  required: Required;
+}
+
+function spec<T, Required extends boolean>(file: string, schema: z.ZodType<T>, required: Required): ViewSpec<T, Required> {
+  return { file, schema, required };
+}
+
+/** Every view a fleet tenant publishes: the pages load these and the data sync checks them before upload. */
+export const FLEET_VIEWS = {
+  apps: spec("apps.json", appsSchema, true),
+  drift: spec("drift.json", driftSchema, true),
+  history: spec("drift_history.json", historySchema, false),
+  updates: spec("updates.json", updatesSchema, false),
+  conflicts: spec("conflicts.json", conflictsSchema, false),
+  meta: spec("meta.json", fleetMetaSchema, false),
+  carried: spec("carried_patches.json", carriedSchema, false),
+  upgrade: spec("upgrade_risk.json", upgradeSchema, false),
+};
+
 export type AppRecord = z.infer<typeof appRecord>;
 export type DriftRecord = z.infer<typeof driftRecord>;
 export type ReleaseGap = z.infer<typeof releaseGap>;
