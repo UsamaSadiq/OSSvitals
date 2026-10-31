@@ -87,11 +87,24 @@ class ForkContext:
         return f"https://github.com/{self.upstream}.git"
 
     @cached_property
+    def clone_release_lookup(self) -> tuple[str | None, Exception | None]:
+        """Upstream's newest release on the first releases page, as the weekly conflict forecast has always used.
+
+        A failed lookup is kept, not raised: only the forecast needs the release, the clone and other signals do not.
+        """
+        try:
+            releases = fork.upstream_releases(self.api, self.upstream)
+            release = fork.latest_upstream_release(self.api, self.upstream, releases)
+        except RuntimeError as error:
+            return None, error
+        return (release["tag"] if release else None), None
+
+    @property
     def clone_release_tag(self) -> str | None:
-        """Upstream's newest release on the first releases page, as the weekly conflict forecast has always used."""
-        releases = fork.upstream_releases(self.api, self.upstream)
-        release = fork.latest_upstream_release(self.api, self.upstream, releases)
-        return release["tag"] if release else None
+        tag, error = self.clone_release_lookup
+        if error:
+            raise error
+        return tag
 
     @property
     def clone(self) -> Path:
@@ -108,7 +121,7 @@ class ForkContext:
             return RuntimeError("no clone workspace for this run")
         directory = self.workspace / "clone.git"
         try:
-            conflicts.prepare_clone(directory, self.fork_url, self.production, self.upstream_url, self.app["upstream_branch"], self.clone_release_tag)
+            conflicts.prepare_clone(directory, self.fork_url, self.production, self.upstream_url, self.app["upstream_branch"], self.clone_release_lookup[0])
         except RuntimeError as error:
             return error
         return directory

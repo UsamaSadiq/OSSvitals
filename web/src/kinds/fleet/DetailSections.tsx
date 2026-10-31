@@ -101,8 +101,10 @@ function PatchList({ label, items, commitUrl }: { label: string; items: readonly
 
 function carriedSummary(record: CarriedRecord): string {
   const commits = pluralise(record.commits ?? 0, "commit");
-  if (!record.compared) return `${commits} of our own. Too many to compare with upstream this week.`;
-  return `${commits} of our own: ${record.carried ?? 0} carried, ${record.already_upstream ?? 0} already in upstream, which drop at the next sync.`;
+  if (!record.compared) return `${commits} of our own. Too many file changes to compare with upstream this week.`;
+  const already = record.already_upstream ?? 0;
+  const drop = already > 0 ? `, ${already} already in upstream, which drop at the next sync` : ", none of them in upstream yet";
+  return `${commits} of our own: ${record.carried ?? 0} carried${drop}.`;
 }
 
 export function CarriedPatches({ record, repoUrl }: { record: CarriedRecord | undefined; repoUrl: string }) {
@@ -113,7 +115,7 @@ export function CarriedPatches({ record, repoUrl }: { record: CarriedRecord | un
       <p className="caption">Checked weekly by comparing each of our commits with upstream's changes since our last sync. Newest first, up to 20 each.</p>
       <p>{carriedSummary(record)}</p>
       <PatchList label="Already in upstream" items={record.already_upstream_items ?? []} commitUrl={commitUrl} />
-      <PatchList label="Carried" items={record.carried_items ?? []} commitUrl={commitUrl} />
+      <PatchList label={record.compared ? "Carried" : "Our commits"} items={record.carried_items ?? []} commitUrl={commitUrl} />
     </Section>
   );
 }

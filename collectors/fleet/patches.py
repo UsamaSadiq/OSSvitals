@@ -12,10 +12,17 @@ from typing import Any
 
 ITEMS = 20
 NULL_OBJECT = "0" * 40
+TIMEOUT_SECONDS = 900
+# Rename detection reads file contents to score similarity, which would fetch them one commit at a time and
+# report only a renamed file's new path; patch ids are computed without it anyway.
+LISTING = ("--no-renames", "--no-merges")
 
 
 def _git(directory: Path, *args: str, stdin: str | None = None) -> str:
-    result = subprocess.run(["git", "-C", str(directory), *args], input=stdin, capture_output=True, text=True)
+    try:
+        result = subprocess.run(["git", "-C", str(directory), *args], input=stdin, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(f"git {args[0]} took over {TIMEOUT_SECONDS}s") from error
     if result.returncode != 0:
         raise RuntimeError(f"git {args[0]} failed: {result.stderr.strip()[:300]}")
     return result.stdout
@@ -26,13 +33,19 @@ def _lines(text: str) -> list[str]:
 
 
 def fork_only_paths(directory: Path, upstream: str, ours: str) -> list[str]:
-    return sorted(set(_lines(_git(directory, "log", "--format=", "--name-only", "--no-merges", f"{upstream}..{ours}"))))
+    """NUL-separated, so a non-ASCII name comes back as itself rather than C-quoted."""
+    listed = _git(directory, "log", "--format=", "--name-only", "-z", *LISTING, f"{upstream}..{ours}")
+    return sorted({path.strip("\n") for path in listed.split("\0") if path.strip("\n")})
 
 
 def changed_blobs(directory: Path, revisions: str, paths: list[str] | None = None) -> set[str]:
-    """Before and after versions of every file the commits in ``revisions`` change, limited to ``paths``."""
-    raw = _git(directory, "log", "--format=", "--raw", "--no-abbrev", "--no-merges", revisions, *(["--", *paths] if paths else []))
-    blobs = {field for line in _lines(raw) for field in line.split()[2:4]}
+    """Before and after versions of every file the commits in ``revisions`` change, limited to ``paths``.
+
+    Revisions and paths go on stdin: a fork touching tens of thousands of files would overflow the command line.
+    """
+    pathspec = "--\n" + "\n".join(paths) + "\n" if paths else ""
+    raw = _git(directory, "--literal-pathspecs", "log", "--format=", "--raw", "--no-abbrev", *LISTING, "--stdin", stdin=f"{revisions}\n{pathspec}")
+    blobs = {field for line in _lines(raw) if line.startswith(":") for field in line.split()[2:4]}
     return blobs - {NULL_OBJECT}
 
 
@@ -64,7 +77,7 @@ def _commits(text: str) -> list[dict[str, Any]]:
 def marked_commits(directory: Path, upstream: str, ours: str, compare: bool) -> list[dict[str, Any]]:
     """Our non-merge commits, newest first; ``=`` marks one whose change upstream already has."""
     marking = ["--cherry-mark"] if compare else []
-    return _commits(_git(directory, "log", *marking, "--right-only", "--no-merges", "--format=%m%x09%H%x09%cs%x09%s", f"{upstream}...{ours}"))
+    return _commits(_git(directory, "log", *marking, "--right-only", *LISTING, "--format=%m%x09%H%x09%cs%x09%s", f"{upstream}...{ours}"))
 
 
 def _items(commits: list[dict[str, Any]]) -> list[dict[str, Any]]:

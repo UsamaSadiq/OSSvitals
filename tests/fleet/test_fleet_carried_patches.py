@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from collectors.fleet import conflicts as fleet_conflicts
 from collectors.fleet import patches
 from collectors.fleet.collect import collect_clone_signals
 from collectors.fleet.settings import load_settings
@@ -32,47 +33,80 @@ def fork_and_upstream(tmp_path):
     for setting in SERVE:
         git("config", *setting.split("="), cwd=upstream)
     commit(upstream, "app.txt", "one\n", "start")
+    commit(upstream, "old.txt", "line one\nline two\nline three\nline four\n", "Add a file to move later")
     ours = tmp_path / "ours"
     git("clone", "-q", str(upstream), str(ours), cwd=tmp_path)
     for setting in SERVE:
         git("config", *setting.split("="), cwd=ours)
     git("checkout", "-q", "-b", "foss-main", cwd=ours)
     fix = commit(upstream, "fix.txt", "fixed\n", "Fix a crash")
+    git("mv", "old.txt", "new.txt", cwd=upstream)
+    (upstream / "new.txt").write_text("line one\nline two\nline three\nline four\nline five\n")
+    git("add", "new.txt", cwd=upstream)
+    git("commit", "-m", "Move and extend a file", cwd=upstream)
+    moved = git("rev-parse", "HEAD", cwd=upstream)
     commit(upstream, "later.txt", "later\n", "Later upstream work")
     commit(ours, "sso.txt", "ours\n", "Add our sign-in")
     git("fetch", "-q", str(upstream), "main", cwd=ours)
     git("cherry-pick", fix, cwd=ours)
+    git("cherry-pick", moved, cwd=ours)
+    commit(ours, "café.txt", "ours\n", "Add a file with an accented name")
     clone = tmp_path / "clone.git"
     git("clone", "-q", "--bare", "--filter=blob:none", "--single-branch", "--branch", "foss-main", f"file://{ours}", str(clone), cwd=tmp_path)
     git("fetch", "-q", "--filter=blob:none", f"file://{upstream}", "+refs/heads/main:refs/fleet/upstream-head", cwd=clone)
     return clone, f"file://{ours}", f"file://{upstream}"
 
 
-def test_a_cherry_picked_upstream_fix_is_already_upstream_and_our_own_patch_is_carried(fork_and_upstream):
+def test_cherry_picked_upstream_changes_are_already_upstream_and_our_own_patches_are_carried(fork_and_upstream, monkeypatch):
+    """Lazy fetching is forbidden, so the batched prefetch must cover renames and non-ASCII paths too."""
     clone, ours, upstream = fork_and_upstream
+    monkeypatch.setenv("GIT_NO_LAZY_FETCH", "1")
     record = patches.carried(clone, "refs/heads/foss-main", "refs/fleet/upstream-head", ours, upstream, 1000)
-    assert (record["compared"], record["commits"], record["carried"], record["already_upstream"]) == (True, 2, 1, 1)
-    assert [item["subject"] for item in record["already_upstream_items"]] == ["Fix a crash"]
-    assert [item["subject"] for item in record["carried_items"]] == ["Add our sign-in"]
+    assert (record["compared"], record["commits"], record["carried"], record["already_upstream"]) == (True, 4, 2, 2)
+    assert sorted(item["subject"] for item in record["already_upstream_items"]) == ["Fix a crash", "Move and extend a file"]
+    assert sorted(item["subject"] for item in record["carried_items"]) == ["Add a file with an accented name", "Add our sign-in"]
     assert record["carried_items"][0]["date"]
 
 
 def test_too_many_file_versions_lists_our_commits_without_comparing(fork_and_upstream):
     clone, ours, upstream = fork_and_upstream
     record = patches.carried(clone, "refs/heads/foss-main", "refs/fleet/upstream-head", ours, upstream, 0)
-    assert (record["compared"], record["commits"], record["carried"], record["already_upstream"]) == (False, 2, None, None)
-    assert len(record["carried_items"]) == 2
+    assert (record["compared"], record["commits"], record["carried"], record["already_upstream"]) == (False, 4, None, None)
+    assert len(record["carried_items"]) == 4
 
 
-def test_a_failed_clone_fails_every_weekly_signal_of_that_fork_once():
-    app = {"repo": "demo", "class": "fork", "upstream": "up/demo", "upstream_branch": "main"}
-    calls = []
+APP = {"repo": "demo", "class": "fork", "upstream": "up/demo", "upstream_branch": "main"}
+NOW = datetime(2026, 10, 31, tzinfo=timezone.utc)
+
+
+def test_a_failed_clone_fails_every_weekly_signal_of_that_fork_with_one_clone_attempt(monkeypatch):
+    attempts = []
+
+    def failing_clone(*args):
+        attempts.append(args)
+        raise RuntimeError("clone failed: no such repository")
+
+    monkeypatch.setattr(fleet_conflicts, "prepare_clone", failing_clone)
+    records = collect_clone_signals(["conflicts", "carried_patches"], lambda path: [], "Org", APP, load_settings("moneta"), NOW)
+    assert {key: record["error"] for key, record in records.items()} == {
+        "conflicts": "clone failed: no such repository",
+        "carried_patches": "clone failed: no such repository",
+    }
+    assert len(attempts) == 1
+
+
+def test_a_failed_release_lookup_fails_only_the_forecast(monkeypatch):
+    monkeypatch.setattr(fleet_conflicts, "prepare_clone", lambda *args: None)
+    monkeypatch.setattr(patches, "carried", lambda *args: {"compared": True, "commits": 0})
 
     def api(path):
-        calls.append(path)
-        return []
+        raise RuntimeError("releases unavailable")
 
-    records = collect_clone_signals(["conflicts", "carried_patches"], api, "Org", app, load_settings("moneta"), datetime(2026, 10, 31, tzinfo=timezone.utc))
-    assert set(records) == {"conflicts", "carried_patches"}
-    assert all(record["repo"] == "demo" and "error" in record for record in records.values())
-    assert calls.count("repos/up/demo/releases?per_page=100") == 1
+    records = collect_clone_signals(["conflicts", "carried_patches"], api, "Org", APP, load_settings("moneta"), NOW)
+    assert records["conflicts"]["error"] == "releases unavailable"
+    assert records["carried_patches"] == {"repo": "demo", "compared": True, "commits": 0}
+
+
+def test_a_bad_app_pattern_fails_that_fork_without_stopping_the_run():
+    records = collect_clone_signals(["conflicts"], lambda path: [], "Org", {**APP, "release_tag": "^v(\\d+$"}, load_settings("moneta"), NOW)
+    assert "error" in records["conflicts"]

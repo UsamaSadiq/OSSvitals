@@ -1,6 +1,7 @@
 """Assemble a fork record: the core distance fields, each enabled signal's fields, then the status."""
 from __future__ import annotations
 
+import re
 import sys
 import tempfile
 from datetime import datetime
@@ -58,7 +59,7 @@ def collect_fork(
     return {**record, "status": classify(settings.statuses, drift), "status_basis": drift.basis}
 
 
-CLONE_ERRORS = (RuntimeError, LookupError, KeyError, ValueError)
+CLONE_ERRORS = (RuntimeError, LookupError, KeyError, ValueError, OSError, re.error)
 
 
 def _clone_record(key: str, ctx: ForkContext) -> dict[str, Any]:
@@ -79,5 +80,9 @@ def collect_clone_signals(
 ) -> dict[str, dict[str, Any]]:
     """Every weekly signal of one fork from one clone; a signal that fails records the error for this fork only."""
     with tempfile.TemporaryDirectory() as workspace:
-        ctx = ForkContext(api, org, app, settings, now, workspace=Path(workspace))
+        try:
+            ctx = ForkContext(api, org, app, settings, now, workspace=Path(workspace))
+        except CLONE_ERRORS as error:
+            print(f"{app['repo']}: {error}", file=sys.stderr)
+            return {key: {"repo": app["repo"], "error": str(error)} for key in keys}
         return {key: _clone_record(key, ctx) for key in keys}
