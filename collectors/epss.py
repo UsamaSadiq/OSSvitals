@@ -28,7 +28,8 @@ def _batch(cves: list[str]) -> dict[str, dict[str, Any] | None] | None:
         try:
             response = requests.get(URL, params={"cve": ",".join(cves)}, headers=HEADERS, timeout=30)
             if response.status_code == TOO_MANY_REQUESTS:
-                time.sleep(_retry_after(response, attempt))
+                if attempt < RETRIES - 1:
+                    time.sleep(_retry_after(response, attempt))
                 continue
             if 400 <= response.status_code < 500:
                 return None
