@@ -52,7 +52,7 @@ function SignalRow({ info, manifest, views }: { info: SignalEntry; manifest: Fle
   const { key } = info;
   const signal = manifest.signals[key];
   const state = signalState(manifest, hiddenByViewer, key);
-  const failed = signal?.collect ? failedCount(info, views.drift.records, { conflicts: views.conflicts, carried_patches: views.carried }) : 0;
+  const failed = signal?.collect ? failedCount(info, views.drift.records, { conflicts: views.conflicts, carried_patches: views.carried, upgrade_risk: views.upgrade }) : 0;
   const settings = settingsText(signal?.settings ?? {});
   const statuses = statusesUsing(manifest.statuses, signal?.thresholds ?? []);
   const headingId = `signal-${key}`;

@@ -140,5 +140,13 @@ class ForkContext:
         return fork.fork_base_release(self.api, self.base, self.upstream, self.base_ref, self.upstream_releases, self.merged_at)
 
     @cached_property
+    def production_base_release(self) -> str | None:
+        """The upstream release in the history of the production branch, which can be newer than ``base_release``
+        (computed from our latest release) when upstream was merged after our last release."""
+        if self.base_ref == self.production:
+            return self.base_release
+        return fork.fork_base_release(self.api, self.base, self.upstream, self.production, self.upstream_releases, self.merged_at)
+
+    @cached_property
     def release_gap(self) -> dict[str, Any] | None:
         return release_gap(self.base_release, self.base_ref, self.upstream_releases, self.now)

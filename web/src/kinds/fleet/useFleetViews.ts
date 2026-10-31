@@ -5,6 +5,7 @@ import { useTenant } from "../../tenants/context";
 import {
   appsSchema,
   carriedSchema,
+  upgradeSchema,
   conflictsSchema,
   driftSchema,
   fleetMetaSchema,
@@ -12,6 +13,7 @@ import {
   updatesSchema,
   type AppsView,
   type CarriedView,
+  type UpgradeView,
   type ConflictsView,
   type DriftView,
   type FleetMetaView,
@@ -26,6 +28,7 @@ export interface FleetViews {
   updates: UpdatesView | null;
   conflicts: ConflictsView | null;
   carried: CarriedView | null;
+  upgrade: UpgradeView | null;
   meta: FleetMetaView | null;
 }
 
@@ -46,7 +49,7 @@ async function fetchOptional<T>(org: string, file: string, schema: ZodType<T>): 
 }
 
 async function loadViews(org: string): Promise<FleetViews> {
-  const [apps, drift, history, updates, conflicts, meta, carried] = await Promise.all([
+  const [apps, drift, history, updates, conflicts, meta, carried, upgrade] = await Promise.all([
     fetchRequired(org, "apps.json", appsSchema),
     fetchRequired(org, "drift.json", driftSchema),
     fetchOptional(org, "drift_history.json", historySchema),
@@ -54,8 +57,9 @@ async function loadViews(org: string): Promise<FleetViews> {
     fetchOptional(org, "conflicts.json", conflictsSchema),
     fetchOptional(org, "meta.json", fleetMetaSchema),
     fetchOptional(org, "carried_patches.json", carriedSchema),
+    fetchOptional(org, "upgrade_risk.json", upgradeSchema),
   ]);
-  return { apps, drift, history, updates, conflicts, meta, carried };
+  return { apps, drift, history, updates, conflicts, meta, carried, upgrade };
 }
 
 export function clearFleetViews(): void {

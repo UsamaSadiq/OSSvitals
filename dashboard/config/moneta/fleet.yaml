@@ -10,3 +10,5 @@ signals:
     collect: true
   carried_patches:
     collect: true
+  upgrade_risk:
+    collect: true

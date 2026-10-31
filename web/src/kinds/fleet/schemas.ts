@@ -164,6 +164,24 @@ const carriedRecord = z.object({
   already_upstream_items: z.array(patchItem).optional(),
 });
 export const carriedSchema = view(carriedRecord);
+const flaggedRelease = z.object({ tag: z.string(), url: nullableString, published_at: nullableString, lines: z.array(z.string()) });
+const upgradeRecord = z.object({
+  repo: z.string(),
+  error: z.string().optional(),
+  migrations: z
+    .object({
+      ours: z.number().int(),
+      upstream: z.number().int(),
+      shared_dirs: z.array(z.string()),
+      sequential_dirs: z.array(z.string()).default([]),
+      same_prefix: z.array(z.object({ dir: z.string(), prefix: z.string(), ours: z.array(z.string()), upstream: z.array(z.string()) })),
+    })
+    .nullish(),
+  release_notes: z
+    .object({ basis: z.enum(["release", "commits"]), since: nullableString, releases: z.number().int(), flagged: z.array(flaggedRelease) })
+    .nullish(),
+});
+export const upgradeSchema = view(upgradeRecord);
 
 const manifestSignal = z.object({
   collect: z.boolean(),
@@ -199,3 +217,5 @@ export type ManifestSignal = z.infer<typeof manifestSignal>;
 export type ManifestStatus = z.infer<typeof manifestStatus>;
 export type CarriedRecord = z.infer<typeof carriedRecord>;
 export type CarriedView = z.infer<typeof carriedSchema>;
+export type UpgradeRecord = z.infer<typeof upgradeRecord>;
+export type UpgradeView = z.infer<typeof upgradeSchema>;

@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { useTenant } from "../../tenants/context";
+import { migrationsNotice, releaseNotesNotice, upgradeNotices } from "./upgrade";
 import { badgeMarkdown } from "./paths";
 import { formatDay, pluralise } from "./rows";
-import type { AdvisoryItem, CarriedRecord, ConflictRecord, DriftRecord } from "./schemas";
+import type { AdvisoryItem, CarriedRecord, ConflictRecord, DriftRecord, UpgradeRecord } from "./schemas";
 
 type PatchItem = NonNullable<CarriedRecord["carried_items"]>[number];
 
@@ -116,6 +117,51 @@ export function CarriedPatches({ record, repoUrl }: { record: CarriedRecord | un
       <p>{carriedSummary(record)}</p>
       <PatchList label="Already in upstream" items={record.already_upstream_items ?? []} commitUrl={commitUrl} />
       <PatchList label={record.compared ? "Carried" : "Our commits"} items={record.carried_items ?? []} commitUrl={commitUrl} />
+    </Section>
+  );
+}
+
+export function UpgradeRisk({ record }: { record: UpgradeRecord | undefined }) {
+  if (!record || record.error) return null;
+  const { migrations, release_notes: notes } = record;
+  const notices = upgradeNotices(record);
+  return (
+    <Section id="upgrade-heading" title="Upgrade risk">
+      <p className="caption">
+        Checked weekly: the migrations we carry against those upstream added since our last sync, and notes of upstream releases above the one
+        our release branch is built on.
+      </p>
+      {notices.length === 0 && <p>Nothing flagged for the next sync.</p>}
+      {migrations && (
+        <p>{`We carry ${pluralise(migrations.ours, "migration")}; upstream added ${migrations.upstream} since our last sync${migrations.shared_dirs.length > 0 ? `, both in ${migrations.shared_dirs.join(", ")}` : ""}.`}</p>
+      )}
+      {migrationsNotice(migrations ?? undefined) && <p className="detail-notes">{`${migrationsNotice(migrations ?? undefined)}: renumber or add a merge migration when syncing.`}</p>}
+      {migrations?.same_prefix.map((clash) => (
+        <p key={`${clash.dir}-${clash.prefix}`} className="detail-notes">
+          {`${clash.dir}: number ${clash.prefix} is used by ${[...clash.ours, ...clash.upstream].join(" and ")}`}
+        </p>
+      ))}
+      {notes && notes.flagged.length > 0 && (
+        <>
+          <h3 className="detail-subheading">{releaseNotesNotice(notes)}</h3>
+          <ul className="detail-list">
+            {notes.flagged.map((release) => (
+              <li key={release.tag}>
+                {release.url ? (
+                  <a href={release.url} target="_blank" rel="noreferrer">
+                    {release.tag}
+                  </a>
+                ) : (
+                  release.tag
+                )}
+                {release.lines.map((line, index) => (
+                  <span key={`${release.tag}-${index}`} className="caption">{` ${line}`}</span>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </Section>
   );
 }

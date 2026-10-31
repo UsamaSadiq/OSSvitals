@@ -83,3 +83,7 @@ signals:
     collect: false
     show: ["detail", "overview_tile"]
     max_prefetch_blobs: 20000
+  upgrade_risk:
+    collect: false
+    show: ["detail", "attention"]
+    migration_dirs: ["migrations", "migrate"]

@@ -98,6 +98,25 @@ const CARRIED = [
   },
 ];
 
+const UPGRADE = [
+  {
+    repo: "burning",
+    migrations: {
+      ours: 2,
+      upstream: 5,
+      shared_dirs: ["db/migrate"],
+      sequential_dirs: [],
+      same_prefix: [{ dir: "db/migrate", prefix: "20261006", ours: ["20261006_ours.rb"], upstream: ["20261006_theirs.rb"] }],
+    },
+    release_notes: {
+      basis: "release",
+      since: "v1.5.0",
+      releases: 3,
+      flagged: [{ tag: "v2.0.0", url: "https://x/v2.0.0", published_at: null, lines: ["Breaking changes: the API moved"] }],
+    },
+  },
+];
+
 /** `meta: null` serves no meta.json, like data published before the manifest existed. */
 function files(meta: unknown = MANIFEST_META, drift: Record<string, unknown> = DRIFT) {
   return {
@@ -105,6 +124,7 @@ function files(meta: unknown = MANIFEST_META, drift: Record<string, unknown> = D
     "drift.json": { metadata, records: [drift] },
     "conflicts.json": { metadata, records: CONFLICTS },
     "carried_patches.json": { metadata, records: CARRIED },
+    "upgrade_risk.json": { metadata, records: UPGRADE },
     ...(meta === null ? {} : { "meta.json": meta }),
   };
 }
@@ -124,6 +144,7 @@ const DETAIL_MARKERS: Record<SignalKey, string> = {
   exploitability: "Known exploited",
   conflicts: "Sync forecast",
   carried_patches: "Carried patches",
+  upgrade_risk: "Upgrade risk",
 };
 
 beforeEach(() => {
@@ -193,6 +214,17 @@ describe("fleet pages follow the signal manifest", () => {
     expect(await screen.findByText("3 commits of our own: 2 carried, 1 already in upstream, which drop at the next sync.")).toBeTruthy();
     const already = screen.getByRole("list", { name: "Already in upstream" });
     expect(within(already).getByRole("link", { name: "Fix a crash" }).getAttribute("href")).toBe("https://github.com/Org/burning/commit/u1");
+  });
+
+  it("shows upgrade risks on the app page and needs attention", async () => {
+    serve(files());
+    const { router } = renderRoute("/attention", META, tenant);
+    expect(await screen.findByText("1 migration number in db/migrate is used by both us and upstream")).toBeTruthy();
+    expect(screen.getByText("1 upstream release after v1.5.0 flags breaking changes or required upgrade steps")).toBeTruthy();
+    await router.navigate("/apps/burning");
+    expect(await screen.findByText("db/migrate: number 20261006 is used by 20261006_ours.rb and 20261006_theirs.rb")).toBeTruthy();
+    const section = screen.getByRole("heading", { name: "Upgrade risk" }).closest("section") as HTMLElement;
+    expect(within(section).getByRole("link", { name: "v2.0.0" }).getAttribute("href")).toBe("https://x/v2.0.0");
   });
 
   it("says when upstream has no licence file", async () => {
