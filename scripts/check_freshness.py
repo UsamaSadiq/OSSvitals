@@ -46,6 +46,7 @@ def _upstream_sources(cfg: dict) -> list[tuple[str, str, callable]]:
         ("Upgrade jobs", f"{maintenance}/upgrade_jobs.json", lambda url: _metadata_date(url, "generated_at")),
         ("uv wave", f"{maintenance}/waves/uv_pyproject.json", lambda url: _metadata_date(url, "generated_at")),
         ("Redundant PRs", f"{maintenance}/redundant_prs.json", lambda url: _metadata_date(url, "generated_at")),
+        ("Support windows", f"{maintenance}/support_windows.json", lambda url: _metadata_date(url, "generated_at")),
     ]
 
 
