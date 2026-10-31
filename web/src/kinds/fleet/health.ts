@@ -15,17 +15,25 @@ export function contributorsText(contributors: Health["contributors"]): string {
     const automated = contributors.automated_commits ? `; ${contributors.automated_commits.toLocaleString()} by bots and agents` : "";
     return `No commits by people on upstream's default branch in the last year${automated}`;
   }
-  const everyone = `${peopleText(contributors.people, Boolean(contributors.truncated))} in all`;
+  const truncated = Boolean(contributors.truncated);
+  const everyone = `${peopleText(contributors.people, truncated)} in all`;
   const share = Math.round((contributors.top_share ?? 0) * 100);
-  if (contributors.half_of_commits_by === 1) return `One person made ${share}% of last year's ${commits} commits on upstream's default branch; ${everyone}`;
-  return `${peopleText(contributors.half_of_commits_by)} made half of last year's ${commits} commits on upstream's default branch (the most active alone made ${share}%); ${everyone}`;
+  const total = `${truncated ? "at least " : "the "}${commits} commits made last year on upstream's default branch`;
+  const scope = truncated ? ", counting the 100 people GitHub lists" : "";
+  if (contributors.half_of_commits_by === 1) return `One person made ${share}% of ${total}${scope}; ${everyone}`;
+  return `${peopleText(contributors.half_of_commits_by)} made half of ${total}${scope} (the most active alone made ${share}%); ${everyone}`;
+}
+
+function daysAgo(days: number): string {
+  return days === 0 ? "today" : `${pluralise(days, "day")} ago`;
 }
 
 export function releasesText(releases: Health["releases"]): string {
   if (releases.days_since_latest === null || releases.days_since_latest === undefined) return "Upstream publishes no GitHub releases";
-  if (releases.last_year === 0) return `No release in the last year; the latest was ${releases.days_since_latest} days ago`;
-  const cadence = releases.median_gap_days ? `, typically ${releases.median_gap_days} days apart` : "";
-  return `${pluralise(releases.last_year, "release")} in the last year, the latest ${releases.days_since_latest} days ago${cadence}`;
+  if (releases.last_year === 0) return `No release in the last year; the latest was ${daysAgo(releases.days_since_latest)}`;
+  const gap = releases.median_gap_days;
+  const cadence = gap === null || gap === undefined ? "" : gap === 0 ? ", often several on the same day" : `, typically ${gap} days apart`;
+  return `${pluralise(releases.last_year, "release")} in the last year, the latest ${daysAgo(releases.days_since_latest)}${cadence}`;
 }
 
 export function healthNotes(health: Health, trackedBranch: string | null): string[] {

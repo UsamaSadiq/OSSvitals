@@ -30,14 +30,16 @@ def is_automation(author: dict[str, Any] | None, extra: list[str]) -> bool:
 
 def contributors(stats: list[dict[str, Any]], now: datetime, exclude: list[str] = ()) -> dict[str, Any]:
     """From GitHub's weekly counts for the default branch: commits by people in the last year, how many people, the
-    fewest who made half of them, and the top person's share. Weeks overlapping the window count in full."""
+    fewest who made half of them, and the top person's share. Weeks overlapping the window count in full; commits
+    with no linked account (deleted users) count as neither people nor automation."""
     cutoff = (now - WINDOW).timestamp()
 
     def recent(entry: dict[str, Any]) -> int:
         return sum(week["c"] for week in entry.get("weeks", []) if week["w"] + WEEK_SECONDS > cutoff)
 
-    people = [recent(entry) for entry in stats if not is_automation(entry.get("author"), list(exclude))]
-    automated = sum(recent(entry) for entry in stats if is_automation(entry.get("author"), list(exclude)))
+    attributed = [entry for entry in stats if (entry.get("author") or {}).get("login")]
+    people = [recent(entry) for entry in attributed if not is_automation(entry["author"], list(exclude))]
+    automated = sum(recent(entry) for entry in attributed if is_automation(entry["author"], list(exclude)))
     counts = sorted((count for count in people if count > 0), reverse=True)
     total = sum(counts)
     half, running, needed = total / 2, 0, 0

@@ -74,3 +74,9 @@ def test_release_cadence_over_the_last_year():
 
 def test_a_longer_list_than_the_cap_is_complete():
     assert contributors([person(f"p{index}", 1) for index in range(272)], NOW)["truncated"] is False
+
+
+def test_commits_with_no_linked_account_are_neither_people_nor_automation():
+    stats = [person("ann", 10), {"author": None, "weeks": [{"w": RECENT, "c": 50}]}]
+    record = contributors(stats, NOW)
+    assert (record["commits"], record["automated_commits"], record["people"]) == (10, 0, 1)

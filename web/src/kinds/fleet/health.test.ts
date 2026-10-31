@@ -5,14 +5,16 @@ const base = { commits: 2544, automated_commits: 446, people: 57, half_of_commit
 
 describe("upstream health wording", () => {
   it("says what one person made, or how many made half and what the most active made alone", () => {
-    expect(contributorsText(base)).toBe("One person made 78% of last year's 2,544 commits on upstream's default branch; 57 people in all");
+    expect(contributorsText(base)).toBe("One person made 78% of the 2,544 commits made last year on upstream's default branch; 57 people in all");
     expect(contributorsText({ ...base, commits: 2834, people: 268, half_of_commits_by: 5, top_share: 0.144 })).toBe(
-      "5 people made half of last year's 2,834 commits on upstream's default branch (the most active alone made 14%); 268 people in all",
+      "5 people made half of the 2,834 commits made last year on upstream's default branch (the most active alone made 14%); 268 people in all",
     );
   });
 
   it("says at least when GitHub cut the list short, and never calls a bot-only upstream idle", () => {
-    expect(contributorsText({ ...base, people: 34, truncated: true })).toContain("at least 34 people in all");
+    expect(contributorsText({ ...base, people: 34, truncated: true })).toBe(
+      "One person made 78% of at least 2,544 commits made last year on upstream's default branch, counting the 100 people GitHub lists; at least 34 people in all",
+    );
     expect(contributorsText({ ...base, commits: 0, people: 0, half_of_commits_by: null, top_share: null, automated_commits: 90 })).toBe(
       "No commits by people on upstream's default branch in the last year; 90 by bots and agents",
     );
@@ -22,6 +24,8 @@ describe("upstream health wording", () => {
   it("describes release cadence, and an upstream without GitHub releases as such", () => {
     expect(releasesText({ last_year: 18, days_since_latest: 7, median_gap_days: 10 })).toBe("18 releases in the last year, the latest 7 days ago, typically 10 days apart");
     expect(releasesText({ last_year: 0, days_since_latest: 400, median_gap_days: null })).toBe("No release in the last year; the latest was 400 days ago");
+    expect(releasesText({ last_year: 30, days_since_latest: 1, median_gap_days: 0 })).toBe("30 releases in the last year, the latest 1 day ago, often several on the same day");
+    expect(releasesText({ last_year: 2, days_since_latest: 0, median_gap_days: 5 })).toBe("2 releases in the last year, the latest today, typically 5 days apart");
     expect(releasesText({ last_year: 0, days_since_latest: null, median_gap_days: null })).toBe("Upstream publishes no GitHub releases");
   });
 
