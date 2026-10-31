@@ -19,7 +19,7 @@ function SupportWindowCount() {
   return <CountBadge count={useSupportProblemCount()} noun={SUPPORT_PROBLEMS} />;
 }
 
-export const OPENEDX_NAV_COUNTS: Record<string, ComponentType> = {
+export const HEALTH_NAV_COUNTS: Record<string, ComponentType> = {
   "/needing_attention": AttentionCount,
   "/at_risk": AtRiskCount,
   "/maintenance": UpgradesCount,

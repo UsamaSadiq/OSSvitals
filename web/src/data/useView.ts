@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { loadView } from "./load";
-import { currentOrg } from "./org";
+import { useTenantOrg } from "../tenants/context";
 import type { View, ViewName } from "./schemas";
 
 export type ViewState<Name extends ViewName> =
@@ -14,7 +14,9 @@ function toError(reason: unknown): Error {
   return reason instanceof Error ? reason : new Error(String(reason));
 }
 
-export function useView<Name extends ViewName>(name: Name, org: string = currentOrg()): ViewState<Name> {
+export function useView<Name extends ViewName>(name: Name, orgOverride?: string): ViewState<Name> {
+  const tenantOrg = useTenantOrg();
+  const org = orgOverride ?? tenantOrg;
   const [state, setState] = useState<ViewState<Name>>(LOADING);
 
   useEffect(() => {

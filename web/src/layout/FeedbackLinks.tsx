@@ -1,6 +1,6 @@
 import { useLocation } from "react-router";
-import { currentOrg } from "../data/org";
 import { newIssueUrl, type IssueKind } from "../feedback/issueUrl";
+import { useTenantOrg } from "../tenants/context";
 import { useSiteMeta } from "./siteMeta";
 
 const FEEDBACK_LABELS: Record<IssueKind, string> = {
@@ -12,11 +12,12 @@ const FEEDBACK_LABELS: Record<IssueKind, string> = {
 export function FeedbackLinks() {
   const { footer, snapshotDate } = useSiteMeta();
   const { pathname, search } = useLocation();
+  const tenant = useTenantOrg();
   const { sourceUrl } = footer;
   if (!sourceUrl) return null;
 
   const context = {
-    tenant: currentOrg(),
+    tenant,
     page: `${window.location.origin}${pathname}${search}`,
     dataDate: snapshotDate,
   };
