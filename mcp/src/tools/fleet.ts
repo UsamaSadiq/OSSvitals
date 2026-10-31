@@ -10,6 +10,7 @@ import {
   listApps,
   unknownAppMessage,
   weeklySummary,
+  type WeeklyView,
 } from "../projections/fleet.ts";
 import { ViewUnavailable, fetchView, type ViewDeps } from "../views.ts";
 
@@ -33,12 +34,13 @@ async function guarded(action: () => Promise<ReturnType<typeof jsonResult>>) {
   }
 }
 
-async function weeklyView<Schema extends z.ZodType>(deps: ViewDeps, org: string, name: string, schema: Schema): Promise<z.infer<Schema> | null> {
+/** A weekly view for get_app: an outage is reported on that signal, never fails the app's core data. */
+async function weeklyView<Schema extends z.ZodType>(deps: ViewDeps, org: string, name: string, schema: Schema): Promise<WeeklyView<z.infer<Schema>>> {
   try {
     return await fetchView(deps, org, name, schema);
   } catch (error) {
-    if (error instanceof ViewUnavailable && error.missing) return null;
-    throw error;
+    if (!(error instanceof ViewUnavailable)) throw error;
+    return error.missing ? null : { unavailable: error.message };
   }
 }
 
@@ -88,7 +90,7 @@ export function registerFleetTools(server: McpServer, org: string, deps: ViewDep
     "get_app",
     {
       description:
-        "Get one app's details merged with its drift record, with advisory counts only. weekly_signals gives counts from the weekly clone run (carried patches, upgrade risks): null when the tenant does not collect that signal or has no record for this app, an error field when the weekly run failed for it; get_carried_patches and get_upgrade_risk have the detail.",
+        "Get one app's details merged with its drift record, with advisory counts only. weekly_signals gives counts from the weekly clone run (carried patches, upgrade risks): null when the tenant does not collect that signal or has no record for this app, an error field when the weekly run failed for it or the view is unreachable; get_carried_patches and get_upgrade_risk have the detail.",
       inputSchema: repoInput,
       annotations: READ_ONLY,
     },

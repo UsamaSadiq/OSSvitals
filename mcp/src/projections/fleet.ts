@@ -197,7 +197,9 @@ function projectMigrations(migrations: Migrations) {
     ours: migrations.ours,
     upstream: migrations.upstream,
     shared_dirs: migrations.shared_dirs.slice(0, LIST_LIMIT),
+    sequential_dirs_count: migrations.sequential_dirs.length,
     sequential_dirs: migrations.sequential_dirs.slice(0, LIST_LIMIT),
+    same_prefix_count: migrations.same_prefix.length,
     same_prefix: migrations.same_prefix.slice(0, LIST_LIMIT).map((clash) => ({
       dir: clash.dir,
       prefix: clash.prefix,
@@ -213,7 +215,7 @@ function projectReleaseNotes(notes: ReleaseNotes) {
     since: notes.since,
     releases: notes.releases,
     flagged: notes.flagged.slice(0, LIST_LIMIT).map((release) => ({
-      tag: release.tag,
+      tag: truncate(release.tag, DESCRIPTION_LIMIT),
       url: release.url,
       published_at: release.published_at,
       lines: release.lines.slice(0, LIST_LIMIT).map((line) => truncate(line, DESCRIPTION_LIMIT)),
@@ -249,12 +251,24 @@ function upgradeSummary(record: UpgradeRecord) {
   };
 }
 
+/** A weekly view as get_app sees it: loaded, not published for the tenant, or unreachable with the reason. */
+export type WeeklyView<View> = View | null | { unavailable: string };
+
+function summarise<View extends { records: Record[] }, Record extends { repo: string }>(
+  view: WeeklyView<View>,
+  repo: string,
+  summary: (record: Record) => unknown,
+) {
+  if (view === null) return null;
+  if ("unavailable" in view) return { error: view.unavailable };
+  const record = findByRepo(view.records, repo);
+  return record ? summary(record) : null;
+}
+
 /** Counts only, so get_app can say a weekly signal has something to look at without a second call. */
-export function weeklySummary(carried: CarriedView | null, upgrade: UpgradeView | null, repo: string) {
-  const patches = carried ? findByRepo(carried.records, repo) : undefined;
-  const risk = upgrade ? findByRepo(upgrade.records, repo) : undefined;
+export function weeklySummary(carried: WeeklyView<CarriedView>, upgrade: WeeklyView<UpgradeView>, repo: string) {
   return {
-    carried_patches: patches ? carriedSummary(patches) : null,
-    upgrade_risk: risk ? upgradeSummary(risk) : null,
+    carried_patches: summarise(carried, repo, carriedSummary),
+    upgrade_risk: summarise(upgrade, repo, upgradeSummary),
   };
 }

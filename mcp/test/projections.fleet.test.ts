@@ -169,5 +169,7 @@ describe("weekly signal projections", () => {
     expect(weeklySummary(null, upgrade, "beta")).toEqual({ carried_patches: null, upgrade_risk: null });
     const failed = { metadata: upgrade.metadata, records: [{ repo: "alpha", error: "clone failed" }] };
     expect(weeklySummary(failed, failed, "alpha")).toEqual({ carried_patches: { error: "clone failed" }, upgrade_risk: { error: "clone failed" } });
+    expect(weeklySummary({ unavailable: "HTTP 503" }, null, "alpha")).toEqual({ carried_patches: { error: "HTTP 503" }, upgrade_risk: null });
+    expect(projectUpgradeRisk(upgrade.records[0]!).migrations).toMatchObject({ same_prefix_count: 1, sequential_dirs_count: 1 });
   });
 });

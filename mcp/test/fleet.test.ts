@@ -135,7 +135,7 @@ describe("moneta fleet tools", () => {
     await client.close();
   });
 
-  it("get_app fails when a weekly view is unreachable rather than calling it not collected", async () => {
+  it("get_app reports an unreachable weekly view on that signal and still returns the app", async () => {
     const deps: HandlerDeps = {
       fetch: async (input) => (String(input).includes("carried_patches") ? new Response("down", { status: 503 }) : fakeFetch()(input)),
       limiter: neverLimit,
@@ -147,7 +147,12 @@ describe("moneta fleet tools", () => {
     const client = new Client({ name: "test", version: "0" });
     await client.connect(transport);
     const result = await call(client, "get_app", { repo: "alpha" });
-    expect(result).toMatchObject({ isError: true, text: expect.stringContaining("HTTP 503") });
+    expect(result.isError).toBe(false);
+    expect(JSON.parse(result.text)).toMatchObject({
+      repo: "alpha",
+      status: "critical",
+      weekly_signals: { carried_patches: { error: expect.stringContaining("HTTP 503") }, upgrade_risk: { flagged_releases: 1 } },
+    });
     await client.close();
   });
 
