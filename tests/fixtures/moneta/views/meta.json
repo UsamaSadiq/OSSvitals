@@ -206,7 +206,9 @@
         "tier": "api",
         "cadence": "daily",
         "thresholds": [],
-        "settings": {}
+        "settings": {
+          "exclude_logins": []
+        }
       },
       "conflicts": {
         "collect": true,

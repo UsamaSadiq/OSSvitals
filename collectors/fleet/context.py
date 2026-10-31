@@ -127,6 +127,10 @@ class ForkContext:
         return directory
 
     @cached_property
+    def upstream_repo(self) -> dict[str, Any] | None:
+        return self.api(f"repos/{self.upstream}")
+
+    @cached_property
     def upstream_advisories(self) -> list[dict[str, Any]]:
         return self.api(f"repos/{self.upstream}/security-advisories?per_page=100") or []
 

@@ -100,7 +100,12 @@
           "properties": {"max_age_days": {"type": "integer", "minimum": 1}},
           "unevaluatedProperties": false
         },
-        "upstream_health": {"$ref": "#/$defs/plain_signal"},
+        "upstream_health": {
+          "$ref": "#/$defs/signal",
+          "required": ["exclude_logins"],
+          "properties": {"exclude_logins": {"type": "array", "items": {"type": "string"}}},
+          "unevaluatedProperties": false
+        },
         "conflicts": {"$ref": "#/$defs/plain_signal"},
         "carried_patches": {
           "$ref": "#/$defs/signal",

@@ -10,7 +10,7 @@ import { Sparkline } from "./Sparkline";
 import { StatusPill } from "./StatusPill";
 import { trendOf } from "./insights";
 import { advisoryUrl, checkedText } from "./exploited";
-import { contributorsText, releasesText } from "./health";
+import { contributorsText, healthNotes } from "./health";
 import { licenceHistoryUrl, licenceNotice } from "./licence";
 import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
 import { formatDay, pluralise, releaseGapText, type ForkRow } from "./rows";
@@ -130,7 +130,11 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
       {shown("upstream_health") && drift.upstream_health && (
         <Fact term="Upstream health">
           {contributorsText(drift.upstream_health.contributors)}
-          <span className="app-fact__note">{releasesText(drift.upstream_health.releases)}</span>
+          {healthNotes(drift.upstream_health, row.app.upstream_branch).map((note) => (
+            <span key={note} className="app-fact__note">
+              {note}
+            </span>
+          ))}
         </Fact>
       )}
     </>

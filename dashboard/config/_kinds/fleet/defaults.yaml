@@ -79,6 +79,7 @@ signals:
   upstream_health:
     collect: false
     show: ["detail"]
+    exclude_logins: []
   conflicts:
     collect: true
     show: ["detail", "attention"]

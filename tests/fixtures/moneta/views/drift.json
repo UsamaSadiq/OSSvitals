@@ -112,15 +112,20 @@
       "upstream_health": {
         "contributors": {
           "commits": 1240,
+          "automated_commits": 310,
           "people": 38,
           "half_of_commits_by": 4,
-          "top_share": 0.21
+          "top_share": 0.21,
+          "truncated": false,
+          "as_of": "2026-08-31"
         },
         "releases": {
           "last_year": 14,
           "days_since_latest": 11,
           "median_gap_days": 24
-        }
+        },
+        "default_branch": "main",
+        "tracks_default_branch": true
       }
     },
     {
@@ -196,15 +201,20 @@
       "upstream_health": {
         "contributors": {
           "commits": 1240,
+          "automated_commits": 310,
           "people": 38,
           "half_of_commits_by": 4,
-          "top_share": 0.21
+          "top_share": 0.21,
+          "truncated": false,
+          "as_of": "2026-08-31"
         },
         "releases": {
           "last_year": 14,
           "days_since_latest": 11,
           "median_gap_days": 24
-        }
+        },
+        "default_branch": "main",
+        "tracks_default_branch": true
       }
     },
     {
@@ -280,15 +290,20 @@
       "upstream_health": {
         "contributors": {
           "commits": 1240,
+          "automated_commits": 310,
           "people": 38,
           "half_of_commits_by": 4,
-          "top_share": 0.21
+          "top_share": 0.21,
+          "truncated": false,
+          "as_of": "2026-08-31"
         },
         "releases": {
           "last_year": 14,
           "days_since_latest": 11,
           "median_gap_days": 24
-        }
+        },
+        "default_branch": "main",
+        "tracks_default_branch": true
       }
     }
   ]

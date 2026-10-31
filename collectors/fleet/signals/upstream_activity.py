@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 from collectors.fleet.context import ForkContext
 from collectors.fleet.signals import Signal, guarded
 
 
-def upstream_activity(api: Callable[[str], Any], upstream: str, now: datetime, quiet_days: int) -> dict[str, Any] | None:
-    repo = api(f"repos/{upstream}")
+def upstream_activity(repo: dict[str, Any] | None, now: datetime, quiet_days: int) -> dict[str, Any] | None:
     if repo is None:
         return None
     pushed_at = repo["pushed_at"]
@@ -18,7 +17,7 @@ def upstream_activity(api: Callable[[str], Any], upstream: str, now: datetime, q
 
 def collect(ctx: ForkContext) -> dict[str, Any]:
     quiet_days = ctx.settings.signal("upstream_activity")["quiet_days"]
-    return {"upstream_activity": guarded(lambda: upstream_activity(ctx.api, ctx.upstream, ctx.now, quiet_days))}
+    return {"upstream_activity": guarded(lambda: upstream_activity(ctx.upstream_repo, ctx.now, quiet_days))}
 
 
 SIGNAL = Signal("upstream_activity", collect)
