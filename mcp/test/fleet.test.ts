@@ -41,8 +41,8 @@ async function call(client: Client, name: string, args: Record<string, unknown>)
   return { isError: result.isError === true, text };
 }
 
-describe("moneta drift tools", () => {
-  it("lists list_tenants, report_issue and the three drift tools", async () => {
+describe("moneta fleet tools", () => {
+  it("lists list_tenants, report_issue and the three fleet tools", async () => {
     const client = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(

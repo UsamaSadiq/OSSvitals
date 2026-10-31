@@ -5,12 +5,14 @@ on:
     paths:
       - web/**
       - scripts/data_branch_export.sh
+      - dashboard/config/tenants.json
       - .github/workflows/deploy-web.yml
   push:
     branches: [main]
     paths:
       - web/**
       - scripts/data_branch_export.sh
+      - dashboard/config/tenants.json
       - .github/workflows/deploy-web.yml
   workflow_dispatch:
 

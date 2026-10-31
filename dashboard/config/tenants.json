@@ -1,0 +1,4 @@
+{
+  "openedx": {"kind": "health", "site": "https://openedx.ossvitals.org"},
+  "moneta": {"kind": "fleet", "site": "https://moneta.ossvitals.org"}
+}

@@ -7,7 +7,7 @@ import {
 import appsJson from "./fixtures/moneta/views/apps.json";
 import conflictsJson from "./fixtures/moneta/views/conflicts.json";
 import driftJson from "./fixtures/moneta/views/drift.json";
-import { getApp, getConflictForecast, listApps, projectConflicts } from "../src/projections/drift.ts";
+import { getApp, getConflictForecast, listApps, projectConflicts } from "../src/projections/fleet.ts";
 
 const apps = appsSchema.parse(appsJson);
 const drift = driftSchema.parse(driftJson);

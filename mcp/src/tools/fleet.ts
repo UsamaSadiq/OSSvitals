@@ -7,7 +7,7 @@ import {
   getConflictForecast,
   listApps,
   unknownAppMessage,
-} from "../projections/drift.ts";
+} from "../projections/fleet.ts";
 import { ViewUnavailable, fetchView, type ViewDeps } from "../views.ts";
 
 const READ_ONLY = { readOnlyHint: true, openWorldHint: false };
@@ -30,7 +30,7 @@ async function guarded(action: () => Promise<ReturnType<typeof jsonResult>>) {
   }
 }
 
-export function registerDriftTools(server: McpServer, org: string, deps: ViewDeps): void {
+export function registerFleetTools(server: McpServer, org: string, deps: ViewDeps): void {
   const loadAppsAndDrift = () =>
     Promise.all([fetchView(deps, org, "apps", appsSchema), fetchView(deps, org, "drift", driftSchema)]);
 
