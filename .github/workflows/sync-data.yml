@@ -7,7 +7,7 @@ name: Sync data to R2
 
 on:
   workflow_run:
-    workflows: ["Build scores", "Collect maintenance signals", "Collect Moneta status", "Forecast Moneta sync conflicts"]
+    workflows: ["Build scores", "Collect maintenance signals", "Collect fleet status", "Collect fleet weekly signals"]
     types: [completed]
     branches: [main]
   workflow_dispatch:

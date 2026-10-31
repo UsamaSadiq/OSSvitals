@@ -1,0 +1,70 @@
+# Defaults for every fleet tenant. A tenant's dashboard/config/<org>/fleet.yaml is merged
+# over this file: mappings merge key by key, lists and values replace.
+version: 1
+branches:
+  production: "main"
+fork_release_tag: '^v?\d+(\.\d+)+$'
+history_days: 90
+pages: ["/", "/apps", "/attention"]
+feature_flags:
+  enable_maintainer_views: false
+freshness:
+  stale_threshold_hours: 48
+  critically_stale_threshold_hours: 168
+statuses:
+  - key: "in-sync"
+    label: "In sync"
+    color: "brightgreen"
+  - key: "lagging"
+    label: "Lagging"
+    color: "yellow"
+    min_version_gap: "minor"
+    min_releases_behind: 3
+    min_behind: 50
+    min_days_since_upstream_merge: 30
+  - key: "stale"
+    label: "Stale"
+    color: "orange"
+    min_version_gap: "major"
+    min_days_behind_release: 90
+    min_behind: 500
+    min_days_since_upstream_merge: 90
+  - key: "critical"
+    label: "Critical"
+    color: "red"
+    min_behind: 2000
+    min_days_since_upstream_merge: 180
+    on_severe_advisory: true
+signals:
+  fork_release:
+    collect: true
+    show: ["table", "detail", "csv", "filter"]
+  upstream_release:
+    collect: true
+    show: ["table", "detail", "csv"]
+  release_gap:
+    collect: true
+    show: ["card", "table", "detail", "csv", "attention"]
+  advisories:
+    collect: true
+    show: ["card", "table", "detail", "csv", "filter", "attention"]
+    severe: ["critical", "high"]
+  promotion:
+    collect: false
+    show: ["detail", "filter", "attention"]
+  ci:
+    collect: true
+    show: ["detail", "attention"]
+  pull_requests:
+    collect: true
+    show: ["table", "detail"]
+  maintainers:
+    collect: true
+    show: ["detail"]
+  upstream_activity:
+    collect: true
+    show: ["detail", "attention"]
+    quiet_days: 120
+  conflicts:
+    collect: true
+    show: ["detail", "attention"]

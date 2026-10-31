@@ -5,7 +5,7 @@ import type {
   ConflictsView,
   DriftRecord,
   DriftView,
-} from "../../../web/src/tenants/moneta/schemas.ts";
+} from "../../../web/src/kinds/fleet/schemas.ts";
 import { truncate } from "../text.ts";
 
 const DESCRIPTION_LIMIT = 300;
@@ -45,8 +45,8 @@ export function projectAppSummary(app: AppRecord, drift: DriftRecord | undefined
     production_branch: app.production_branch,
     latest_tag: app.latest_tag,
     open_pull_requests: app.open_pull_requests ?? null,
-    severe_since_fork_release: drift?.advisories.severe_since_fork_release ?? null,
-    severe_affecting_fork_release: drift?.advisories.severe_affecting_fork_release ?? null,
+    severe_since_fork_release: drift?.advisories?.severe_since_fork_release ?? null,
+    severe_affecting_fork_release: drift?.advisories?.severe_affecting_fork_release ?? null,
   };
 }
 
@@ -62,6 +62,7 @@ export function listApps(apps: AppsView, drift: DriftView, filter: AppFilter) {
 }
 
 function projectAdvisoryCounts(advisories: DriftRecord["advisories"]) {
+  if (!advisories) return null;
   return {
     published: advisories.published,
     since_fork_release: advisories.since_fork_release,
@@ -84,9 +85,9 @@ function projectDriftDetail(drift: DriftRecord | undefined) {
     ahead_release: drift.ahead_release ?? null,
     last_upstream_merge: drift.last_upstream_merge,
     days_since_upstream_merge: drift.days_since_upstream_merge,
-    fork_release: drift.fork_release,
+    fork_release: drift.fork_release ?? null,
     release_candidate: drift.release_candidate ?? null,
-    upstream_release: drift.upstream_release,
+    upstream_release: drift.upstream_release ?? null,
     release_lag: drift.release_lag ?? null,
     advisories: projectAdvisoryCounts(drift.advisories),
   };

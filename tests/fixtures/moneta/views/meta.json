@@ -41,5 +41,132 @@
     "enable_maintainer_views": false
   },
   "stale_threshold_hours": 48,
-  "critically_stale_threshold_hours": 168
+  "critically_stale_threshold_hours": 168,
+  "kind": "fleet",
+  "fleet": {
+    "signals": {
+      "fork_release": {
+        "collect": true,
+        "show": [
+          "table",
+          "detail",
+          "csv",
+          "filter"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "upstream_release": {
+        "collect": true,
+        "show": [
+          "table",
+          "detail",
+          "csv"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "release_gap": {
+        "collect": true,
+        "show": [
+          "card",
+          "table",
+          "detail",
+          "csv",
+          "attention"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "advisories": {
+        "collect": true,
+        "show": [
+          "card",
+          "table",
+          "detail",
+          "csv",
+          "filter",
+          "attention"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "promotion": {
+        "collect": true,
+        "show": [
+          "detail",
+          "filter",
+          "attention"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "ci": {
+        "collect": true,
+        "show": [
+          "detail",
+          "attention"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "pull_requests": {
+        "collect": true,
+        "show": [
+          "table",
+          "detail"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "maintainers": {
+        "collect": true,
+        "show": [
+          "detail"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "upstream_activity": {
+        "collect": true,
+        "show": [
+          "detail",
+          "attention"
+        ],
+        "tier": "api",
+        "cadence": "daily"
+      },
+      "conflicts": {
+        "collect": true,
+        "show": [
+          "detail",
+          "attention"
+        ],
+        "tier": "clone",
+        "cadence": "weekly"
+      }
+    },
+    "statuses": [
+      {
+        "key": "in-sync",
+        "label": "In sync",
+        "color": "brightgreen"
+      },
+      {
+        "key": "lagging",
+        "label": "Lagging",
+        "color": "yellow"
+      },
+      {
+        "key": "stale",
+        "label": "Stale",
+        "color": "orange"
+      },
+      {
+        "key": "critical",
+        "label": "Critical",
+        "color": "red"
+      }
+    ]
+  }
 }

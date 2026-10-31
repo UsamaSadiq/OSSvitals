@@ -9,7 +9,7 @@ on:
       - mcp/**
       - web/src/data/schemas.ts
       - web/src/data/parse.ts
-      - web/src/tenants/moneta/schemas.ts
+      - web/src/kinds/fleet/schemas.ts
       - .github/workflows/deploy-mcp.yml
   push:
     branches: [main]
@@ -17,7 +17,7 @@ on:
       - mcp/**
       - web/src/data/schemas.ts
       - web/src/data/parse.ts
-      - web/src/tenants/moneta/schemas.ts
+      - web/src/kinds/fleet/schemas.ts
       - .github/workflows/deploy-mcp.yml
   workflow_dispatch:
 

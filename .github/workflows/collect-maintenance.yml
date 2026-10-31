@@ -85,7 +85,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # build-scores.yml and the Moneta collectors push to `data` too; a rejected push
+          # build-scores.yml and the fleet collectors push to `data` too; a rejected push
           # starts again from a fresh clone. Only this workflow writes openedx/maintenance.
           publish() {
             rm -rf data-branch
