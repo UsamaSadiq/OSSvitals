@@ -130,8 +130,8 @@ export const conflictsSchema = view(conflictRecord);
 const manifestSignal = z.object({
   collect: z.boolean(),
   show: z.array(z.string()),
-  tier: z.string(),
-  cadence: z.string(),
+  tier: z.string().default("api"),
+  cadence: z.string().default("daily"),
   thresholds: z.array(z.string()).default([]),
   settings: z.record(z.string(), z.unknown()).default({}),
 });

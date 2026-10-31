@@ -44,12 +44,14 @@ export function formatDay(iso: string | null): string {
   return iso ? iso.slice(0, 10) : "–";
 }
 
-export function byDrift(a: ForkRow, b: ForkRow): number {
-  return (b.drift.release_gap?.releases_behind ?? 0) - (a.drift.release_gap?.releases_behind ?? 0) || b.drift.behind_by - a.drift.behind_by;
+export function byDrift(a: ForkRow, b: ForkRow, showGap = true): number {
+  const gapOrder = showGap ? (b.drift.release_gap?.releases_behind ?? 0) - (a.drift.release_gap?.releases_behind ?? 0) : 0;
+  return gapOrder || b.drift.behind_by - a.drift.behind_by;
 }
 
-export function sortedForks(rows: readonly ForkRow[]): ForkRow[] {
-  return [...rows].sort((a, b) => severity(b.drift.status) - severity(a.drift.status) || byDrift(a, b));
+/** Most severe first, then furthest behind by whichever distance that surface shows. */
+export function sortedForks(rows: readonly ForkRow[], showGap = true): ForkRow[] {
+  return [...rows].sort((a, b) => severity(b.drift.status) - severity(a.drift.status) || byDrift(a, b, showGap));
 }
 
 export function pluralise(count: number, noun: string): string {
@@ -132,20 +134,22 @@ export function overviewStats(forks: readonly ForkRow[], originals: number): Ove
 
 const ATTENTION_STATUSES: readonly Status[] = ["critical", "stale"];
 
-export function needingAttention(forks: readonly ForkRow[]): ForkRow[] {
-  return sortedForks(forks).filter((row) => ATTENTION_STATUSES.some((status) => status === row.drift.status));
+export function needingAttention(forks: readonly ForkRow[], showGap = true): ForkRow[] {
+  return sortedForks(forks, showGap).filter((row) => ATTENTION_STATUSES.some((status) => status === row.drift.status));
 }
 
 export function advisoryLabel(count: number): string {
   return `${count} new upstream ${count === 1 ? "advisory" : "advisories"}`;
 }
 
-export function advisoryNotice(drift: DriftRecord): string | null {
+/** With the release gap hidden, the base release is not named, but the count still matches what decided the status. */
+export function advisoryNotice(drift: DriftRecord, showGap = true): string | null {
   const { advisories, release_gap: gap } = drift;
   if (!advisories) return null;
   if (gap && drift.status_basis === "release") {
     const affecting = advisories.affecting_fork_release ?? 0;
-    return affecting > 0 ? `${affecting} upstream ${affecting === 1 ? "advisory affects" : "advisories affect"} ${gap.base}, our base` : null;
+    const base = showGap ? `${gap.base}, our base` : "the upstream release we are built on";
+    return affecting > 0 ? `${affecting} upstream ${affecting === 1 ? "advisory affects" : "advisories affect"} ${base}` : null;
   }
   return advisories.since_fork_release > 0 ? `${advisoryLabel(advisories.since_fork_release)} since our latest release` : null;
 }

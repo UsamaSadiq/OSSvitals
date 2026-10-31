@@ -14,7 +14,8 @@ function ForkCard({ row }: { row: ForkRow }) {
   const { isShown } = useSignalVisibility();
   const headingId = `fork-${app.repo}`;
   const tone = isStatus(drift.status) ? drift.status : "unknown";
-  const headline = driftHeadline(drift, isShown("release_gap", "card"));
+  const showGap = isShown("release_gap", "card");
+  const headline = driftHeadline(drift, showGap);
   return (
     <article className={`fork-card fork-card--${tone}`} aria-labelledby={headingId}>
       <header className="fork-card__header">
@@ -26,16 +27,17 @@ function ForkCard({ row }: { row: ForkRow }) {
       <p className="fork-card__behind">
         <span className="fork-card__number">{headline.count.toLocaleString()}</span> {headline.text}
       </p>
-      {isShown("advisories", "card") && <AdvisoryBadge notice={advisoryNotice(drift)} />}
+      {isShown("advisories", "card") && <AdvisoryBadge notice={advisoryNotice(drift, showGap)} />}
       <p className="fork-card__licence">{app.licence ?? "Licence not recorded"}</p>
     </article>
   );
 }
 
 export function ForkCards({ rows }: { rows: readonly ForkRow[] }) {
+  const { isShown } = useSignalVisibility();
   return (
     <ul className="fork-cards">
-      {sortedForks(rows).map((row) => (
+      {sortedForks(rows, isShown("release_gap", "card")).map((row) => (
         <li key={row.app.repo}>
           <ForkCard row={row} />
         </li>

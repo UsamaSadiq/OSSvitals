@@ -53,10 +53,11 @@ function Group({ status, rows, views }: { status: (typeof GROUPS)[number]; rows:
 
 function Content() {
   const state = useFleetViews();
+  const { isShown } = useSignalVisibility();
   if (state.status === "loading") return <Loading label="Loading fork status…" />;
   if (state.status === "error") return <ErrorState title="The fork status data could not be loaded." detail={state.message} />;
   const forks = forkRows(state.apps.records, state.drift.records);
-  const urgent = needingAttention(forks);
+  const urgent = needingAttention(forks, isShown("release_gap", "attention"));
   if (urgent.length === 0) return <EmptyState kind="good" title="No fork is stale or critical." />;
   return (
     <>

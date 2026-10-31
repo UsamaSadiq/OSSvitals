@@ -127,6 +127,9 @@ describe("fleet pages follow the signal manifest", () => {
     renderRoute("/apps/burning", META, tenant);
     await screen.findByRole("heading", { level: 1, name: /burning/ });
     expect(screen.queryAllByText(DETAIL_MARKERS[key])).toHaveLength(0);
+    for (const [other, marker] of Object.entries(DETAIL_MARKERS)) {
+      if (other !== key) expect(screen.queryAllByText(marker).length, other).toBeGreaterThan(0);
+    }
   });
 
   it("hides a signal the tenant does not collect everywhere, including its table column and filter chip", async () => {
@@ -142,7 +145,8 @@ describe("fleet pages follow the signal manifest", () => {
     expect(screen.getByRole("columnheader", { name: /Built on upstream/ })).toBeTruthy();
   });
 
-  it("shows everything when the published data has no manifest yet", async () => {
+  it("shows everything when the published data has no manifest yet, even signals the viewer hid", async () => {
+    window.localStorage.setItem(storageKey("moneta"), JSON.stringify(["ci"]));
     serve(files(null));
     renderRoute("/apps/burning", META, tenant);
     await screen.findByRole("heading", { level: 1, name: /burning/ });
@@ -170,7 +174,7 @@ describe("Signals panel", () => {
     serve(files());
     const { router } = renderRoute("/signals", META, tenant);
     const ci = await screen.findByRole("listitem", { name: "Checks" });
-    fireEvent.click(within(ci).getByRole("switch", { name: "Show in my view" }));
+    fireEvent.click(within(ci).getByRole("switch", { name: "Show checks in my view" }));
     expect(within(ci).getByText("Hidden by you")).toBeTruthy();
     expect(JSON.parse(window.localStorage.getItem(storageKey("moneta")) ?? "[]")).toEqual(["ci"]);
     await router.navigate("/apps/burning");
@@ -185,9 +189,19 @@ describe("Signals panel", () => {
     serve(files());
     renderRoute("/signals", META, tenant);
     const maintainers = await screen.findByRole("listitem", { name: "Maintainers" });
-    expect(within(maintainers).getByText(/collect: false/)).toBeTruthy();
+    expect(within(maintainers).getByText(/collect: false/).textContent).toBe("maintainers:\n  collect: false\n");
+    expect(within(maintainers).getByText(/under the existing signals: key/)).toBeTruthy();
     const edit = within(maintainers).getByRole("link", { name: "Edit fleet.yaml on GitHub" });
     expect(edit.getAttribute("href")).toMatch(/\/edit\/main\/dashboard\/config\/moneta\/fleet\.yaml$/);
+  });
+
+  it("names what else turning a signal on needs", async () => {
+    const off = structuredClone(MANIFEST_META);
+    off.fleet.signals.promotion = { ...off.fleet.signals.promotion, collect: false, show: [] };
+    serve(files(off));
+    renderRoute("/signals", META, tenant);
+    const promotion = await screen.findByRole("listitem", { name: "Promotion" });
+    expect(within(promotion).getByText(/also needs branches.staging/)).toBeTruthy();
   });
 
   it("explains that the list appears after the next collection when data predates it", async () => {

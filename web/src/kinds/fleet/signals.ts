@@ -19,6 +19,8 @@ export interface SignalInfo {
   description: string;
   /** The record field whose `null` means collecting this signal failed for that fork; absent when `null` is a normal value. */
   failureField?: keyof DriftRecord;
+  /** Settings outside the signal's own entry that turning it on also needs. */
+  requires?: string;
 }
 
 export const SIGNAL_CATALOGUE = [
@@ -26,7 +28,7 @@ export const SIGNAL_CATALOGUE = [
   { key: "upstream_release", label: "Upstream releases", description: "Upstream's latest release, how far our branch is from it, and how many releases came out since our last sync." },
   { key: "release_gap", label: "Release gap", description: "Which upstream release we are built on and how many releases, and how big a version jump, we lack. Forks with no upstream release in their history are judged on commits instead." },
   { key: "advisories", label: "Security advisories", description: "Upstream GitHub security advisories published after our release, and those affecting the version we are built on.", failureField: "advisories" },
-  { key: "promotion", label: "Promotion", description: "Commits on the staging branch not yet released to production. Apps that release from their own branch have none." },
+  { key: "promotion", label: "Promotion", description: "Commits on the staging branch not yet released to production. Apps that release from their own branch have none.", requires: "branches.staging, the name of the staging branch" },
   { key: "ci", label: "Checks", description: "Whether the checks on our release branch pass.", failureField: "ci" },
   { key: "pull_requests", label: "Pull requests", description: "Open pull requests against our release branch, and whether an upstream sync is open.", failureField: "pull_requests" },
   { key: "maintainers", label: "Maintainers", description: "Everyone who has merged a pull request into our release branch.", failureField: "maintainers" },

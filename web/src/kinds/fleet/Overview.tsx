@@ -6,7 +6,7 @@ import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import { useSiteMeta } from "../../layout/siteMeta";
 import { BarChart, neutralTone } from "./BarChart";
 import { CollectionFailures } from "./CollectionFailures";
-import { appPath, ATTENTION_PATH } from "./paths";
+import { appPath, appsPath, ATTENTION_PATH } from "./paths";
 import { statusChanges } from "./insights";
 import { STATUS_LABELS, forkRows, formatDay, isStatus, needingAttention, overviewStats, type OverviewStat } from "./rows";
 import type { HistoryRow, UpdateRecord } from "./schemas";
@@ -91,7 +91,9 @@ function Rollup() {
   if (state.status === "error") return <ErrorState title="The fork status data could not be loaded." detail={state.message} />;
   const forks = forkRows(state.apps.records, state.drift.records);
   const stats = overviewStats(forks, state.apps.records.filter((app) => app.class === "original").length);
-  const extras = stats.extras.filter((stat) => !stat.signal || isShown(stat.signal, "overview_tile"));
+  const extras = stats.extras
+    .filter((stat) => !stat.signal || isShown(stat.signal, "overview_tile"))
+    .map((stat) => (stat.signal && !isShown(stat.signal, "filter") ? { ...stat, to: appsPath() } : stat));
   return (
     <>
       <CollectionFailures failed={state.drift.failed} />

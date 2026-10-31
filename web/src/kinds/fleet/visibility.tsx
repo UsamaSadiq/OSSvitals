@@ -12,10 +12,10 @@ export interface SignalVisibility {
   resetViewer: () => void;
 }
 
-/** Without a manifest (data published before it existed) every signal is shown, as before. */
+/** Without a manifest (data published before it, or unreadable) everything is shown and the viewer's choices wait for it to return. */
 export function isShownBy(manifest: FleetManifest | null, hiddenByViewer: ReadonlySet<string>, key: SignalKey, surface: Surface): boolean {
-  if (hiddenByViewer.has(key)) return false;
   if (!manifest) return true;
+  if (hiddenByViewer.has(key)) return false;
   const signal = manifest.signals[key];
   return Boolean(signal?.collect && signal.show.includes(surface));
 }

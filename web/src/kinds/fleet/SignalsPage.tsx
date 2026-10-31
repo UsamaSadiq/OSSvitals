@@ -7,7 +7,7 @@ import { useSiteMeta } from "../../layout/siteMeta";
 import { useTenant } from "../../tenants/context";
 import type { FleetManifest } from "./schemas";
 import { SIGNAL_CATALOGUE, type SignalEntry } from "./signals";
-import { STATE_LABELS, editConfigUrl, failedCount, proposalYaml, settingsText, signalState, statusesUsing, surfacesText } from "./signalsPanel";
+import { STATE_LABELS, createConfigUrl, editConfigUrl, failedCount, proposalYaml, settingsText, signalState, statusesUsing, surfacesText } from "./signalsPanel";
 import { useFleetViews, type FleetViews } from "./useFleetViews";
 import { useSignalVisibility } from "./visibility";
 import "./fleet.css";
@@ -17,17 +17,26 @@ function Proposal({ info, collect }: { info: SignalEntry; collect: boolean }) {
   const sourceUrl = useSiteMeta().footer.sourceUrl;
   const yaml = proposalYaml(info.key, collect);
   if (!sourceUrl) return null;
-  const title = `Turn ${info.label.toLowerCase()} ${collect ? "off" : "on"} for ${org}`;
+  const action = `${collect ? "off" : "on"}`;
+  const title = `Turn ${info.label.toLowerCase()} ${action} for ${org}`;
+  const needs = !collect && "requires" in info ? info.requires : null;
   return (
     <details className="signal-row__proposal">
-      <summary>{`Propose turning it ${collect ? "off" : "on"} for everyone`}</summary>
-      <p className="caption">{`Add this to dashboard/config/${org}/fleet.yaml. The change applies after the next daily collection.`}</p>
+      <summary>{`Propose turning ${info.label.toLowerCase()} ${action} for everyone`}</summary>
+      <p className="caption">
+        {`Merge these lines under the existing signals: key in dashboard/config/${org}/fleet.yaml, next to any signals already there; a second signals: key would replace the first. The change applies after the next daily collection.`}
+      </p>
       <pre className="detail-code">
         <code>{yaml}</code>
       </pre>
+      {needs && <p className="caption">{`Turning it on also needs ${needs} in the same file.`}</p>}
       <p>
         <a href={editConfigUrl(sourceUrl, org)} target="_blank" rel="noreferrer">
           Edit fleet.yaml on GitHub
+        </a>
+        {" · "}
+        <a href={createConfigUrl(sourceUrl, org)} target="_blank" rel="noreferrer">
+          Create it if this dashboard has none
         </a>
         {" · "}
         <a href={newIssueUrl(sourceUrl, "question", { tenant: org, title, details: yaml })} target="_blank" rel="noreferrer">
@@ -86,7 +95,7 @@ function SignalRow({ info, manifest, views }: { info: SignalEntry; manifest: Fle
       {toggleable && (
         <label className="signal-row__toggle">
           <input type="checkbox" role="switch" checked={state === "shown"} onChange={(event) => setHiddenByViewer(key, !event.target.checked)} />
-          Show in my view
+          {`Show ${info.label.toLowerCase()} in my view`}
         </label>
       )}
       <Proposal info={info} collect={Boolean(signal?.collect)} />
@@ -119,7 +128,7 @@ function Content() {
   if (state.status === "loading") return <Loading label="Loading signals…" />;
   if (state.status === "error") return <ErrorState title="The fork status data could not be loaded." detail={state.message} />;
   const manifest = state.meta?.fleet;
-  if (!manifest) return <EmptyState kind="info" title="This dashboard's data was published before signals were listed." body="Every signal is shown. The list appears after the next daily collection." />;
+  if (!manifest) return <EmptyState kind="info" title="This dashboard's data was published before signals were listed." body="Every signal is shown, including any you hid here before. The list appears after the next daily collection." />;
   return <Panel manifest={manifest} views={state} />;
 }
 

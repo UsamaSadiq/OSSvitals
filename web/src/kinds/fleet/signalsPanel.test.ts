@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { FleetManifest } from "./schemas";
 import { SIGNAL_CATALOGUE } from "./signals";
-import { failedCount, proposalYaml, settingsText, signalState, statusesUsing, surfacesText } from "./signalsPanel";
+import { createConfigUrl, editConfigUrl, failedCount, proposalYaml, settingsText, signalState, statusesUsing, surfacesText } from "./signalsPanel";
 import { isShownBy } from "./visibility";
 
 function manifest(signals: FleetManifest["signals"]): FleetManifest {
@@ -18,12 +18,13 @@ describe("isShownBy", () => {
     expect(isShownBy(m, new Set(), "advisories", "card")).toBe(true);
     expect(isShownBy(m, new Set(), "advisories", "table")).toBe(false);
     expect(isShownBy(m, new Set(["advisories"]), "advisories", "card")).toBe(false);
+    expect(isShownBy(manifest({ advisories: shown, ci: shown }), new Set(["ci"]), "advisories", "card")).toBe(true);
     expect(isShownBy(m, new Set(), "ci", "detail")).toBe(false);
   });
 
-  it("shows everything the viewer did not hide when there is no manifest", () => {
+  it("shows everything when there is no manifest, whatever the viewer hid before", () => {
     expect(isShownBy(null, new Set(), "ci", "detail")).toBe(true);
-    expect(isShownBy(null, new Set(["ci"]), "ci", "detail")).toBe(false);
+    expect(isShownBy(null, new Set(["ci"]), "ci", "detail")).toBe(true);
   });
 });
 
@@ -50,8 +51,13 @@ describe("signal panel helpers", () => {
     expect(failedCount(promotion, records, null)).toBe(0);
   });
 
-  it("proposes the opposite of the current collection setting", () => {
-    expect(proposalYaml("ci", true)).toBe("signals:\n  ci:\n    collect: false\n");
-    expect(proposalYaml("ci", false)).toContain("collect: true");
+  it("proposes the opposite of the current setting as lines to merge under signals:", () => {
+    expect(proposalYaml("ci", true)).toBe("ci:\n  collect: false\n");
+    expect(proposalYaml("ci", false)).toBe("ci:\n  collect: true\n");
+  });
+
+  it("links to editing the tenant's fleet.yaml, or creating it", () => {
+    expect(editConfigUrl("https://github.com/o/r/", "acme")).toBe("https://github.com/o/r/edit/main/dashboard/config/acme/fleet.yaml");
+    expect(createConfigUrl("https://github.com/o/r", "acme")).toBe("https://github.com/o/r/new/main/dashboard/config/acme?filename=fleet.yaml&value=signals%3A%0A");
   });
 });

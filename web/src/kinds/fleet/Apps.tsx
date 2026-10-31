@@ -146,16 +146,16 @@ function forkTabs(forks: readonly ForkRow[], org: string, isShown: SignalVisibil
       content: () => (
         <>
           <p className="fork-export">
-            <DownloadButton label="Download CSV" filename={`${org}-forks.csv`} mimeType="text/csv" content={() => forksCsv(sortedForks(forks), (key) => isShown(key, "csv"))} />
+            <DownloadButton label="Download CSV" filename={`${org}-forks.csv`} mimeType="text/csv" content={() => forksCsv(sortedForks(forks, isShown("release_gap", "csv")), (key) => isShown(key, "csv"))} />
           </p>
           <DataTable
             caption="Forks and how far each has drifted from its upstream"
             captionHidden
             columns={forkColumns(isShown)}
-            rows={sortedForks(forks)}
+            rows={sortedForks(forks, isShown("release_gap", "table"))}
             rowKey={({ app }) => app.repo}
             initialSort={{ key: "status", direction: "descending" }}
-            tieBreak={byDrift}
+            tieBreak={(a, b) => byDrift(a, b, isShown("release_gap", "table"))}
           />
         </>
       ),

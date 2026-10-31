@@ -40,10 +40,21 @@ export function statusesUsing(statuses: readonly ManifestStatus[], thresholds: r
   return statuses.filter((status) => thresholds.some((threshold) => threshold in status)).map((status) => status.label);
 }
 
+/** The lines to merge under the file's existing `signals:` key; YAML keeps only the last of two `signals:` keys. */
 export function proposalYaml(key: SignalKey, collect: boolean): string {
-  return `signals:\n  ${key}:\n    collect: ${collect ? "false" : "true"}\n`;
+  return `${key}:\n  collect: ${collect ? "false" : "true"}\n`;
+}
+
+function repoUrl(sourceUrl: string): string {
+  return sourceUrl.replace(/\/$/, "");
 }
 
 export function editConfigUrl(sourceUrl: string, org: string): string {
-  return `${sourceUrl.replace(/\/$/, "")}/edit/main/dashboard/config/${encodeURIComponent(org)}/fleet.yaml`;
+  return `${repoUrl(sourceUrl)}/edit/main/dashboard/config/${encodeURIComponent(org)}/fleet.yaml`;
+}
+
+/** For a tenant that keeps every default and so has no fleet.yaml yet. */
+export function createConfigUrl(sourceUrl: string, org: string): string {
+  const params = new URLSearchParams({ filename: "fleet.yaml", value: "signals:\n" });
+  return `${repoUrl(sourceUrl)}/new/main/dashboard/config/${encodeURIComponent(org)}?${params}`;
 }

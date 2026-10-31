@@ -62,7 +62,7 @@ export function attentionReasons(row: ForkRow, conflict: ConflictRecord | undefi
   const gap = isShown("release_gap") ? drift.release_gap : null;
   const reasons = [
     gap ? `Built on ${releaseGapText(gap)}` : `${pluralise(drift.behind_by, "commit")} behind upstream, last synced ${drift.days_since_upstream_merge} days ago`,
-    isShown("advisories") ? advisoryNotice(drift) : null,
+    isShown("advisories") ? advisoryNotice(drift, isShown("release_gap")) : null,
     isShown("ci") && drift.ci?.state === "failing" ? "Checks are failing on our release branch" : null,
     isShown("fork_release") && drift.fork_release === null ? "We have not cut a release of our own yet" : null,
     isShown("conflicts") && conflicts && !conflicts.clean ? `Syncing with upstream would conflict on ${pluralise(conflicts.conflicted_total, "file")}` : null,
