@@ -12,6 +12,22 @@ def test_migrations_are_entries_directly_in_a_migrations_folder():
     assert migration("server/migrations/0042_add.py", DIRS) == ("server/migrations", "0042_add.py")
 
 
+def test_numbered_files_in_category_subfolders_are_their_own_migrations():
+    assert migration("backend/src/app/migrations/sql/0140-add.sql", DIRS) == ("backend/src/app/migrations/sql", "0140-add.sql")
+    record = migrations(["app/migrations/sql/0141-ours.sql"], ["app/migrations/sql/0141-theirs.sql", "app/migrations/sql/0142-more.sql"], DIRS)
+    assert (record["ours"], record["upstream"], record["sequential_dirs"]) == (1, 2, ["app/migrations/sql"])
+    assert [clash["prefix"] for clash in record["same_prefix"]] == ["0141"]
+    ts = migrations(["core/migrations/common/1700000000001-ours.ts"], ["core/migrations/common/1700000000002-theirs.ts"], DIRS)
+    assert (ts["ours"], ts["upstream"], ts["shared_dirs"], ts["sequential_dirs"], ts["same_prefix"]) == (1, 1, ["core/migrations/common"], [], [])
+
+
+def test_laravel_dates_are_timestamps_and_alembic_ids_are_not_numbers():
+    laravel = migrations(["database/migrations/2024_03_01_000000_add_x.php"], ["database/migrations/2024_05_09_000000_add_y.php"], DIRS)
+    assert (laravel["sequential_dirs"], laravel["same_prefix"]) == ([], [])
+    alembic = migrations(["alembic/versions/3f2a_ours.py"], ["alembic/versions/3b9c_theirs.py"], ["versions"])
+    assert (alembic["sequential_dirs"], alembic["same_prefix"]) == ([], [])
+
+
 def test_test_trees_helpers_and_package_markers_are_not_migrations():
     for path in [
         "spec/db/migrate/add_spec.rb",
@@ -68,7 +84,7 @@ def release(tag, published, body):
 
 
 def test_release_notes_flag_breaking_changes_and_required_steps_but_not_negations():
-    for flagged in ["## ⚠️ Breaking changes", "[BREAKING_CHANGE] Replace apps", "One upgrade step is required.", "### Breaking", "Breaking: drop node 16", "This is not backwards compatible", "Incompatible change to the API", "Major Changes", "Manual migration required"]:
+    for flagged in ["## ⚠️ Breaking changes", "[BREAKING_CHANGE] Replace apps", "One upgrade step is required.", "### Breaking", "Breaking: drop node 16", "This is not backwards compatible", "Incompatible change to the API", "Major Changes", "Manual migration required", "fix: zero-downtime migration required for big tables"]:
         assert _flags(flagged.lstrip("#*- ").strip()), flagged
     for quiet in ["No breaking changes in this release", "This is a non-breaking change", "No migration required", "No manual migration needed", "No database migration required", "Heading anchor widget breaking IME composition"]:
         assert not _flags(quiet), quiet

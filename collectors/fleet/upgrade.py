@@ -12,7 +12,9 @@ ITEMS = 10
 NOTE_LINES = 3
 NOTE_WIDTH = 200
 TEST_ROOTS = {"spec", "test", "tests", "__tests__"}
-PREFIX = re.compile(r"^(\d+)")
+# Digit groups joined by underscores are one number (Laravel's 2024_03_01_000000); a number running into a hex
+# letter is an Alembic revision id, not a sequence number.
+PREFIX = re.compile(r"^(\d+(?:_\d+)*)(?![0-9a-fA-F])")
 # Sequential numbers (0042_, 007_) collide when both sides add one; Rails-style timestamps (14 digits) rarely do.
 SEQUENTIAL_DIGITS = 8
 # Specific phrases only: a bare "breaking" also matches fixes such as "heading anchor breaking IME composition".
@@ -22,7 +24,8 @@ BREAKING = re.compile(
     r"|requires? (a )?(manual|database) migration|manual migration",
     re.IGNORECASE,
 )
-NEGATED = re.compile(r"\b(no|non|not|without|zero)\b[\w\s-]{0,15}$", re.IGNORECASE)
+# A negation word followed by a hyphen is part of a compound ("zero-downtime"), except "non-" right before the phrase.
+NEGATED = re.compile(r"\b(no|non|not|without|zero)\b(?!-)[\w\s-]{0,15}$|\bnon-$", re.IGNORECASE)
 
 
 def net_added(directory: Path, base: str, tip: str) -> list[str]:
@@ -32,15 +35,17 @@ def net_added(directory: Path, base: str, tip: str) -> list[str]:
 
 
 def migration(path: str, dir_names: list[str]) -> tuple[str, str] | None:
-    """The migrations folder and the entry name directly in it (a file, or a one-level folder as Prisma uses);
-    nothing under a test tree, deeper helpers, or a package's ``__init__.py``."""
+    """The folder a migration sits in and its entry name: a file directly in a migrations folder, a numbered file
+    in a subfolder of one (penpot's ``migrations/sql/0140-x.sql``), or an unnumbered file whose folder is the
+    migration (Prisma's ``migrations/20240101_x/migration.sql``). Nothing under a test tree or ``__init__.py``."""
     parts = PurePosixPath(path).parts
     if any(part in TEST_ROOTS for part in parts) or parts[-1] == "__init__.py":
         return None
-    for depth in (1, 2):
-        index = len(parts) - depth
-        if index >= 1 and parts[index - 1] in dir_names:
-            return "/".join(parts[:index]), parts[index]
+    folder, name = parts[:-1], parts[-1]
+    if folder and folder[-1] in dir_names:
+        return "/".join(folder), name
+    if len(folder) >= 2 and folder[-2] in dir_names:
+        return ("/".join(folder), name) if _prefix(name) else ("/".join(folder[:-1]), folder[-1])
     return None
 
 
@@ -55,7 +60,7 @@ def _by_dir(paths: list[str], dir_names: list[str]) -> dict[str, set[str]]:
 
 def _prefix(entry: str) -> str | None:
     match = PREFIX.match(entry)
-    return match.group(1) if match else None
+    return match.group(1).replace("_", "") if match else None
 
 
 def _sequential(entries: set[str]) -> bool:
