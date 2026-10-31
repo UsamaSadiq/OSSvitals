@@ -40,11 +40,13 @@ Fleet tenants (`moneta`):
 | Tool | Arguments | Returns |
 |---|---|---|
 | `list_apps` | `status`, `class` | each tracked repo with its sync status, distances and severe advisory count |
-| `get_app` | `repo` | the app record merged with its drift record, advisories as counts |
+| `get_app` | `repo` | the app record merged with its drift record, advisories as counts, and `weekly_signals` counts (carried patches, upgrade risks) |
 | `get_conflict_forecast` | `repo` | files a sync would conflict on, against upstream head and the latest release |
+| `get_carried_patches` | `repo` | commits our fork carries on top of upstream and those upstream already has, counts plus the newest 20 of each |
+| `get_upgrade_risk` | `repo` | migration numbering risks against upstream and upstream release notes since our base that read as breaking |
 
 Responses are compact JSON projections of the published views, never whole files. Free text that
-originates in third-party repositories (descriptions, change notes) is truncated to 300 characters and
+originates in third-party repositories (descriptions, change notes, commit subjects, release-note lines) is truncated to 300 characters and
 the server instructions tell clients to treat it as data, not instructions. Page size is capped at 50.
 
 ## Connect

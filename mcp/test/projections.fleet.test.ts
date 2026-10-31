@@ -7,7 +7,7 @@ import {
 import appsJson from "./fixtures/moneta/views/apps.json";
 import conflictsJson from "./fixtures/moneta/views/conflicts.json";
 import driftJson from "./fixtures/moneta/views/drift.json";
-import { getApp, getConflictForecast, listApps, projectConflicts } from "../src/projections/fleet.ts";
+import { getApp, getConflictForecast, listApps, projectCarried, projectConflicts, projectUpgradeRisk, weeklySummary } from "../src/projections/fleet.ts";
 
 const apps = appsSchema.parse(appsJson);
 const drift = driftSchema.parse(driftJson);
@@ -132,5 +132,37 @@ describe("getConflictForecast", () => {
     });
     expect(projected.against_upstream_head?.conflicted_files).toHaveLength(50);
     expect(projected.against_upstream_head?.conflicted_total).toBe(80);
+  });
+});
+
+describe("weekly signal projections", () => {
+  const item = (subject: string) => ({ sha: "abc", date: "2026-10-01", subject });
+  const many = Array.from({ length: 30 }, (_, index) => item(`commit ${index}`));
+
+  it("caps commit lists at 20 and truncates long subjects", () => {
+    const projected = projectCarried({ repo: "alpha", compared: true, commits: 30, carried: 30, already_upstream: 0, carried_items: [item("x".repeat(500)), ...many] });
+    expect(projected.carried_items).toHaveLength(20);
+    expect(projected.carried_items[0]?.subject).toHaveLength(301);
+    expect(projected.already_upstream_items).toEqual([]);
+  });
+
+  it("passes a failed record through with its error and null counts", () => {
+    expect(projectCarried({ repo: "alpha", error: "clone failed" })).toMatchObject({ error: "clone failed", carried: null, compared: null });
+    expect(projectUpgradeRisk({ repo: "alpha", error: "clone failed" })).toMatchObject({ error: "clone failed", migrations: null, release_notes: null });
+  });
+
+  it("counts numbering risks and flagged releases for get_app", () => {
+    const upgrade = {
+      metadata: { generated_at: "x", org: "moneta" },
+      records: [
+        {
+          repo: "alpha",
+          migrations: { ours: 1, upstream: 2, shared_dirs: ["m"], sequential_dirs: ["m"], same_prefix: [{ dir: "m", prefix: "0001", ours: ["a"], upstream: ["b"] }] },
+          release_notes: { basis: "release" as const, since: "v1", releases: 2, flagged: [{ tag: "v2", url: null, published_at: null, lines: ["BREAKING"] }] },
+        },
+      ],
+    };
+    expect(weeklySummary(null, upgrade, "ALPHA")).toEqual({ carried_patches: null, upgrade_risk: { numbering_risks: 2, flagged_releases: 1 } });
+    expect(weeklySummary(null, upgrade, "beta")).toEqual({ carried_patches: null, upgrade_risk: null });
   });
 });

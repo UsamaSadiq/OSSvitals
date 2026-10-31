@@ -1,15 +1,20 @@
 import type {
   AppRecord,
   AppsView,
+  CarriedRecord,
+  CarriedView,
   ConflictRecord,
   ConflictsView,
   DriftRecord,
   DriftView,
+  UpgradeRecord,
+  UpgradeView,
 } from "../../../web/src/kinds/fleet/schemas.ts";
 import { truncate } from "../text.ts";
 
 const DESCRIPTION_LIMIT = 300;
 const CONFLICT_FILE_LIMIT = 50;
+const LIST_LIMIT = 20;
 
 export const REPO_PATTERN = /^[A-Za-z0-9_.-]{1,100}$/;
 
@@ -154,4 +159,95 @@ export function projectConflicts(record: ConflictRecord) {
 export function getConflictForecast(conflicts: ConflictsView, repo: string) {
   const record = findByRepo(conflicts.records, repo);
   return record ? projectConflicts(record) : undefined;
+}
+
+type PatchItem = NonNullable<CarriedRecord["carried_items"]>[number];
+
+function projectPatches(items: PatchItem[] | undefined) {
+  return (items ?? []).slice(0, LIST_LIMIT).map((item) => ({ sha: item.sha, date: item.date, subject: truncate(item.subject, DESCRIPTION_LIMIT) }));
+}
+
+function errorField(error: string | undefined) {
+  return error === undefined ? {} : { error };
+}
+
+export function projectCarried(record: CarriedRecord) {
+  return {
+    repo: record.repo,
+    ...errorField(record.error),
+    compared: record.compared ?? null,
+    commits: record.commits ?? null,
+    carried: record.carried ?? null,
+    already_upstream: record.already_upstream ?? null,
+    carried_items: projectPatches(record.carried_items),
+    already_upstream_items: projectPatches(record.already_upstream_items),
+  };
+}
+
+export function getCarriedPatches(carried: CarriedView, repo: string) {
+  const record = findByRepo(carried.records, repo);
+  return record ? projectCarried(record) : undefined;
+}
+
+type Migrations = NonNullable<UpgradeRecord["migrations"]>;
+type ReleaseNotes = NonNullable<UpgradeRecord["release_notes"]>;
+
+function projectMigrations(migrations: Migrations) {
+  return {
+    ours: migrations.ours,
+    upstream: migrations.upstream,
+    shared_dirs: migrations.shared_dirs.slice(0, LIST_LIMIT),
+    sequential_dirs: migrations.sequential_dirs.slice(0, LIST_LIMIT),
+    same_prefix: migrations.same_prefix.slice(0, LIST_LIMIT).map((clash) => ({
+      dir: clash.dir,
+      prefix: clash.prefix,
+      ours: clash.ours.slice(0, LIST_LIMIT),
+      upstream: clash.upstream.slice(0, LIST_LIMIT),
+    })),
+  };
+}
+
+function projectReleaseNotes(notes: ReleaseNotes) {
+  return {
+    basis: notes.basis,
+    since: notes.since,
+    releases: notes.releases,
+    flagged: notes.flagged.slice(0, LIST_LIMIT).map((release) => ({
+      tag: release.tag,
+      url: release.url,
+      published_at: release.published_at,
+      lines: release.lines.slice(0, LIST_LIMIT).map((line) => truncate(line, DESCRIPTION_LIMIT)),
+    })),
+  };
+}
+
+export function projectUpgradeRisk(record: UpgradeRecord) {
+  return {
+    repo: record.repo,
+    ...errorField(record.error),
+    migrations: record.migrations ? projectMigrations(record.migrations) : null,
+    release_notes: record.release_notes ? projectReleaseNotes(record.release_notes) : null,
+  };
+}
+
+export function getUpgradeRisk(upgrade: UpgradeView, repo: string) {
+  const record = findByRepo(upgrade.records, repo);
+  return record ? projectUpgradeRisk(record) : undefined;
+}
+
+/** Counts only, so get_app can say a weekly signal has something to look at without a second call. */
+export function weeklySummary(carried: CarriedView | null, upgrade: UpgradeView | null, repo: string) {
+  const patches = carried ? findByRepo(carried.records, repo) : undefined;
+  const risk = upgrade ? findByRepo(upgrade.records, repo) : undefined;
+  const migrations = risk?.migrations;
+  return {
+    carried_patches: patches && !patches.error ? { carried: patches.carried ?? null, already_upstream: patches.already_upstream ?? null } : null,
+    upgrade_risk:
+      risk && !risk.error
+        ? {
+            numbering_risks: migrations ? migrations.same_prefix.length + migrations.sequential_dirs.length : null,
+            flagged_releases: risk.release_notes?.flagged.length ?? null,
+          }
+        : null,
+  };
 }

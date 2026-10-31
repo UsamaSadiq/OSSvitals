@@ -3,9 +3,12 @@ import type { z } from "zod";
 const CACHE_TTL_SECONDS = 300;
 
 export class ViewUnavailable extends Error {
+  readonly missing: boolean;
+
   constructor(org: string, view: string, reason: string) {
     super(`View ${view} for ${org} is unavailable: ${reason}`);
     this.name = "ViewUnavailable";
+    this.missing = reason === "HTTP 404" || reason === "not published";
   }
 }
 
