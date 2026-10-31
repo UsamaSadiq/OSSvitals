@@ -12,19 +12,31 @@ from typing import Any
 
 ITEMS = 20
 NULL_OBJECT = "0" * 40
+GITLINK = "160000"
 TIMEOUT_SECONDS = 900
 # Rename detection reads file contents to score similarity, which would fetch them one commit at a time and
 # report only a renamed file's new path; patch ids are computed without it anyway.
 LISTING = ("--no-renames", "--no-merges")
+# Without it, a path-limited log skips the side of an upstream merge whose result matches the first parent,
+# while --cherry-mark (no pathspec) still compares those commits and would fetch their files one at a time.
+FULL_HISTORY = "--full-history"
+
+
+def _command(args: tuple[str, ...]) -> str:
+    """The subcommand, skipping options such as ``-c name=value`` that come before it."""
+    remaining = list(args)
+    while remaining and remaining[0].startswith("-"):
+        remaining = remaining[2:] if remaining[0] == "-c" else remaining[1:]
+    return remaining[0] if remaining else "command"
 
 
 def _git(directory: Path, *args: str, stdin: str | None = None) -> str:
     try:
         result = subprocess.run(["git", "-C", str(directory), *args], input=stdin, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired as error:
-        raise RuntimeError(f"git {args[0]} took over {TIMEOUT_SECONDS}s") from error
+        raise RuntimeError(f"git {_command(args)} took over {TIMEOUT_SECONDS}s") from error
     if result.returncode != 0:
-        raise RuntimeError(f"git {args[0]} failed: {result.stderr.strip()[:300]}")
+        raise RuntimeError(f"git {_command(args)} failed: {result.stderr.strip()[:300]}")
     return result.stdout
 
 
@@ -44,9 +56,14 @@ def changed_blobs(directory: Path, revisions: str, paths: list[str] | None = Non
     Revisions and paths go on stdin: a fork touching tens of thousands of files would overflow the command line.
     """
     pathspec = "--\n" + "\n".join(paths) + "\n" if paths else ""
-    raw = _git(directory, "--literal-pathspecs", "log", "--format=", "--raw", "--no-abbrev", *LISTING, "--stdin", stdin=f"{revisions}\n{pathspec}")
-    blobs = {field for line in _lines(raw) if line.startswith(":") for field in line.split()[2:4]}
-    return blobs - {NULL_OBJECT}
+    raw = _git(directory, "--literal-pathspecs", "log", "--format=", "--raw", "--no-abbrev", *LISTING, FULL_HISTORY, "--stdin", stdin=f"{revisions}\n{pathspec}")
+    return {blob for line in _lines(raw) if line.startswith(":") for blob in _file_versions(line)} - {NULL_OBJECT}
+
+
+def _file_versions(raw_line: str) -> list[str]:
+    """A submodule entry (mode 160000) names a commit in another repository, not a file version to fetch here."""
+    source_mode, target_mode, before, after = raw_line[1:].split()[:4]
+    return [blob for mode, blob in ((source_mode, before), (target_mode, after)) if mode != GITLINK]
 
 
 def prefetch(directory: Path, remote: str, blobs: set[str]) -> None:

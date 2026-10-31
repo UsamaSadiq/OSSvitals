@@ -110,3 +110,52 @@ def test_a_failed_release_lookup_fails_only_the_forecast(monkeypatch):
 def test_a_bad_app_pattern_fails_that_fork_without_stopping_the_run():
     records = collect_clone_signals(["conflicts"], lambda path: [], "Org", {**APP, "release_tag": "^v(\\d+$"}, load_settings("moneta"), NOW)
     assert "error" in records["conflicts"]
+
+
+@pytest.fixture
+def merged_forward_with_submodule(tmp_path):
+    """Upstream reaches a fix on main and merges a release branch that took two steps to the same content;
+    both sides bump a submodule. Our fork has its own change to the same file."""
+    library = tmp_path / "library"
+    library.mkdir()
+    git("init", "-b", "main", cwd=library)
+    first = commit(library, "lib.txt", "1\n", "lib one")
+    second = commit(library, "lib.txt", "2\n", "lib two")
+    upstream = tmp_path / "upstream"
+    upstream.mkdir()
+    git("init", "-b", "main", cwd=upstream)
+    for setting in SERVE:
+        git("config", *setting.split("="), cwd=upstream)
+    commit(upstream, "app.txt", "one\n", "start")
+    git("update-index", "--add", "--cacheinfo", f"160000,{first},vendor/lib", cwd=upstream)
+    git("commit", "-q", "-m", "add submodule", cwd=upstream)
+    ours = tmp_path / "ours"
+    git("clone", "-q", str(upstream), str(ours), cwd=tmp_path)
+    for setting in SERVE:
+        git("config", *setting.split("="), cwd=ours)
+    git("checkout", "-q", "-b", "foss-main", cwd=ours)
+    commit(ours, "app.txt", "ours\n", "Our change to the app")
+    git("update-index", "--cacheinfo", f"160000,{second},vendor/lib", cwd=ours)
+    git("commit", "-q", "-m", "Bump our library", cwd=ours)
+    git("checkout", "-q", "-b", "release", cwd=upstream)
+    commit(upstream, "app.txt", "half\n", "Side step one")
+    commit(upstream, "app.txt", "fixed\n", "Side step two")
+    git("checkout", "-q", "main", cwd=upstream)
+    commit(upstream, "app.txt", "fixed\n", "Fix on main")
+    git("merge", "-q", "--no-ff", "-m", "Merge release forward", "release", cwd=upstream)
+    clone = tmp_path / "clone.git"
+    git("clone", "-q", "--bare", "--filter=blob:none", "--single-branch", "--branch", "foss-main", f"file://{ours}", str(clone), cwd=tmp_path)
+    git("fetch", "-q", "--filter=blob:none", f"file://{upstream}", "+refs/heads/main:refs/fleet/upstream-head", cwd=clone)
+    return clone, f"file://{ours}", f"file://{upstream}"
+
+
+def test_merged_side_branches_and_submodule_bumps_need_no_lazy_fetch(merged_forward_with_submodule, monkeypatch):
+    clone, ours, upstream = merged_forward_with_submodule
+    monkeypatch.setenv("GIT_NO_LAZY_FETCH", "1")
+    record = patches.carried(clone, "refs/heads/foss-main", "refs/fleet/upstream-head", ours, upstream, 1000)
+    assert (record["compared"], record["commits"], record["carried"], record["already_upstream"]) == (True, 2, 2, 0)
+
+
+def test_git_errors_name_the_subcommand_not_its_options():
+    assert patches._command(("-c", "fetch.negotiationAlgorithm=noop", "fetch", "--quiet")) == "fetch"
+    assert patches._command(("--literal-pathspecs", "log")) == "log"
