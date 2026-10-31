@@ -14,5 +14,5 @@ Generated 2026-10-31. Generated from public GitHub data. "Latest release" is the
 | plane-mcp-server | v26.10.6 | v0.3.5 | MIT | in-sync |
 | presenton | 0.5.10 | v0.9.12-beta | Apache-2.0 | in-sync |
 | twenty | v26.11.0 | twenty/v2.54.0 | AGPL-3.0 | in-sync |
-| zammad | v26.10.1 | 7.2.2 | AGPL-3.0 | stale |
+| zammad | v26.10.1 | 7.2.2 | AGPL-3.0 | critical |
 | zammad-mcp-server | v26.10.1 | – | MIT | – |
