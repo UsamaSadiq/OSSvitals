@@ -77,7 +77,7 @@ describe("Moneta overview", () => {
     renderRoute("/", META, monetaTenant);
     const critical = await screen.findByRole("link", { name: "Critical: 1" });
     expect(critical.getAttribute("href")).toBe("/apps?status=critical");
-    expect(screen.getByRole("link", { name: "With new advisories: 1" }).getAttribute("href")).toBe("/apps?advisories=1");
+    expect(screen.getByRole("link", { name: "With advisories that apply: 1" }).getAttribute("href")).toBe("/apps?advisories=1");
     expect(screen.getByRole("link", { name: "No release yet: 0" }).getAttribute("href")).toBe("/apps?no_release=1");
     expect(screen.getByRole("link", { name: "Original projects: 1" }).getAttribute("href")).toBe("/apps#originals");
     expect(screen.getByRole("link", { name: "MIT: 3" }).getAttribute("href")).toBe("/apps?licence=MIT");
@@ -103,7 +103,7 @@ describe("Moneta overview", () => {
     renderRoute("/", META, monetaTenant);
     await screen.findByRole("navigation", { name: "Forks by status" });
     const signals = screen.getByRole("navigation", { name: "Release and advisory signals" });
-    expect(within(signals).getAllByRole("link").map((link) => link.getAttribute("aria-label"))).toEqual(["With new advisories: 1", "No release yet: 0", "Original projects: 1"]);
+    expect(within(signals).getAllByRole("link").map((link) => link.getAttribute("aria-label"))).toEqual(["With advisories that apply: 1", "No release yet: 0", "Original projects: 1"]);
     const licences = screen.getByRole("navigation", { name: "Forks by licence" });
     expect(within(licences).getAllByRole("link")).toHaveLength(1);
   });

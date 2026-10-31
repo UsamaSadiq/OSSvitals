@@ -1,4 +1,4 @@
-import { isStatus, statusCounts, type ForkRow, type Status } from "./rows";
+import { applyingAdvisories, isStatus, statusCounts, type ForkRow, type Status } from "./rows";
 import type { SignalKey } from "./signals";
 
 export const PARAMS = {
@@ -57,7 +57,7 @@ function matches(row: ForkRow, filters: ForkFilters): boolean {
   return (
     (filters.statuses.length === 0 || filters.statuses.some((status) => status === drift.status)) &&
     (filters.licence === null || app.licence === filters.licence) &&
-    (!filters.advisories || (drift.advisories?.since_fork_release ?? 0) > 0) &&
+    (!filters.advisories || (applyingAdvisories(drift) ?? 0) > 0) &&
     (!filters.noRelease || drift.fork_release === null) &&
     (!filters.unpromoted || (drift.promotion?.unpromoted_commits ?? 0) > 0) &&
     (filters.app === null || app.repo === filters.app)

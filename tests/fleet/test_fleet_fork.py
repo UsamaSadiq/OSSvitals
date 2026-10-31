@@ -482,11 +482,19 @@ def test_on_the_commits_basis_a_severe_advisory_after_our_last_merge_is_critical
     advisories = [{"published_at": "2026-09-15T00:00:00Z", "severity": "high", "ghsa_id": "G", "cve_id": None}]
     record = collect({**ROUTES, "repos/up/demo/security-advisories?per_page=100": advisories})
     assert record["status_basis"] == "commits"
-    assert (record["advisories"]["since_fork_release"], record["advisories"]["since_upstream_merge"], record["advisories"]["severe_since_upstream_merge"]) == (0, 1, 1)
+    assert (record["advisories"]["since_fork_release"], record["advisories"]["since_our_code"], record["advisories"]["severe_since_our_code"]) == (0, 1, 1)
     assert record["status"] == "critical"
 
 
 def test_an_advisory_older_than_our_last_merge_does_not_count_on_the_commits_basis():
     advisories = [{"published_at": "2026-09-01T00:00:00Z", "severity": "critical", "ghsa_id": "G", "cve_id": None}]
     record = collect({**ROUTES, "repos/up/demo/security-advisories?per_page=100": advisories})
-    assert (record["advisories"]["severe_since_upstream_merge"], record["status"]) == (0, "lagging")
+    assert (record["advisories"]["severe_since_our_code"], record["status"]) == (0, "lagging")
+
+
+def test_our_code_dates_from_the_earlier_of_merge_and_release():
+    """Released 09-01, merged 09-12: the release ships code from before an advisory of 09-05."""
+    from collectors.fleet import fork as fleet_fork
+
+    assert fleet_fork.code_since("2026-09-12T00:00:00Z", "2026-09-01T00:00:00Z") == "2026-09-01T00:00:00Z"
+    assert fleet_fork.code_since("2026-09-12T00:00:00Z", None) == "2026-09-12T00:00:00Z"
