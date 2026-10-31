@@ -88,13 +88,13 @@ class ForkContext:
 
     @cached_property
     def clone_release_lookup(self) -> tuple[str | None, Exception | None]:
-        """Upstream's newest release on the first releases page, as the weekly conflict forecast has always used.
+        """The upstream release the rest of the dashboard compares against: the app's ``release_tag`` line, every
+        releases page, and the newest stable tag when upstream publishes no releases.
 
         A failed lookup is kept, not raised: only the forecast needs the release, the clone and other signals do not.
         """
         try:
-            releases = fork.upstream_releases(self.api, self.upstream)
-            release = fork.latest_upstream_release(self.api, self.upstream, releases)
+            release = self.upstream_release
         except RuntimeError as error:
             return None, error
         return (release["tag"] if release else None), None

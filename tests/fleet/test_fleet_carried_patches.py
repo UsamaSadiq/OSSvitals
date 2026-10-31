@@ -7,6 +7,7 @@ import pytest
 from collectors.fleet import conflicts as fleet_conflicts
 from collectors.fleet import patches
 from collectors.fleet.collect import collect_clone_signals
+from collectors.fleet.context import ForkContext
 from collectors.fleet.settings import load_settings
 
 ENV = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t", "PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"}
@@ -163,3 +164,23 @@ def test_merged_side_branches_and_submodule_bumps_need_no_lazy_fetch(merged_forw
 def test_git_errors_name_the_subcommand_not_its_options():
     assert patches._command(("-c", "fetch.negotiationAlgorithm=noop", "fetch", "--quiet")) == "fetch"
     assert patches._command(("--literal-pathspecs", "log")) == "log"
+
+
+def test_the_forecast_release_follows_the_apps_release_line():
+    def release(tag, published):
+        return {"tag_name": tag, "published_at": published, "draft": False, "prerelease": False}
+
+    releases = [release("sdk/v2.54.0", "2026-10-21T00:00:00Z"), release("twenty/v2.54.0", "2026-10-20T00:00:00Z")]
+    routes = {"repos/up/demo/releases?per_page=100": releases}
+    app = {**APP, "release_tag": r"^twenty/v\d+\.\d+\.\d+$"}
+    ctx = ForkContext(lambda path: routes.get(path), "Org", app, load_settings("moneta"), NOW)
+    assert ctx.clone_release_lookup == ("twenty/v2.54.0", None)
+
+
+def test_a_failed_release_lookup_is_kept_for_the_forecast_only():
+    def api(path):
+        raise RuntimeError("releases unavailable")
+
+    ctx = ForkContext(api, "Org", APP, load_settings("moneta"), NOW)
+    tag, error = ctx.clone_release_lookup
+    assert (tag, str(error)) == (None, "releases unavailable")
