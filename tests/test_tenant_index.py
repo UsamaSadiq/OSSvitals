@@ -30,6 +30,10 @@ def test_every_site_is_routed_by_the_web_worker():
     assert {urlparse(tenant["site"]).hostname for tenant in load_index().values()} <= routes
 
 
+def test_openedx_is_the_only_health_tenant_until_the_health_module_takes_an_org():
+    assert orgs_of_kind(load_index(), "health") == ["openedx"]
+
+
 def test_orgs_of_kind_lists_only_that_kind_in_order():
     index = {"b": {"kind": "fleet"}, "a": {"kind": "fleet"}, "c": {"kind": "health"}}
     assert orgs_of_kind(index, "fleet") == ["a", "b"]
