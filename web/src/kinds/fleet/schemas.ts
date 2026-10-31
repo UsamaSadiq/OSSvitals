@@ -97,8 +97,11 @@ const driftRecord = z.object({
     .object({
       basis: z.enum(["release", "commits"]),
       considered: z.number().int(),
+      undetermined: z.number().int().nullish(),
       without_cve: z.number().int(),
-      known_exploited: z.array(z.object({ ghsa_id: nullableString, cve_id: z.string(), severity: nullableString, date_added: nullableString })),
+      known_exploited: z.array(
+        z.object({ ghsa_id: nullableString, cve_id: z.string(), severity: nullableString, date_added: nullableString, certain: z.boolean().nullish() }),
+      ),
       kev_as_of: z.string(),
       kev_from_cache: z.boolean(),
     })

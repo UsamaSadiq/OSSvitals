@@ -12,15 +12,16 @@ HEADERS = {"Accept": "application/json", "User-Agent": "ossvitals-collector (+ht
 
 
 def catalogue() -> dict[str, Any] | None:
-    """The full catalog, or None when it cannot be read; callers fall back to their cached copy."""
+    """The full catalog, or None when it cannot be read or is empty; callers fall back to their cached copy."""
     for attempt in range(RETRIES):
         try:
             response = requests.get(URL, headers=HEADERS, timeout=60)
             if response.ok:
                 payload = response.json()
-                if isinstance(payload, dict) and isinstance(payload.get("vulnerabilities"), list):
+                if isinstance(payload, dict) and isinstance(payload.get("vulnerabilities"), list) and payload["vulnerabilities"]:
                     return payload
         except (requests.RequestException, ValueError):
             pass
-        time.sleep(5 * (attempt + 1))
+        if attempt < RETRIES - 1:
+            time.sleep(5 * (attempt + 1))
     return None

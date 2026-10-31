@@ -162,10 +162,10 @@ function ExploitedFact({ row }: { row: ForkRow }) {
       {known.length === 0
         ? "None"
         : known.map((item, index) => (
-            <span key={item.cve_id}>
+            <span key={`${item.ghsa_id ?? item.cve_id}-${index}`}>
               {index > 0 && ", "}
               {item.ghsa_id && app.upstream_url ? external(advisoryUrl(app.upstream_url, item.ghsa_id), item.cve_id) : item.cve_id}
-              {item.date_added && ` (listed ${formatDay(item.date_added)})`}
+              {item.date_added && ` (listed ${formatDay(item.date_added)}${item.certain === false ? ", may apply" : ""})`}
             </span>
           ))}
       <span className="app-fact__note">{checkedText(exploitability)}</span>
