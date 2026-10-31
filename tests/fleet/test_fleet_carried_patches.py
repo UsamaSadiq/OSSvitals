@@ -114,8 +114,8 @@ def test_a_bad_app_pattern_fails_that_fork_without_stopping_the_run():
 
 @pytest.fixture
 def merged_forward_with_submodule(tmp_path):
-    """Upstream reaches a fix on main and merges a release branch that took two steps to the same content;
-    both sides bump a submodule. Our fork has its own change to the same file."""
+    """Upstream reaches a fix on main, bumps a submodule, and merges a release branch that took two steps to the
+    same content. Our fork has its own change to the same file and its own submodule bump."""
     library = tmp_path / "library"
     library.mkdir()
     git("init", "-b", "main", cwd=library)
@@ -142,6 +142,8 @@ def merged_forward_with_submodule(tmp_path):
     commit(upstream, "app.txt", "fixed\n", "Side step two")
     git("checkout", "-q", "main", cwd=upstream)
     commit(upstream, "app.txt", "fixed\n", "Fix on main")
+    git("update-index", "--cacheinfo", f"160000,{second},vendor/lib", cwd=upstream)
+    git("commit", "-q", "-m", "Bump the library upstream", cwd=upstream)
     git("merge", "-q", "--no-ff", "-m", "Merge release forward", "release", cwd=upstream)
     clone = tmp_path / "clone.git"
     git("clone", "-q", "--bare", "--filter=blob:none", "--single-branch", "--branch", "foss-main", f"file://{ours}", str(clone), cwd=tmp_path)
@@ -153,7 +155,9 @@ def test_merged_side_branches_and_submodule_bumps_need_no_lazy_fetch(merged_forw
     clone, ours, upstream = merged_forward_with_submodule
     monkeypatch.setenv("GIT_NO_LAZY_FETCH", "1")
     record = patches.carried(clone, "refs/heads/foss-main", "refs/fleet/upstream-head", ours, upstream, 1000)
-    assert (record["compared"], record["commits"], record["carried"], record["already_upstream"]) == (True, 2, 2, 0)
+    assert (record["compared"], record["commits"], record["carried"], record["already_upstream"]) == (True, 2, 1, 1)
+    assert [item["subject"] for item in record["already_upstream_items"]] == ["Bump our library"]
+    assert [item["subject"] for item in record["carried_items"]] == ["Our change to the app"]
 
 
 def test_git_errors_name_the_subcommand_not_its_options():
