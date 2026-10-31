@@ -8,7 +8,7 @@ from collectors.fleet.settings import KIND, FleetSettings
 
 SCHEMA_VERSION = 1
 SOURCE = "github-api"
-STATUS_FIELDS = ("key", "label", "color")
+MANIFEST_KEYS = ("collect", "show")
 
 
 def signal_manifest(settings: FleetSettings) -> dict[str, Any]:
@@ -19,6 +19,8 @@ def signal_manifest(settings: FleetSettings) -> dict[str, Any]:
             "show": settings.signal(signal.key)["show"] if settings.collects(signal.key) else [],
             "tier": signal.tier,
             "cadence": signal.cadence,
+            "thresholds": list(signal.thresholds),
+            "settings": {key: value for key, value in settings.signal(signal.key).items() if key not in MANIFEST_KEYS},
         }
         for signal in SIGNALS
     }
@@ -43,7 +45,7 @@ def meta_view(org: str, generated_at: datetime, *, branding: dict[str, Any], set
         "kind": KIND,
         "fleet": {
             "signals": signal_manifest(settings),
-            "statuses": [{field: status[field] for field in STATUS_FIELDS if field in status} for status in settings.statuses],
+            "statuses": settings.statuses,
         },
     }
 
