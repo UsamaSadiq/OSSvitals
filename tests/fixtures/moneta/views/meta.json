@@ -221,6 +221,22 @@
         "settings": {
           "max_prefetch_blobs": 20000
         }
+      },
+      "upgrade_risk": {
+        "collect": true,
+        "show": [
+          "detail",
+          "attention"
+        ],
+        "tier": "clone",
+        "cadence": "weekly",
+        "thresholds": [],
+        "settings": {
+          "migration_dirs": [
+            "migrations",
+            "migrate"
+          ]
+        }
       }
     },
     "statuses": [

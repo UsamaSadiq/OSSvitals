@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "org": "moneta",
+    "generated_at": "2026-08-31T08:00:00+00:00",
+    "snapshot_timestamp": "2026-08-31T08:00:00+00:00",
+    "source": "github-api"
+  },
+  "records": [
+    {
+      "repo": "alpha",
+      "migrations": {
+        "ours": 2,
+        "upstream": 6,
+        "shared_dirs": [
+          "server/migrations"
+        ],
+        "same_prefix": [],
+        "ours_items": [],
+        "upstream_items": []
+      },
+      "release_notes": {
+        "basis": "release",
+        "since": "v2.0.0",
+        "releases": 1,
+        "flagged": [
+          {
+            "tag": "v2.1.0",
+            "url": "https://github.com/up/alpha/releases/tag/v2.1.0",
+            "published_at": "2026-08-20T00:00:00Z",
+            "lines": [
+              "Breaking changes: the export API now requires a token"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "repo": "beta",
+      "migrations": {
+        "ours": 0,
+        "upstream": 1,
+        "shared_dirs": [],
+        "same_prefix": [],
+        "ours_items": [],
+        "upstream_items": []
+      },
+      "release_notes": {
+        "basis": "commits",
+        "since": null,
+        "releases": 0,
+        "flagged": []
+      }
+    }
+  ]
+}

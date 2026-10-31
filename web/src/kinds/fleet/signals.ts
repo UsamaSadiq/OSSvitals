@@ -51,6 +51,11 @@ export const SIGNAL_CATALOGUE = [
     label: "Carried patches",
     description: "Our own commits on the production branch, and which of them upstream already has, so they drop at the next sync. Collected weekly.",
   },
+  {
+    key: "upgrade_risk",
+    label: "Upgrade risk",
+    description: "Database migrations both we and upstream added since our last sync, and upstream release notes since then that flag breaking changes or required steps. Collected weekly.",
+  },
 ] as const satisfies readonly SignalInfo[];
 
 export type SignalEntry = (typeof SIGNAL_CATALOGUE)[number];

@@ -5,7 +5,7 @@ import { Loading } from "../../components/Loading";
 import { usePageTitle } from "../../layout/pageTitle";
 import { useSiteMeta } from "../../layout/siteMeta";
 import { NotFound } from "../../pages/NotFound";
-import { Advisories, BadgeSnippet, CarriedPatches, Conflicts } from "./DetailSections";
+import { Advisories, BadgeSnippet, CarriedPatches, Conflicts, UpgradeRisk } from "./DetailSections";
 import { Sparkline } from "./Sparkline";
 import { StatusPill } from "./StatusPill";
 import { trendOf } from "./insights";
@@ -13,7 +13,7 @@ import { advisoryUrl, checkedText } from "./exploited";
 import { licenceHistoryUrl, licenceNotice } from "./licence";
 import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
 import { formatDay, pluralise, releaseGapText, type ForkRow } from "./rows";
-import type { CarriedRecord, ConflictRecord, DriftRecord, HistoryRow } from "./schemas";
+import type { CarriedRecord, ConflictRecord, DriftRecord, HistoryRow, UpgradeRecord } from "./schemas";
 import type { SignalKey } from "./signals";
 import { useFleetViews, type FleetViews } from "./useFleetViews";
 import { useSignalVisibility } from "./visibility";
@@ -247,9 +247,10 @@ interface DetailProps {
   history: readonly HistoryRow[];
   conflict: ConflictRecord | undefined;
   carried: CarriedRecord | undefined;
+  upgrade: UpgradeRecord | undefined;
 }
 
-function Detail({ row, githubOrg, history, conflict, carried }: DetailProps) {
+function Detail({ row, githubOrg, history, conflict, carried, upgrade }: DetailProps) {
   const { app, drift } = row;
   const { isShown } = useSignalVisibility();
   usePageTitle(app.repo);
@@ -277,6 +278,7 @@ function Detail({ row, githubOrg, history, conflict, carried }: DetailProps) {
       {isShown("advisories", "detail") && <Advisories drift={drift} />}
       {isShown("conflicts", "detail") && <Conflicts record={conflict} />}
       {isShown("carried_patches", "detail") && <CarriedPatches record={carried} repoUrl={app.url} />}
+      {isShown("upgrade_risk", "detail") && <UpgradeRisk record={upgrade} />}
       <section className="overview-section" aria-labelledby="links-heading">
         <h2 id="links-heading">Links</h2>
         <Links row={row} githubOrg={githubOrg} />
@@ -292,7 +294,8 @@ function Resolved({ repo, views, githubOrg }: { repo: string; views: FleetViews;
   if (!app || !drift) return <NotFound />;
   const conflict = views.conflicts?.records.find((record) => record.repo === repo);
   const carried = views.carried?.records.find((record) => record.repo === repo);
-  return <Detail row={{ app, drift }} githubOrg={githubOrg} history={views.history?.records ?? []} conflict={conflict} carried={carried} />;
+  const upgrade = views.upgrade?.records.find((record) => record.repo === repo);
+  return <Detail row={{ app, drift }} githubOrg={githubOrg} history={views.history?.records ?? []} conflict={conflict} carried={carried} upgrade={upgrade} />;
 }
 
 export function AppDetail() {

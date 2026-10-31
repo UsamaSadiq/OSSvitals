@@ -1,7 +1,8 @@
 import { advisoryNotice, pluralise, releaseGapText, type ForkRow } from "./rows";
-import type { ConflictRecord, HistoryRow } from "./schemas";
+import type { ConflictRecord, HistoryRow, UpgradeRecord } from "./schemas";
 import type { SignalKey } from "./signals";
 import { exploitedNotice } from "./exploited";
+import { upgradeNotices } from "./upgrade";
 import { licenceNotice } from "./licence";
 
 export interface StatusChange {
@@ -58,7 +59,12 @@ export function trendDirection(points: readonly TrendPoint[]): "falling-behind" 
   return "steady";
 }
 
-export function attentionReasons(row: ForkRow, conflict: ConflictRecord | undefined, isShown: (key: SignalKey) => boolean = () => true): string[] {
+export function attentionReasons(
+  row: ForkRow,
+  conflict: ConflictRecord | undefined,
+  isShown: (key: SignalKey) => boolean = () => true,
+  upgrade?: UpgradeRecord,
+): string[] {
   const { drift } = row;
   const conflicts = conflict?.against_upstream_head;
   const gap = isShown("release_gap") ? drift.release_gap : null;
@@ -71,6 +77,7 @@ export function attentionReasons(row: ForkRow, conflict: ConflictRecord | undefi
     isShown("upstream_activity") && drift.upstream_activity?.quiet ? "Upstream has gone quiet" : null,
     isShown("licence_watch") ? licenceNotice(drift.licence_watch) : null,
     isShown("exploitability") ? exploitedNotice(drift.exploitability) : null,
+    ...(isShown("upgrade_risk") ? upgradeNotices(upgrade) : []),
   ];
   return reasons.filter((reason): reason is string => reason !== null);
 }

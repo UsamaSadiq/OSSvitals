@@ -7,14 +7,14 @@ import { StatusPill } from "./StatusPill";
 import { attentionReasons } from "./insights";
 import { appPath } from "./paths";
 import { STATUS_LABELS, forkRows, needingAttention, type ForkRow } from "./rows";
-import type { ConflictRecord } from "./schemas";
+import type { ConflictRecord, UpgradeRecord } from "./schemas";
 import { useFleetViews, type FleetViews } from "./useFleetViews";
 import { useSignalVisibility } from "./visibility";
 import "./fleet.css";
 
 const GROUPS = ["critical", "stale"] as const;
 
-function AttentionCard({ row, conflict }: { row: ForkRow; conflict: ConflictRecord | undefined }) {
+function AttentionCard({ row, conflict, upgrade }: { row: ForkRow; conflict: ConflictRecord | undefined; upgrade: UpgradeRecord | undefined }) {
   const { app, drift } = row;
   const { isShown } = useSignalVisibility();
   const headingId = `attention-${app.repo}`;
@@ -27,7 +27,7 @@ function AttentionCard({ row, conflict }: { row: ForkRow; conflict: ConflictReco
         <StatusPill status={drift.status} />
       </header>
       <ul className="attention-reasons">
-        {attentionReasons(row, conflict, (key) => isShown(key, "attention")).map((reason) => (
+        {attentionReasons(row, conflict, (key) => isShown(key, "attention"), upgrade).map((reason) => (
           <li key={reason}>{reason}</li>
         ))}
       </ul>
@@ -43,7 +43,11 @@ function Group({ status, rows, views }: { status: (typeof GROUPS)[number]; rows:
       <ul className="fork-cards">
         {rows.map((row) => (
           <li key={row.app.repo}>
-            <AttentionCard row={row} conflict={views.conflicts?.records.find((record) => record.repo === row.app.repo)} />
+            <AttentionCard
+              row={row}
+              conflict={views.conflicts?.records.find((record) => record.repo === row.app.repo)}
+              upgrade={views.upgrade?.records.find((record) => record.repo === row.app.repo)}
+            />
           </li>
         ))}
       </ul>

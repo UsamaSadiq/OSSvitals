@@ -106,6 +106,12 @@
           "required": ["max_prefetch_blobs"],
           "properties": {"max_prefetch_blobs": {"type": "integer", "minimum": 0}},
           "unevaluatedProperties": false
+        },
+        "upgrade_risk": {
+          "$ref": "#/$defs/signal",
+          "required": ["migration_dirs"],
+          "properties": {"migration_dirs": {"type": "array", "items": {"type": "string"}, "minItems": 1}},
+          "unevaluatedProperties": false
         }
       },
       "additionalProperties": false

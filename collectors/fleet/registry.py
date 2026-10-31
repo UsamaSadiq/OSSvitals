@@ -14,6 +14,7 @@ from collectors.fleet.signals import (
     promotion,
     pull_requests,
     release_gap,
+    upgrade_risk,
     upstream_activity,
     upstream_release,
 )
@@ -34,6 +35,7 @@ SIGNALS: tuple[Signal, ...] = tuple(
         exploitability,
         conflicts,
         carried_patches,
+        upgrade_risk,
     )
 )
 BY_KEY = {signal.key: signal for signal in SIGNALS}
