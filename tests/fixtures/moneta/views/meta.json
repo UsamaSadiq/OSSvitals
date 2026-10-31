@@ -170,6 +170,20 @@
           "quiet_days": 120
         }
       },
+      "licence_watch": {
+        "collect": true,
+        "show": [
+          "card",
+          "detail",
+          "attention"
+        ],
+        "tier": "api",
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {
+          "notice_days": 30
+        }
+      },
       "conflicts": {
         "collect": true,
         "show": [

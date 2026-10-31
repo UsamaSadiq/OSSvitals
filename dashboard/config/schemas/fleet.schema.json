@@ -88,6 +88,12 @@
           "properties": {"quiet_days": {"type": "integer", "minimum": 1}},
           "unevaluatedProperties": false
         },
+        "licence_watch": {
+          "$ref": "#/$defs/signal",
+          "required": ["notice_days"],
+          "properties": {"notice_days": {"type": "integer", "minimum": 1}},
+          "unevaluatedProperties": false
+        },
         "conflicts": {"$ref": "#/$defs/plain_signal"}
       },
       "additionalProperties": false

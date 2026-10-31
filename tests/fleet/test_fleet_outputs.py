@@ -123,3 +123,39 @@ def test_history_rows_omit_advisories_when_the_tenant_does_not_collect_them():
 def test_badge_colours_come_from_the_status_ladder():
     ladder = [{"key": "fine", "label": "Fine", "color": "blue"}]
     assert badges.badge({**DRIFT[0], "status": "fine"}, ladder)["color"] == "blue"
+
+
+LICENCE = {"present": True, "path": "LICENSE", "sha": "a", "spdx": "MIT", "changed_on": None, "previous_spdx": None, "previous_present": None}
+
+
+def test_history_rows_remember_the_licence_state():
+    rows = history.append([], [{**DRIFT[0], "licence_watch": {**LICENCE, "declared": "MIT", "matches_declared": True}}], "2026-10-12", 90)
+    assert rows[0]["licence"] == LICENCE
+
+
+def test_a_failed_licence_lookup_falls_back_to_the_last_known_state():
+    remembered = [
+        {"date": "2026-10-10", "repo": "a", "licence": {**LICENCE, "sha": "old"}},
+        {"date": "2026-10-11", "repo": "a", "licence": LICENCE},
+        {"date": "2026-10-12", "repo": "a"},
+    ]
+    previous = {"a": {"repo": "a", "licence_watch": None}, "b": {"repo": "b", "licence_watch": {**LICENCE, "sha": "b"}}}
+    filled = history.with_last_licence(previous, remembered, ["a", "b", "c"])
+    assert filled["a"]["licence_watch"] == LICENCE
+    assert filled["b"]["licence_watch"]["sha"] == "b"
+    assert "c" not in filled
+
+
+def test_a_fork_that_errored_yesterday_still_gets_its_last_licence_state():
+    filled = history.with_last_licence({}, [{"date": "2026-10-11", "repo": "a", "licence": LICENCE}], ["a"])
+    assert filled["a"] == {"licence_watch": LICENCE}
+
+
+def test_a_change_during_a_failed_day_is_still_caught():
+    from datetime import date
+
+    from collectors.fleet.signals.licence_watch import watch
+
+    remembered = history.last_licence([{"date": "2026-10-01", "repo": "a", "licence": LICENCE}, {"date": "2026-10-02", "repo": "a"}], "a")
+    record = watch({**LICENCE, "sha": "b"}, remembered, "MIT", date(2026, 10, 3), 30)
+    assert record["changed_on"] == "2026-10-03"

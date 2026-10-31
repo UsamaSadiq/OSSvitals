@@ -42,8 +42,10 @@ def collect_fork(
     settings: FleetSettings,
     now: datetime,
     merged_by: MergedBy = lambda *_: None,
+    previous: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    ctx = ForkContext(api, org, app, settings, now, merged_by)
+    """``previous`` is this fork's record from the last published run, for signals that compare over time."""
+    ctx = ForkContext(api, org, app, settings, now, merged_by, previous)
     record = core(ctx)
     for key in settings.enabled_signals(API):
         record.update(BY_KEY[key].collect(ctx))

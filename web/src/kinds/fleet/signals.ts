@@ -33,6 +33,12 @@ export const SIGNAL_CATALOGUE = [
   { key: "pull_requests", label: "Pull requests", description: "Open pull requests against our release branch, and whether an upstream sync is open.", failureField: "pull_requests" },
   { key: "maintainers", label: "Maintainers", description: "Everyone who has merged a pull request into our release branch.", failureField: "maintainers" },
   { key: "upstream_activity", label: "Upstream activity", description: "When upstream last pushed, and whether it has gone quiet.", failureField: "upstream_activity" },
+  {
+    key: "licence_watch",
+    label: "Licence watch",
+    description: "Upstream's licence file on the branch we track: whether it changed recently, and whether it matches the licence we list.",
+    failureField: "licence_watch",
+  },
   { key: "conflicts", label: "Sync forecast", description: "The files a sync with upstream's head and latest release would conflict on. Collected weekly." },
 ] as const satisfies readonly SignalInfo[];
 

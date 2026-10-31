@@ -1,6 +1,7 @@
 import { advisoryNotice, pluralise, releaseGapText, type ForkRow } from "./rows";
 import type { ConflictRecord, HistoryRow } from "./schemas";
 import type { SignalKey } from "./signals";
+import { licenceNotice } from "./licence";
 
 export interface StatusChange {
   date: string;
@@ -67,6 +68,7 @@ export function attentionReasons(row: ForkRow, conflict: ConflictRecord | undefi
     isShown("fork_release") && drift.fork_release === null ? "We have not cut a release of our own yet" : null,
     isShown("conflicts") && conflicts && !conflicts.clean ? `Syncing with upstream would conflict on ${pluralise(conflicts.conflicted_total, "file")}` : null,
     isShown("upstream_activity") && drift.upstream_activity?.quiet ? "Upstream has gone quiet" : null,
+    isShown("licence_watch") ? licenceNotice(drift.licence_watch) : null,
   ];
   return reasons.filter((reason): reason is string => reason !== null);
 }

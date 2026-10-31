@@ -9,6 +9,7 @@ import { Advisories, BadgeSnippet, Conflicts } from "./DetailSections";
 import { Sparkline } from "./Sparkline";
 import { StatusPill } from "./StatusPill";
 import { trendOf } from "./insights";
+import { licenceHistoryUrl, licenceNotice } from "./licence";
 import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
 import { formatDay, pluralise, releaseGapText, type ForkRow } from "./rows";
 import type { ConflictRecord, DriftRecord, HistoryRow } from "./schemas";
@@ -122,7 +123,30 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
           {activity.quiet && " (quiet)"}
         </Fact>
       )}
+      {shown("licence_watch") && drift.licence_watch && <LicenceFact row={row} />}
     </>
+  );
+}
+
+function LicenceFact({ row }: { row: ForkRow }) {
+  const { app, drift } = row;
+  const watch = drift.licence_watch;
+  if (!watch) return null;
+  const branch = app.upstream_branch ?? "";
+  const notice = licenceNotice(watch);
+  const file = watch.path && app.upstream_url ? external(licenceHistoryUrl(app.upstream_url, branch, watch.path), `${watch.path} on ${branch}`) : null;
+  return (
+    <Fact term="Upstream licence">
+      {watch.present ? (
+        <>
+          {watch.spdx ?? "Not recognised by GitHub"}
+          {file && <> ({file})</>}
+        </>
+      ) : (
+        `No licence file on ${branch}`
+      )}
+      {notice && <span className="app-fact__note">{notice}</span>}
+    </Fact>
   );
 }
 

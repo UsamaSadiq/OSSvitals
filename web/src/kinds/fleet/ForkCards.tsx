@@ -1,12 +1,13 @@
 import { Link } from "react-router";
+import { licenceNotice } from "./licence";
 import { appPath } from "./paths";
 import { StatusPill } from "./StatusPill";
 import { advisoryNotice, driftHeadline, isStatus, sortedForks, type ForkRow } from "./rows";
 import { useSignalVisibility } from "./visibility";
 
-function AdvisoryBadge({ notice }: { notice: string | null }) {
-  if (notice === null) return null;
-  return <p className="fork-card__advisories">{notice}</p>;
+function Notice({ text }: { text: string | null }) {
+  if (text === null) return null;
+  return <p className="fork-card__advisories">{text}</p>;
 }
 
 function ForkCard({ row }: { row: ForkRow }) {
@@ -27,7 +28,8 @@ function ForkCard({ row }: { row: ForkRow }) {
       <p className="fork-card__behind">
         <span className="fork-card__number">{headline.count.toLocaleString()}</span> {headline.text}
       </p>
-      {isShown("advisories", "card") && <AdvisoryBadge notice={advisoryNotice(drift, showGap)} />}
+      {isShown("advisories", "card") && <Notice text={advisoryNotice(drift, showGap)} />}
+      {isShown("licence_watch", "card") && <Notice text={licenceNotice(drift.licence_watch)} />}
       <p className="fork-card__licence">{app.licence ?? "Licence not recorded"}</p>
     </article>
   );

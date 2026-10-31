@@ -68,6 +68,10 @@ signals:
     collect: true
     show: ["detail", "attention"]
     quiet_days: 120
+  licence_watch:
+    collect: true
+    show: ["card", "detail", "attention"]
+    notice_days: 30
   conflicts:
     collect: true
     show: ["detail", "attention"]

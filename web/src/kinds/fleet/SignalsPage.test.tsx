@@ -64,6 +64,7 @@ const DRIFT = {
   pull_requests: { open: 2, sync_pull: { number: 4, title: "Sync", url: "https://x/4" } },
   maintainers: [{ login: "alice", merged: 12 }, { login: "bob", merged: 3 }],
   upstream_activity: { pushed_at: "2026-10-01T00:00:00Z", idle_days: 11, quiet: false },
+  licence_watch: { present: true, path: "LICENSE", sha: "s1", spdx: "AGPL-3.0", declared: "AGPL-3.0", matches_declared: true, changed_on: null, previous_spdx: null },
 };
 
 const CONFLICTS = [
@@ -105,6 +106,7 @@ const DETAIL_MARKERS: Record<SignalKey, string> = {
   pull_requests: "Open pull requests",
   maintainers: "Maintainers",
   upstream_activity: "Upstream activity",
+  licence_watch: "Upstream licence",
   conflicts: "Sync forecast",
 };
 
@@ -138,6 +140,27 @@ describe("fleet pages follow the signal manifest", () => {
     renderRoute("/apps/burning", META, tenant);
     expect(await screen.findByText(/1 affecting the upstream release we are built on/)).toBeTruthy();
     expect(screen.queryByText(/v1\.5\.0, the upstream version we are based on/)).toBeNull();
+  });
+
+  it("shows a licence change on the card, the app page and needs attention", async () => {
+    const changed = { ...DRIFT, licence_watch: { ...DRIFT.licence_watch, changed_on: "2026-10-30", previous_spdx: "AGPL-3.0" } };
+    serve(files(MANIFEST_META, changed));
+    const notice = "Upstream's licence file changed on 2026-10-30, still AGPL-3.0";
+    const { router } = renderRoute("/apps", META, tenant);
+    expect(within(await screen.findByRole("article", { name: "burning" })).getByText(notice)).toBeTruthy();
+    await router.navigate("/attention");
+    expect(await screen.findByText(notice)).toBeTruthy();
+    await router.navigate("/apps/burning");
+    const fact = (await screen.findByText("Upstream licence")).closest(".app-fact") as HTMLElement;
+    expect(within(fact).getByText(notice)).toBeTruthy();
+    expect(within(fact).getByRole("link", { name: "LICENSE on main" }).getAttribute("href")).toBe("https://github.com/up/burning/commits/main/LICENSE");
+  });
+
+  it("says when upstream has no licence file", async () => {
+    const absent = { ...DRIFT, licence_watch: { ...DRIFT.licence_watch, present: false, path: null, sha: null, spdx: null } };
+    serve(files(MANIFEST_META, absent));
+    renderRoute("/apps/burning", META, tenant);
+    expect(await screen.findByText("No licence file on main")).toBeTruthy();
   });
 
   it("hides a signal the tenant does not collect everywhere, including its table column and filter chip", async () => {

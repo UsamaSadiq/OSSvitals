@@ -26,6 +26,7 @@ class ForkContext:
         settings: FleetSettings,
         now: datetime,
         merged_by: MergedBy = lambda *_: None,
+        previous: dict[str, Any] | None = None,
     ) -> None:
         self.api = api
         self.org = org
@@ -33,6 +34,7 @@ class ForkContext:
         self.settings = settings
         self.now = now
         self.merged_by = merged_by
+        self.previous = previous
         self.base = f"repos/{org}/{app['repo']}"
         self.upstream = app["upstream"]
         self.owner = self.upstream.split("/")[0]

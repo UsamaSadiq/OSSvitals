@@ -80,6 +80,19 @@ const driftRecord = z.object({
     .nullish(),
   maintainers: z.array(z.object({ login: z.string(), merged: z.number().int() })).nullish(),
   upstream_activity: z.object({ pushed_at: z.string(), idle_days: z.number().int(), quiet: z.boolean() }).nullish(),
+  licence_watch: z
+    .object({
+      present: z.boolean(),
+      path: nullableString,
+      sha: nullableString,
+      spdx: nullableString,
+      declared: nullableString,
+      matches_declared: z.boolean().nullable(),
+      changed_on: nullableString,
+      previous_spdx: nullableString,
+      previous_present: z.boolean().nullish(),
+    })
+    .nullish(),
 });
 
 const historyRow = z.object({

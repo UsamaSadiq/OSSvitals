@@ -24,6 +24,7 @@ from dashboard.lib.config import get_config
 
 WORKERS = 4
 HISTORY_FILE = "drift_history.json"
+DRIFT_FILE = "drift.json"
 
 
 def _parse_args() -> argparse.Namespace:
@@ -49,8 +50,11 @@ def _apps(org: str, repos: list[str]) -> tuple[str, list[dict[str, Any]]]:
     return config["github_org"], [app for app in config["apps"] if not repos or app["repo"] in repos]
 
 
-def collect(settings: FleetSettings, repos: list[str]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def collect(
+    settings: FleetSettings, repos: list[str], previous: dict[str, dict[str, Any]] | None = None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     github_org, apps = _apps(settings.org, repos)
+    previous = previous or {}
     now = now_utc()
     api = github.api_optional
 
@@ -58,7 +62,7 @@ def collect(settings: FleetSettings, repos: list[str]) -> tuple[list[dict[str, A
         record = _isolated(app["repo"], lambda: inventory.collect_app(api, github_org, app, settings.production, github.file_content))
         if app["class"] != "fork":
             return record, None
-        drift = _isolated(app["repo"], lambda: collect_fork(api, github_org, app, settings, now, github.merged_by_logins))
+        drift = _isolated(app["repo"], lambda: collect_fork(api, github_org, app, settings, now, github.merged_by_logins, previous.get(app["repo"])))
         return record, drift
 
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
@@ -66,11 +70,15 @@ def collect(settings: FleetSettings, repos: list[str]) -> tuple[list[dict[str, A
     return [record for record, _ in results], [drift for _, drift in results if drift is not None]
 
 
-def _previous_history(previous_dir: Path | None) -> list[dict[str, Any]]:
-    path = previous_dir / HISTORY_FILE if previous_dir else None
+def _previous_records(previous_dir: Path | None, name: str) -> list[dict[str, Any]]:
+    path = previous_dir / name if previous_dir else None
     if not path or not path.exists():
         return []
     return json.loads(path.read_text(encoding="utf-8")).get("records", [])
+
+
+def _previous_drift(previous_dir: Path | None) -> dict[str, dict[str, Any]]:
+    return {record["repo"]: record for record in _previous_records(previous_dir, DRIFT_FILE) if "error" not in record}
 
 
 def _updates(org: str) -> list[dict[str, Any]]:
@@ -80,7 +88,10 @@ def _updates(org: str) -> list[dict[str, Any]]:
 
 def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     generated_at = now_utc()
-    records, drift = collect(settings, args.repo)
+    previous_history = _previous_records(args.previous_dir, HISTORY_FILE)
+    repos = [app["repo"] for app in _apps(settings.org, args.repo)[1]]
+    previous = history.with_last_licence(_previous_drift(args.previous_dir), previous_history, repos)
+    records, drift = collect(settings, args.repo, previous)
     healthy = [record for record in records if "error" not in record]
     if not healthy:
         print("No app could be collected; not writing.")
@@ -96,7 +107,7 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
         "drift_history": meta.records_view(
             org,
             generated_at,
-            history.append(_previous_history(args.previous_dir), drift, day, settings.values["history_days"]),
+            history.append(previous_history, drift, day, settings.values["history_days"]),
         ),
         "updates": meta.records_view(org, generated_at, _updates(org)),
     }
