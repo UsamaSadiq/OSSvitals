@@ -11,6 +11,9 @@ feature_flags:
 freshness:
   stale_threshold_hours: 48
   critically_stale_threshold_hours: 168
+# When the upstream release a fork is built on is known, only the release thresholds and
+# on_severe_advisory decide its status; commit thresholds apply otherwise. A tenant that turns
+# advisories off therefore tops out at stale on the release basis.
 statuses:
   - key: "in-sync"
     label: "In sync"

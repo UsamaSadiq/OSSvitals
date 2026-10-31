@@ -50,3 +50,12 @@ def test_with_a_known_base_release_release_drift_decides(release_gap, advisory, 
 
 def test_the_basis_names_which_thresholds_applied():
     assert (DriftSignals(0, 0, False).basis, DriftSignals(0, 0, False, gap()).basis) == ("commits", "release")
+
+
+def test_without_advisories_a_fork_on_the_latest_release_is_not_critical_however_far_main_has_moved():
+    from collectors.fleet.settings import DEFAULTS_PATH, build_settings
+    from dashboard.lib.config import read_config_file
+
+    without_advisories = build_settings("demo", read_config_file(DEFAULTS_PATH), {"signals": {"advisories": {"collect": False}}}).statuses
+    assert classify(without_advisories, DriftSignals(5000, 400, False, gap(releases_behind=0))) == "in-sync"
+    assert classify(without_advisories, DriftSignals(5000, 400, False, gap(releases_behind=1, level="major"))) == "stale"

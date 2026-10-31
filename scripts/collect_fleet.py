@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -38,7 +39,7 @@ def _parse_args() -> argparse.Namespace:
 def _isolated(repo: str, collect: Callable[[], dict[str, Any]]) -> dict[str, Any]:
     try:
         return collect()
-    except (RuntimeError, LookupError, KeyError, ValueError) as error:
+    except (RuntimeError, LookupError, KeyError, ValueError, re.error) as error:
         print(f"{repo}: {error}", file=sys.stderr)
         return {"repo": repo, "error": str(error)}
 
@@ -119,7 +120,7 @@ def _clone_signal_records(key: str, settings: FleetSettings, repos: list[str]) -
 
 
 def run_clone_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
-    """A signal whose every fork failed is not written, so the last good view stays published."""
+    """A signal whose every fork failed is not written, so its last good view stays published; the others still are."""
     failed = []
     for key in settings.enabled_signals(CLONE):
         records = _clone_signal_records(key, settings, args.repo)

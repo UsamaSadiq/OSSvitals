@@ -3,7 +3,7 @@ from jsonschema import ValidationError
 
 from collectors.fleet import meta
 from collectors.fleet.registry import SIGNALS
-from collectors.fleet.settings import DEFAULTS_PATH, FleetConfigError, build_settings, load_settings, merge
+from collectors.fleet.settings import DEFAULTS_PATH, FleetConfigError, build_settings, load_settings, merge, read_override
 from dashboard.lib.config import read_config_file
 
 DEFAULTS = read_config_file(DEFAULTS_PATH)
@@ -74,3 +74,20 @@ def test_the_manifest_lists_off_signals_as_not_collected_and_not_shown():
 def test_a_misspelt_setting_inside_a_signal_is_rejected():
     with pytest.raises(ValidationError):
         settings({"signals": {"upstream_activity": {"quiet_dayz": 1}}})
+
+
+def test_a_missing_or_broken_tenant_file_stops_the_run(tmp_path):
+    with pytest.raises(FleetConfigError, match="missing"):
+        read_override(tmp_path / "fleet.yaml")
+    broken = tmp_path / "broken.yaml"
+    broken.write_text("branches:\n  production: [unclosed\n")
+    with pytest.raises(FleetConfigError, match="not valid YAML"):
+        read_override(broken)
+    empty = tmp_path / "empty.yaml"
+    empty.write_text("")
+    assert read_override(empty) == {}
+
+
+def test_an_invalid_fork_release_pattern_is_a_config_error():
+    with pytest.raises(FleetConfigError, match="fork_release_tag"):
+        settings({"fork_release_tag": "^v(\\d+$"})

@@ -36,12 +36,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to data branch
+        # Runs after a failed collect too: a signal that failed for every fork wrote nothing, the others still publish.
+        if: ${{ !cancelled() }}
         run: |
+          shopt -s nullglob
+          views=("$OUT_DIR"/views/*.json)
+          if [ ${#views[@]} -eq 0 ]; then
+            echo "No weekly fleet signal wrote a view."
+            exit 0
+          fi
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch
           mkdir -p "data-branch/$ORG/views"
-          cp "$OUT_DIR"/views/*.json "data-branch/$ORG/views/"
+          cp "${views[@]}" "data-branch/$ORG/views/"
           cd data-branch
           git add "$ORG/views"
           if git diff --cached --quiet; then

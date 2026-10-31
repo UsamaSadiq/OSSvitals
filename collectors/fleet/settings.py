@@ -1,8 +1,12 @@
 """A fleet tenant's settings: the kind defaults with the tenant's ``fleet.yaml`` merged over them."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+
+import yaml
 
 from collectors.fleet.registry import BY_KEY, SIGNALS
 from dashboard.lib.config import CONFIG_DIR, read_config_file
@@ -68,10 +72,19 @@ def _lookup(values: dict[str, Any], dotted: str) -> Any:
     return values
 
 
+def _invalid_patterns(values: dict[str, Any]) -> list[str]:
+    try:
+        re.compile(values["fork_release_tag"])
+    except re.error as error:
+        return [f"fork_release_tag is not a valid regex: {error}"]
+    return []
+
+
 def _problems(values: dict[str, Any]) -> list[str]:
     on = {key for key, signal in values["signals"].items() if signal["collect"]}
     problems = [f"signal {key} needs {need}, which is off" for key in on for need in BY_KEY[key].needs if need not in on]
     problems += [f"signal {key} needs {path}" for key in on for path in BY_KEY[key].requires if _lookup(values, path) is None]
+    problems += _invalid_patterns(values)
     for status in values["statuses"]:
         for threshold in status:
             owner = _threshold_owner(threshold)
@@ -93,5 +106,18 @@ def build_settings(org: str, defaults: dict[str, Any], override: dict[str, Any])
     return FleetSettings(org, values)
 
 
+def read_override(path: Path) -> dict[str, Any]:
+    """A tenant file that is missing or unreadable must stop the run, not fall back to defaults that publish wrong data."""
+    if not path.is_file():
+        raise FleetConfigError(f"{path} is missing")
+    try:
+        override = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as error:
+        raise FleetConfigError(f"{path} is not valid YAML: {error}") from error
+    if not isinstance(override, dict):
+        raise FleetConfigError(f"{path} must be a mapping")
+    return override
+
+
 def load_settings(org: str) -> FleetSettings:
-    return build_settings(org, read_config_file(DEFAULTS_PATH), read_config_file(CONFIG_DIR / org / f"{KIND}.yaml"))
+    return build_settings(org, read_config_file(DEFAULTS_PATH), read_override(CONFIG_DIR / org / f"{KIND}.yaml"))
