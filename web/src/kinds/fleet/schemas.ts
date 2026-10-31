@@ -152,6 +152,18 @@ export const driftSchema = z
 export const historySchema = view(historyRow);
 export const updatesSchema = view(update);
 export const conflictsSchema = view(conflictRecord);
+const patchItem = z.object({ sha: z.string(), date: nullableString, subject: z.string() });
+const carriedRecord = z.object({
+  repo: z.string(),
+  error: z.string().optional(),
+  compared: z.boolean().optional(),
+  commits: z.number().int().optional(),
+  carried: z.number().int().nullish(),
+  already_upstream: z.number().int().nullish(),
+  carried_items: z.array(patchItem).optional(),
+  already_upstream_items: z.array(patchItem).optional(),
+});
+export const carriedSchema = view(carriedRecord);
 
 const manifestSignal = z.object({
   collect: z.boolean(),
@@ -185,3 +197,5 @@ export type FleetMetaView = z.infer<typeof fleetMetaSchema>;
 export type FleetManifest = NonNullable<FleetMetaView["fleet"]>;
 export type ManifestSignal = z.infer<typeof manifestSignal>;
 export type ManifestStatus = z.infer<typeof manifestStatus>;
+export type CarriedRecord = z.infer<typeof carriedRecord>;
+export type CarriedView = z.infer<typeof carriedSchema>;

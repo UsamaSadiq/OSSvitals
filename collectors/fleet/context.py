@@ -3,9 +3,10 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from functools import cached_property
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
-from collectors.fleet import fork
+from collectors.fleet import conflicts, fork
 from collectors.fleet.release_gap import release_gap
 
 if TYPE_CHECKING:
@@ -29,6 +30,7 @@ class ForkContext:
         merged_by: MergedBy = lambda *_: None,
         previous: dict[str, Any] | None = None,
         feeds: Feeds | None = None,
+        workspace: Path | None = None,
     ) -> None:
         self.api = api
         self.org = org
@@ -38,6 +40,8 @@ class ForkContext:
         self.merged_by = merged_by
         self.previous = previous
         self.feeds = feeds
+        self.workspace = workspace
+        self._clone: Path | Exception | None = None
         self.base = f"repos/{org}/{app['repo']}"
         self.upstream = app["upstream"]
         self.owner = self.upstream.split("/")[0]
@@ -73,6 +77,41 @@ class ForkContext:
     @cached_property
     def upstream_release(self) -> dict[str, Any] | None:
         return fork.latest_upstream_release(self.api, self.upstream, self.upstream_releases, self.upstream_pattern)
+
+    @property
+    def fork_url(self) -> str:
+        return f"https://github.com/{self.org}/{self.app['repo']}.git"
+
+    @property
+    def upstream_url(self) -> str:
+        return f"https://github.com/{self.upstream}.git"
+
+    @cached_property
+    def clone_release_tag(self) -> str | None:
+        """Upstream's newest release on the first releases page, as the weekly conflict forecast has always used."""
+        releases = fork.upstream_releases(self.api, self.upstream)
+        release = fork.latest_upstream_release(self.api, self.upstream, releases)
+        return release["tag"] if release else None
+
+    @property
+    def clone(self) -> Path:
+        """One blob-less clone holding our production branch and upstream's head and release, shared by the weekly
+        signals of this fork; a failed clone fails each of them the same way instead of being retried."""
+        if self._clone is None:
+            self._clone = self._prepare_clone()
+        if isinstance(self._clone, Exception):
+            raise self._clone
+        return self._clone
+
+    def _prepare_clone(self) -> Path | Exception:
+        if self.workspace is None:
+            return RuntimeError("no clone workspace for this run")
+        directory = self.workspace / "clone.git"
+        try:
+            conflicts.prepare_clone(directory, self.fork_url, self.production, self.upstream_url, self.app["upstream_branch"], self.clone_release_tag)
+        except RuntimeError as error:
+            return error
+        return directory
 
     @cached_property
     def upstream_advisories(self) -> list[dict[str, Any]]:

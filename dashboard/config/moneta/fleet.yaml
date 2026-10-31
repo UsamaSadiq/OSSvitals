@@ -8,3 +8,5 @@ signals:
     collect: true
   exploitability:
     collect: true
+  carried_patches:
+    collect: true

@@ -1,0 +1,41 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "org": "moneta",
+    "generated_at": "2026-08-31T08:00:00+00:00",
+    "snapshot_timestamp": "2026-08-31T08:00:00+00:00",
+    "source": "github-api"
+  },
+  "records": [
+    {
+      "repo": "alpha",
+      "compared": true,
+      "commits": 12,
+      "carried": 9,
+      "already_upstream": 3,
+      "carried_items": [
+        {
+          "sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+          "date": "2026-08-20",
+          "subject": "Add Moneta single sign-on"
+        }
+      ],
+      "already_upstream_items": [
+        {
+          "sha": "f1e2d3c4b5a69788796a5b4c3d2e1f0987654321",
+          "date": "2026-08-12",
+          "subject": "Fix a crash when exporting"
+        }
+      ]
+    },
+    {
+      "repo": "beta",
+      "compared": true,
+      "commits": 4,
+      "carried": 4,
+      "already_upstream": 0,
+      "carried_items": [],
+      "already_upstream_items": []
+    }
+  ]
+}

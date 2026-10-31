@@ -2,7 +2,9 @@ import type { ReactNode } from "react";
 import { useTenant } from "../../tenants/context";
 import { badgeMarkdown } from "./paths";
 import { formatDay, pluralise } from "./rows";
-import type { AdvisoryItem, ConflictRecord, DriftRecord } from "./schemas";
+import type { AdvisoryItem, CarriedRecord, ConflictRecord, DriftRecord } from "./schemas";
+
+type PatchItem = NonNullable<CarriedRecord["carried_items"]>[number];
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -74,6 +76,44 @@ export function Conflicts({ record }: { record: ConflictRecord | undefined }) {
           ))}
         </ul>
       )}
+    </Section>
+  );
+}
+
+function PatchList({ label, items, commitUrl }: { label: string; items: readonly PatchItem[]; commitUrl: (sha: string) => string }) {
+  if (items.length === 0) return null;
+  return (
+    <>
+      <h3 className="detail-subheading">{label}</h3>
+      <ul className="detail-list" aria-label={label}>
+      {items.map((item) => (
+        <li key={item.sha}>
+          <a href={commitUrl(item.sha)} target="_blank" rel="noreferrer">
+            {item.subject}
+          </a>
+          {item.date && <span className="caption">{` ${formatDay(item.date)}`}</span>}
+        </li>
+      ))}
+      </ul>
+    </>
+  );
+}
+
+function carriedSummary(record: CarriedRecord): string {
+  const commits = pluralise(record.commits ?? 0, "commit");
+  if (!record.compared) return `${commits} of our own. Too many to compare with upstream this week.`;
+  return `${commits} of our own: ${record.carried ?? 0} carried, ${record.already_upstream ?? 0} already in upstream, which drop at the next sync.`;
+}
+
+export function CarriedPatches({ record, repoUrl }: { record: CarriedRecord | undefined; repoUrl: string }) {
+  if (!record || record.error) return null;
+  const commitUrl = (sha: string) => `${repoUrl}/commit/${sha}`;
+  return (
+    <Section id="carried-heading" title="Carried patches">
+      <p className="caption">Checked weekly by comparing each of our commits with upstream's changes since our last sync. Newest first, up to 20 each.</p>
+      <p>{carriedSummary(record)}</p>
+      <PatchList label="Already in upstream" items={record.already_upstream_items ?? []} commitUrl={commitUrl} />
+      <PatchList label="Carried" items={record.carried_items ?? []} commitUrl={commitUrl} />
     </Section>
   );
 }

@@ -79,3 +79,7 @@ signals:
   conflicts:
     collect: true
     show: ["detail", "attention"]
+  carried_patches:
+    collect: false
+    show: ["detail", "overview_tile"]
+    max_prefetch_blobs: 20000

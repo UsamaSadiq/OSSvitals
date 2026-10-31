@@ -1,7 +1,10 @@
 """Assemble a fork record: the core distance fields, each enabled signal's fields, then the status."""
 from __future__ import annotations
 
+import sys
+import tempfile
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from collectors.fleet.context import Api, ForkContext, MergedBy
@@ -55,12 +58,26 @@ def collect_fork(
     return {**record, "status": classify(settings.statuses, drift), "status_basis": drift.basis}
 
 
-def collect_clone_signal(
-    key: str,
+CLONE_ERRORS = (RuntimeError, LookupError, KeyError, ValueError)
+
+
+def _clone_record(key: str, ctx: ForkContext) -> dict[str, Any]:
+    try:
+        return {"repo": ctx.app["repo"], **BY_KEY[key].collect(ctx)}
+    except CLONE_ERRORS as error:
+        print(f"{ctx.app['repo']} {key}: {error}", file=sys.stderr)
+        return {"repo": ctx.app["repo"], "error": str(error)}
+
+
+def collect_clone_signals(
+    keys: list[str],
     api: Api,
     org: str,
     app: dict[str, Any],
     settings: FleetSettings,
     now: datetime,
-) -> dict[str, Any]:
-    return {"repo": app["repo"], **BY_KEY[key].collect(ForkContext(api, org, app, settings, now))}
+) -> dict[str, dict[str, Any]]:
+    """Every weekly signal of one fork from one clone; a signal that fails records the error for this fork only."""
+    with tempfile.TemporaryDirectory() as workspace:
+        ctx = ForkContext(api, org, app, settings, now, workspace=Path(workspace))
+        return {key: _clone_record(key, ctx) for key in keys}
