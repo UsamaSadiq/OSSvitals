@@ -41,6 +41,11 @@ describe("checkViews", () => {
     expect(results.find((result) => result.file === "meta.json")).toMatchObject({ outcome: "fail", message: expect.stringMatching(/schema_version 99/) });
   });
 
+  it("marks which failures are in optional views", async () => {
+    const results = await checkViews("fleet", async (file) => (file === "updates.json" ? {} : fixture(file)));
+    expect(results.filter((result) => result.outcome === "fail").map(({ file, required }) => [file, required])).toEqual([["updates.json", false]]);
+  });
+
   it("requires every health view", async () => {
     const results = await checkViews("health", readFrom({}));
     expect(results.length).toBeGreaterThan(0);

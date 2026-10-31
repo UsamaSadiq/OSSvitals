@@ -41,14 +41,9 @@ jobs:
       - name: Fetch data
         working-directory: .
         run: scripts/data_branch_export.sh web/public/data
-      # The bundled data is only a fallback for the data host, so a tenant whose views fail is left out of the
-      # bundle (exit 3) with a warning instead of blocking the deploy; sync-data.yml fails loudly for it.
-      - name: Validate every tenant's views
-        run: |
-          status=0
-          npm run validate-data -- --prune || status=$?
-          if [ "$status" -eq 3 ]; then echo "::warning::Some tenants' views failed validation and were left out of the bundle."; exit 0; fi
-          exit "$status"
+      # A required view that does not match the code's schemas blocks the deploy: the change would break the site.
+      # An optional fleet view that fails is dropped from the bundled fallback instead, as the pages treat it as absent.
+      - run: npm run validate-data -- --allow-optional
       - run: npm run build
         env:
           VITE_DATA_BASE: https://data.ossvitals.org

@@ -37,7 +37,7 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm install --global wrangler@4.146.0
       - run: scripts/data_branch_export.sh "$RUNNER_TEMP/data"
-      # A tenant whose views fail their schemas keeps its last good copy in the bucket: --prune leaves its views
+      # A tenant whose views fail their schemas keeps its last good copy in the bucket: --prune leaves its folder
       # out of this upload (exit 3), the other tenants still sync, and the run fails afterwards so it gets noticed.
       # Any other non-zero exit means the check itself broke, so nothing is uploaded.
       - name: Validate every tenant's views

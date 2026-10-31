@@ -5,7 +5,7 @@ import { VIEW_NAMES, viewFileName } from "./schemas.ts";
 
 export type TenantKind = "health" | "fleet";
 export type ReadView = (file: string) => Promise<unknown | undefined>;
-export type ViewCheck = { file: string; outcome: "ok" | "absent" | "fail"; message?: string };
+export type ViewCheck = { file: string; required: boolean; outcome: "ok" | "absent" | "fail"; message?: string };
 
 interface Check {
   file: string;
@@ -32,19 +32,19 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function failure(file: string, error: unknown): ViewCheck {
+function failure({ file, required }: Check, error: unknown): ViewCheck {
   const message = describe(error);
-  return { file, outcome: "fail", message: message.startsWith(`${file}:`) ? message : `${file}: ${message}` };
+  return { file, required, outcome: "fail", message: message.startsWith(`${file}:`) ? message : `${file}: ${message}` };
 }
 
 async function runCheck(check: Check, read: ReadView): Promise<ViewCheck> {
   try {
     const raw = await read(check.file);
-    if (raw === undefined) return check.required ? failure(check.file, "missing") : { file: check.file, outcome: "absent" };
+    if (raw === undefined) return check.required ? failure(check, "missing") : { file: check.file, required: false, outcome: "absent" };
     check.parse(raw);
-    return { file: check.file, outcome: "ok" };
+    return { file: check.file, required: check.required, outcome: "ok" };
   } catch (error) {
-    return failure(check.file, error);
+    return failure(check, error);
   }
 }
 
