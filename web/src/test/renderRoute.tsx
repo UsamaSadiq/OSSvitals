@@ -4,7 +4,7 @@ import { metaFixture } from "../data/fixtures";
 import { toSiteMeta } from "../data/siteMeta";
 import { DEFAULT_SITE_META, SiteMetaProvider, type SiteMeta } from "../layout/siteMeta";
 import { TenantProvider } from "../tenants/context";
-import { openedxTenant } from "../tenants/openedx";
+import { healthTenant } from "../kinds/health";
 import type { Tenant } from "../tenants/types";
 
 const { name, shortName, tagline, title, githubOrg, unmaintainedGroup, scoresFileUrl, provenance, catalog, footer } =
@@ -24,7 +24,7 @@ export const OPENEDX_SITE_META: SiteMeta = {
   footer,
 };
 
-export function renderRoute(path: string, meta: SiteMeta = OPENEDX_SITE_META, tenant: Tenant = openedxTenant) {
+export function renderRoute(path: string, meta: SiteMeta = OPENEDX_SITE_META, tenant: Tenant = healthTenant("openedx")) {
   const router = createMemoryRouter(tenant.routes, { initialEntries: [path] });
   const rendered = render(
     <TenantProvider tenant={tenant}>

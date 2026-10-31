@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
 import type { RouteObject } from "react-router";
 import { Shell } from "../../layout/Shell";
-import { MaintainerOnly } from "../../pages/MaintainerOnly";
 import { NotFound } from "../../pages/NotFound";
 import { Overview } from "../../pages/Overview/Overview";
 import { NAV_SECTIONS, SUB_PAGES } from "../../pages/catalog";
+import { ListedPage } from "../../pages/ListedPage";
 import { PageLoader, PORTED_PAGES } from "../../pages/lazyPages";
-import type { PageEntry, Tenant } from "../types";
-import { OPENEDX_NAV_COUNTS } from "./counts";
-import { OpenedxPaletteHost } from "./PaletteHost";
+import type { PageEntry, Tenant } from "../../tenants/types";
+import { HEALTH_NAV_COUNTS } from "./counts";
+import { HealthPaletteHost } from "./PaletteHost";
 
 function pageBody(page: PageEntry): ReactNode {
   const ported = PORTED_PAGES[page.path];
@@ -16,8 +16,7 @@ function pageBody(page: PageEntry): ReactNode {
 }
 
 function pageElement(page: PageEntry): ReactNode {
-  const body = pageBody(page);
-  return page.maintainerOnly ? <MaintainerOnly>{body}</MaintainerOnly> : body;
+  return <ListedPage page={page}>{pageBody(page)}</ListedPage>;
 }
 
 const routes: RouteObject[] = [
@@ -31,15 +30,17 @@ const routes: RouteObject[] = [
   },
 ];
 
-export const openedxTenant: Tenant = {
-  org: "openedx",
-  sections: NAV_SECTIONS,
-  routes,
-  navCounts: OPENEDX_NAV_COUNTS,
-  PaletteHost: OpenedxPaletteHost,
-  paletteCopy: {
-    placeholder: "Search repositories, checks, owners, pages…",
-    ariaLabel: "Search pages, repositories, checks and owners",
-    loadingNote: "Loading repositories, checks and owners…",
-  },
-};
+export function healthTenant(org: string): Tenant {
+  return {
+    org,
+    sections: NAV_SECTIONS,
+    routes,
+    navCounts: HEALTH_NAV_COUNTS,
+    PaletteHost: HealthPaletteHost,
+    paletteCopy: {
+      placeholder: "Search repositories, checks, owners, pages…",
+      ariaLabel: "Search pages, repositories, checks and owners",
+      loadingNote: "Loading repositories, checks and owners…",
+    },
+  };
+}

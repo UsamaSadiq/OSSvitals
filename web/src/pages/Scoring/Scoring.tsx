@@ -5,6 +5,7 @@ import { ShareLink } from "../../components/ShareLink";
 import type { ScoringView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
+import { useTenantOrg } from "../../tenants/context";
 import { Independence } from "./Independence";
 import { GradeBands, Intro, Limitations, Metrics, MissingData } from "./MethodSections";
 import { ProposedSection } from "./ProposedSection";
@@ -13,13 +14,14 @@ import { WeightsSection } from "./WeightsSection";
 import "./scoring.css";
 
 function NoScoringConfig() {
+  const org = useTenantOrg();
   return (
     <EmptyState
       kind="error"
       title="No scoring configuration found."
       body={
         <>
-          Expected <code>dashboard/config/openedx/scoring.yaml</code> with a <code>metrics</code> section.
+          Expected <code>dashboard/config/{org}/scoring.yaml</code> with a <code>metrics</code> section.
         </>
       }
     />

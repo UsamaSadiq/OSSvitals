@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { isPageVisible, visibleSections } from "../pages/catalog";
 import { OPENEDX_SITE_META, renderRoute } from "../test/renderRoute";
 import { fleetTenant } from "../kinds/fleet";
-import { openedxTenant } from "./openedx";
+import { healthTenant } from "../kinds/health";
 import { buildRegistry, tenantFor } from "./registry";
 
 const requested = vi.hoisted(() => [] as string[]);
@@ -18,8 +18,14 @@ vi.mock("../data/useView", () => ({
 describe("tenant registry", () => {
   it("returns the matching tenant and falls back to openedx for unknown orgs", () => {
     expect(tenantFor("moneta")).toMatchObject({ org: "moneta", paletteCopy: fleetTenant("moneta").paletteCopy });
-    expect(tenantFor("openedx")).toBe(openedxTenant);
-    expect(tenantFor("someone-else")).toBe(openedxTenant);
+    expect(tenantFor("openedx")).toMatchObject({ org: "openedx", paletteCopy: healthTenant("openedx").paletteCopy });
+    expect(tenantFor("someone-else")).toBe(tenantFor("openedx"));
+  });
+
+  it("serves a new health org from the index alone, with no code of its own", () => {
+    const lookup = buildRegistry({ acme: { kind: "health", site: "https://acme.ossvitals.org" } });
+    expect(lookup("acme")).toMatchObject({ org: "acme", sections: healthTenant("acme").sections });
+    expect(lookup("unknown").org).toBe("openedx");
   });
 
   it("serves a new fleet org from the index alone, with no code of its own", () => {
