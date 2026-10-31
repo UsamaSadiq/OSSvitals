@@ -40,6 +40,12 @@ export const SIGNAL_CATALOGUE = [
     failureField: "licence_watch",
   },
   {
+    key: "upstream_health",
+    label: "Upstream health",
+    description: "How many people do most of upstream's work and how often it releases. Shown for context, never scored.",
+    failureField: "upstream_health",
+  },
+  {
     key: "exploitability",
     label: "Known exploited",
     description: "Upstream advisories that apply to our code and appear in CISA's catalog of known exploited vulnerabilities. Collected daily from CISA.",

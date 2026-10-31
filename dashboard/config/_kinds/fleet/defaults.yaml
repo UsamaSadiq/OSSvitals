@@ -76,6 +76,9 @@ signals:
     collect: false
     show: ["card", "detail", "attention"]
     max_age_days: 7
+  upstream_health:
+    collect: false
+    show: ["detail"]
   conflicts:
     collect: true
     show: ["detail", "attention"]

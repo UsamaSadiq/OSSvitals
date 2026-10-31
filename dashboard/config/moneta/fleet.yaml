@@ -12,3 +12,5 @@ signals:
     collect: true
   upgrade_risk:
     collect: true
+  upstream_health:
+    collect: true

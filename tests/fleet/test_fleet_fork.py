@@ -63,6 +63,7 @@ ROUTES = {
     ],
     "repos/up/demo": {"pushed_at": "2026-04-01T00:00:00Z"},
     "repos/up/demo/license?ref=main": {"path": "LICENSE", "sha": "lic1", "license": {"spdx_id": "MIT"}},
+    "repos/up/demo/stats/contributors": [{"author": {"login": "ann", "type": "User"}, "weeks": [{"w": 1790000000, "c": 3}]}],
 }
 
 

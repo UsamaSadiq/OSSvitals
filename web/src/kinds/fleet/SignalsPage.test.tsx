@@ -66,6 +66,7 @@ const DRIFT = {
   upstream_activity: { pushed_at: "2026-10-01T00:00:00Z", idle_days: 11, quiet: false },
   licence_watch: { present: true, path: "LICENSE", sha: "s1", spdx: "AGPL-3.0", declared: "AGPL-3.0", matches_declared: true, changed_on: null, previous_spdx: null },
   exploitability: { basis: "release", considered: 3, without_cve: 1, known_exploited: [], kev_as_of: "2026-10-12", kev_from_cache: false },
+  upstream_health: { contributors: { commits: 900, people: 20, half_of_commits_by: 2, top_share: 0.4 }, releases: { last_year: 6, days_since_latest: 12, median_gap_days: 50 } },
 };
 
 const CONFLICTS = [
@@ -142,6 +143,7 @@ const DETAIL_MARKERS: Record<SignalKey, string> = {
   upstream_activity: "Upstream activity",
   licence_watch: "Upstream licence",
   exploitability: "Known exploited",
+  upstream_health: "Upstream health",
   conflicts: "Sync forecast",
   carried_patches: "Carried patches",
   upgrade_risk: "Upgrade risk",

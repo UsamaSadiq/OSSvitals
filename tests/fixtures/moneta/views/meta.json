@@ -198,6 +198,16 @@
           "max_age_days": 7
         }
       },
+      "upstream_health": {
+        "collect": true,
+        "show": [
+          "detail"
+        ],
+        "tier": "api",
+        "cadence": "daily",
+        "thresholds": [],
+        "settings": {}
+      },
       "conflicts": {
         "collect": true,
         "show": [

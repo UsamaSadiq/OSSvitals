@@ -108,6 +108,19 @@
         "known_exploited": [],
         "kev_as_of": "2026-08-31",
         "kev_from_cache": false
+      },
+      "upstream_health": {
+        "contributors": {
+          "commits": 1240,
+          "people": 38,
+          "half_of_commits_by": 4,
+          "top_share": 0.21
+        },
+        "releases": {
+          "last_year": 14,
+          "days_since_latest": 11,
+          "median_gap_days": 24
+        }
       }
     },
     {
@@ -179,6 +192,19 @@
         "known_exploited": [],
         "kev_as_of": "2026-08-31",
         "kev_from_cache": false
+      },
+      "upstream_health": {
+        "contributors": {
+          "commits": 1240,
+          "people": 38,
+          "half_of_commits_by": 4,
+          "top_share": 0.21
+        },
+        "releases": {
+          "last_year": 14,
+          "days_since_latest": 11,
+          "median_gap_days": 24
+        }
       }
     },
     {
@@ -250,6 +276,19 @@
         "known_exploited": [],
         "kev_as_of": "2026-08-31",
         "kev_from_cache": false
+      },
+      "upstream_health": {
+        "contributors": {
+          "commits": 1240,
+          "people": 38,
+          "half_of_commits_by": 4,
+          "top_share": 0.21
+        },
+        "releases": {
+          "last_year": 14,
+          "days_since_latest": 11,
+          "median_gap_days": 24
+        }
       }
     }
   ]
