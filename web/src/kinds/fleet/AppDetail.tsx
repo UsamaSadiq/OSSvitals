@@ -152,6 +152,11 @@ function LicenceFact({ row }: { row: ForkRow }) {
   );
 }
 
+function listedText(item: { date_added?: string | null; certain?: boolean | null }): string {
+  const parts = [item.date_added ? `listed ${formatDay(item.date_added)}` : null, item.certain === false ? "may apply" : null].filter(Boolean);
+  return parts.length > 0 ? ` (${parts.join(", ")})` : "";
+}
+
 function ExploitedFact({ row }: { row: ForkRow }) {
   const { app, drift } = row;
   const exploitability = drift.exploitability;
@@ -165,7 +170,7 @@ function ExploitedFact({ row }: { row: ForkRow }) {
             <span key={`${item.ghsa_id ?? item.cve_id}-${index}`}>
               {index > 0 && ", "}
               {item.ghsa_id && app.upstream_url ? external(advisoryUrl(app.upstream_url, item.ghsa_id), item.cve_id) : item.cve_id}
-              {item.date_added && ` (listed ${formatDay(item.date_added)}${item.certain === false ? ", may apply" : ""})`}
+              {listedText(item)}
             </span>
           ))}
       <span className="app-fact__note">{checkedText(exploitability)}</span>

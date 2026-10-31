@@ -81,14 +81,20 @@ class Feeds:
             return self._kev
 
     def _load_kev(self) -> None:
-        raw = self._fetch_kev()
-        fetched = compact_kev(raw, self._now) if raw else None
+        fetched = self._compact_or_none(self._fetch_kev())
         if fetched and fetched["added"]:
             self._kev_compact = fetched
             self._kev = _catalogue(fetched, from_cache=False)
         elif fresh_enough(self._kev_cache, self._now, self._max_age_days):
             self._kev_compact = self._kev_cache
             self._kev = _catalogue(self._kev_cache, from_cache=True)
+
+    def _compact_or_none(self, raw: dict[str, Any] | None) -> dict[str, Any] | None:
+        """A live payload that cannot be read is treated like a failed fetch, so the cached copy still applies."""
+        try:
+            return compact_kev(raw, self._now) if raw else None
+        except (TypeError, KeyError, AttributeError):
+            return None
 
     def kev_cache_to_publish(self) -> dict[str, Any] | None:
         """The copy the next run falls back to; a cached copy keeps its original fetch time so it still ages out."""
