@@ -1,27 +1,51 @@
 name: Collect fleet weekly signals
 
-# Weekly: runs a fleet tenant's `clone` signals (today `conflicts`: blob-less clones of each fork and
-# its upstream plus `git merge-tree`, no worktree checked out). Each signal publishes
-# <org>/views/<signal>.json to the orphan `data` branch. Read-only for the tenant's repos.
+# Weekly, for every fleet tenant in dashboard/config/tenants.json: runs the `clone` signals its
+# fleet.yaml enables (today `conflicts`: blob-less clones of each fork and its upstream plus
+# `git merge-tree`, no worktree checked out). Each signal publishes <org>/views/<signal>.json to
+# the orphan `data` branch. Read-only for the tenant's repos.
 
 on:
   schedule:
     - cron: "41 6 * * 1"
   workflow_dispatch:
 
-concurrency:
-  group: collect-fleet-weekly-moneta
-  cancel-in-progress: false
-
 permissions:
   contents: write
 
 jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      orgs: ${{ steps.list.outputs.orgs }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - id: list
+        run: |
+          orgs=$(python scripts/list_tenants.py --kind fleet)
+          echo "orgs=$orgs" >> "$GITHUB_OUTPUT"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
   collect:
+    needs: discover
+    if: ${{ needs.discover.outputs.orgs != '[]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        org: ${{ fromJSON(needs.discover.outputs.orgs) }}
+    concurrency:
+      group: collect-fleet-weekly-${{ matrix.org }}
+      cancel-in-progress: false
     env:
-      ORG: moneta
+      ORG: ${{ matrix.org }}
       OUT_DIR: ${{ github.workspace }}/out/fleet
     steps:
       - uses: actions/checkout@v4
@@ -47,16 +71,23 @@ jobs:
           fi
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch
-          mkdir -p "data-branch/$ORG/views"
-          cp "${views[@]}" "data-branch/$ORG/views/"
-          cd data-branch
-          git add "$ORG/views"
-          if git diff --cached --quiet; then
-            echo "$ORG weekly signals unchanged."
-            exit 0
-          fi
-          git commit -m "chore(data): update $ORG weekly fleet signals $(date -u +%F)"
-          git push origin data
+          publish() {
+            rm -rf data-branch
+            git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch || return 1
+            mkdir -p "data-branch/$ORG/views" || return 1
+            cp "${views[@]}" "data-branch/$ORG/views/" || return 1
+            git -C data-branch add "$ORG/views" || return 1
+            if git -C data-branch diff --cached --quiet; then
+              echo "$ORG weekly signals unchanged."
+              return 0
+            fi
+            git -C data-branch commit -m "chore(data): update $ORG weekly fleet signals $(date -u +%F)" || return 1
+            git -C data-branch push origin data
+          }
+          for attempt in 1 2 3; do
+            publish && exit 0
+            echo "Publish attempt $attempt failed; retrying from a fresh clone."
+          done
+          exit 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

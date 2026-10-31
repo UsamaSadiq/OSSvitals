@@ -19,7 +19,7 @@ Requests are rate limited per client IP (100 per minute); excess requests get `4
 ## Tools
 
 Every endpoint has `list_tenants`. Every tenant endpoint also has `report_issue`. The rest depend on the
-tenant kind set in `src/tenants.ts`.
+tenant kind set in `dashboard/config/tenants.json`.
 
 | Tool | Arguments | Returns |
 |---|---|---|
@@ -35,7 +35,7 @@ Health tenants (`openedx`):
 | `get_check` | `check` | description, pass rate, remediation snippet and PR template when defined |
 | `list_needing_attention` | `page`, `page_size` | repos flagged by the attention rules with their reasons |
 
-Drift tenants (`moneta`):
+Fleet tenants (`moneta`):
 
 | Tool | Arguments | Returns |
 |---|---|---|

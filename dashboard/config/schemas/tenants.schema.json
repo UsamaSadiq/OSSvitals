@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Every tenant the web app, the MCP server and the collector workflows serve, keyed by org (its dashboard/config folder).",
+  "type": "object",
+  "minProperties": 1,
+  "propertyNames": {"pattern": "^[a-z0-9][a-z0-9-]*$"},
+  "additionalProperties": {
+    "type": "object",
+    "required": ["kind", "site"],
+    "properties": {
+      "kind": {"enum": ["health", "fleet"]},
+      "site": {"type": "string", "pattern": "^https://[a-z0-9.-]+$"}
+    },
+    "additionalProperties": false
+  }
+}

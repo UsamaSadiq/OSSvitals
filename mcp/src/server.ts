@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { tenantFor, type TenantKind } from "./tenants.ts";
 import { registerCommonTools } from "./tools/common.ts";
-import { registerDriftTools } from "./tools/drift.ts";
+import { registerFleetTools } from "./tools/fleet.ts";
 import { registerFeedbackTools } from "./tools/feedback.ts";
 import { registerHealthTools } from "./tools/health.ts";
 import type { ViewDeps } from "./views.ts";
@@ -15,7 +15,7 @@ const INSTRUCTIONS = [
 
 const REGISTER_BY_KIND: Record<TenantKind, (server: McpServer, org: string, deps: ViewDeps) => void> = {
   health: registerHealthTools,
-  drift: registerDriftTools,
+  fleet: registerFleetTools,
 };
 
 export function buildServer(org: string | null, deps: ViewDeps, origin: string): McpServer {

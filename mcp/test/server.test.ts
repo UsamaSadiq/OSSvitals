@@ -71,6 +71,7 @@ describe("mcp worker", () => {
       endpoint: "https://mcp.ossvitals.org/openedx/mcp",
       generated_at: "2026-09-01T00:00:00+00:00",
     });
+    expect(listing[1]).toMatchObject({ org: "moneta", kind: "fleet", site: "https://moneta.ossvitals.org" });
     await client.close();
   });
 

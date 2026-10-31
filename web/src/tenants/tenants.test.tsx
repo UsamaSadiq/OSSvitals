@@ -4,7 +4,7 @@ import { isPageVisible, visibleSections } from "../pages/catalog";
 import { OPENEDX_SITE_META, renderRoute } from "../test/renderRoute";
 import { fleetTenant } from "../kinds/fleet";
 import { openedxTenant } from "./openedx";
-import { tenantFor } from "./registry";
+import { buildRegistry, tenantFor } from "./registry";
 
 const requested = vi.hoisted(() => [] as string[]);
 
@@ -20,6 +20,12 @@ describe("tenant registry", () => {
     expect(tenantFor("moneta")).toMatchObject({ org: "moneta", paletteCopy: fleetTenant("moneta").paletteCopy });
     expect(tenantFor("openedx")).toBe(openedxTenant);
     expect(tenantFor("someone-else")).toBe(openedxTenant);
+  });
+
+  it("serves a new fleet org from the index alone, with no code of its own", () => {
+    const lookup = buildRegistry({ acme: { kind: "fleet", site: "https://acme.ossvitals.org" } });
+    expect(lookup("acme")).toMatchObject({ org: "acme", paletteCopy: fleetTenant("acme").paletteCopy });
+    expect(lookup("acme")).toBe(lookup("acme"));
   });
 });
 

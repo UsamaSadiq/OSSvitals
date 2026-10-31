@@ -5,6 +5,7 @@ This directory contains OSSvitals configuration: global flags plus one folder pe
 ## Layout
 
 - `feature_flags.yaml`: global feature toggles.
+- `tenants.json`: every tenant with its kind (`health` or `fleet`) and site; bundled by the web app and the MCP server, read by the fleet workflows. JSON because both bundlers import it without a plugin.
 - `<org>/*.yaml`: one folder per tenant, named after the GitHub organization. At least `org_branding.yaml` is required; see [Adding a tenant](../../docs/RUNBOOK.md#adding-a-tenant).
   - `openedx/`: Open edX, a health tenant (scoring, checks, remediation, PR templates).
   - `moneta/`: Pressingly (Moneta), a fleet tenant: `apps.yaml` is the app inventory, `fleet.yaml` overrides the fleet defaults.
@@ -30,4 +31,5 @@ This directory contains OSSvitals configuration: global flags plus one folder pe
 - `strings.schema.json`
 - `org_branding.schema.json`
 - `fleet.schema.json` (merged fleet settings)
+- `tenants.schema.json`
 - `apps.schema.json`

@@ -1,14 +1,13 @@
-export type TenantKind = "health" | "drift";
+import index from "../../dashboard/config/tenants.json";
+
+export type TenantKind = "health" | "fleet";
 
 export interface Tenant {
   readonly kind: TenantKind;
   readonly site: string;
 }
 
-const TENANTS: Readonly<Record<string, Tenant>> = {
-  openedx: { kind: "health", site: "https://openedx.ossvitals.org" },
-  moneta: { kind: "drift", site: "https://moneta.ossvitals.org" },
-};
+const TENANTS = index as Readonly<Record<string, Tenant>>;
 
 export function tenantFor(org: string): Tenant | undefined {
   return Object.hasOwn(TENANTS, org) ? TENANTS[org] : undefined;

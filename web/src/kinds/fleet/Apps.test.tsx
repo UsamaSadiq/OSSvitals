@@ -190,3 +190,13 @@ describe("Moneta apps page app filter", () => {
     expect(screen.getByLabelText("Licence")).toBeTruthy();
   });
 });
+
+describe("Fleet apps page for another org", () => {
+  it("loads that org's own views", async () => {
+    renderRoute("/apps", META, fleetTenant("acme"));
+    await screen.findAllByRole("article");
+    const urls = vi.mocked(fetch).mock.calls.map(([url]) => String(url)).filter((url) => url.includes("/views/"));
+    expect(urls.length).toBeGreaterThan(0);
+    expect(urls.every((url) => url.includes("/acme/views/"))).toBe(true);
+  });
+});
