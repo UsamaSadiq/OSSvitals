@@ -27,6 +27,9 @@ on:
       - dashboard/config/*/redact.yaml
       - dashboard/lib/health_settings.py
       - dashboard/lib/kinds.py
+      - dashboard/lib/config.py
+      - dashboard/lib/merging.py
+      - dashboard/config/tenants.json
       - dashboard/config/_kinds/health/**
       - dashboard/config/*/health.yaml
       - dashboard/config/schemas/health.schema.json

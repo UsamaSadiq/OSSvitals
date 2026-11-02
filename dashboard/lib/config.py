@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 from functools import lru_cache
@@ -7,6 +8,7 @@ from pathlib import Path
 
 import yaml
 
+from dashboard.lib.merging import merge
 from dashboard.lib.schema import validate_config_data
 
 logger = logging.getLogger(__name__)
@@ -43,14 +45,40 @@ def get_config(section: str, org: str | None = None) -> dict:
     return _load_config(section, org or active_org())
 
 
+def kinds_dir() -> Path:
+    return CONFIG_DIR / "_kinds"
+
+
+@lru_cache(maxsize=1)
+def _tenant_kinds() -> dict[str, str]:
+    """Unlike a section file, a broken tenant index stops the caller: without it no tenant gets its kind defaults."""
+    index = json.loads((CONFIG_DIR / "tenants.json").read_text(encoding="utf-8"))
+    validate_config_data("tenants", index, strict=True)
+    return {org: tenant["kind"] for org, tenant in index.items()}
+
+
+def tenant_kind(org: str) -> str | None:
+    """None for an org outside tenants.json, which then reads only its own folder."""
+    return _tenant_kinds().get(org)
+
+
+def _section_files(section: str, org: str) -> list[Path]:
+    """The kind's default for the section, then the org's own file, which is merged over it."""
+    kind = tenant_kind(org)
+    candidates = [kinds_dir() / kind / f"{section}.yaml"] if kind else []
+    return [path for path in [*candidates, CONFIG_DIR / org / f"{section}.yaml"] if path.exists()]
+
+
 @lru_cache(maxsize=32)
 def _load_config(section: str, org: str) -> dict:
-    path = CONFIG_DIR / org / f"{section}.yaml"
-    if path.exists():
-        payload = read_config_file(path)
-        validate_config_data(section, payload, strict=False)
-        return payload
-    return {}
+    files = _section_files(section, org)
+    if not files:
+        return {}
+    payload: dict = {}
+    for path in files:
+        payload = merge(payload, read_config_file(path))
+    validate_config_data(section, payload, strict=False)
+    return payload
 
 
 @lru_cache(maxsize=1)

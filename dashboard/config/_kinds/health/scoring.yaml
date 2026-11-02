@@ -1,3 +1,8 @@
+# Scoring for every health tenant (edx-repo-health check columns). A tenant's <org>/scoring.yaml is merged
+# over it: mappings merge key by key, lists replace. The composite is a weighted average over the metrics a
+# repo has data for, so weights need not sum to 1 for grades, but How Scoring Works shows them as shares
+# assuming they do. To drop a metric, set its weight to 0. A proposed method for comparison is per tenant
+# (<org>/scoring_proposed.yaml) and must be written against the tenant's merged scoring.
 version: "2.0"
 # v2.0 changes (from v1.1):
 #   - readme_quality: per-column parse rules replace uniform boolean predicate;

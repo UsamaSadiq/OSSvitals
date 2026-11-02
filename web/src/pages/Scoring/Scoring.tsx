@@ -21,7 +21,8 @@ function NoScoringConfig() {
       title="No scoring configuration found."
       body={
         <>
-          Expected <code>dashboard/config/{org}/scoring.yaml</code> with a <code>metrics</code> section.
+          Expected a <code>metrics</code> section in <code>dashboard/config/_kinds/health/scoring.yaml</code> or in{" "}
+          <code>dashboard/config/{org}/scoring.yaml</code>, which is merged over it.
         </>
       }
     />

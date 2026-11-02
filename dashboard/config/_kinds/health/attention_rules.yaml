@@ -1,0 +1,25 @@
+rules:
+  score_drop_30d:
+    enabled: true
+    threshold_points: 10
+  critical_low_grade:
+    enabled: true
+    tier: "critical"
+    letters: ["D", "F"]
+  no_commits_90d:
+    enabled: true
+    days_without_commit: 90
+  important_many_fails:
+    enabled: true
+    tier: "important"
+    minimum_failing_checks: 5
+  stewardship_risk:
+    enabled: true
+    weak_activity_below: 40
+    stale_push_days: 180
+    score_drop_points: 5
+    excluded_lifecycles: ["deprecated"]
+  legacy_ci_signal:
+    enabled: true
+    travis_ci_active_column: "travis_ci.active"
+    github_actions_column: "github_actions"

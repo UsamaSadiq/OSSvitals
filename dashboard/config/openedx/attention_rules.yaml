@@ -1,25 +1,7 @@
+# Merged over dashboard/config/_kinds/health/attention_rules.yaml.
 rules:
-  score_drop_30d:
-    enabled: true
-    threshold_points: 10
-  critical_low_grade:
-    enabled: true
-    tier: "critical"
-    letters: ["D", "F"]
-  no_commits_90d:
-    enabled: true
-    days_without_commit: 90
-  important_many_fails:
-    enabled: true
-    tier: "important"
-    minimum_failing_checks: 5
   stewardship_risk:
-    enabled: true
     unmaintained_group: "openedx-unmaintained"
-    weak_activity_below: 40
-    stale_push_days: 180
-    score_drop_points: 5
-    excluded_lifecycles: ["deprecated"]
     catalog_url_template: "https://backstage.openedx.org/catalog/default/component/{name}"
     # Repos whose catalog-info owner cannot act on the repo, checked 2026-09-24.
     # Counted as needing a maintainer until the owner is fixed upstream.
@@ -27,7 +9,3 @@ rules:
       openedx/ccx-keys: "owner team 2u-arch-bom has no access to the repo"
       openedx/edx-bulk-grades: "owner team 2u-aurora has no access to the repo"
       openedx/course-discovery: "owner team 2u-phoenix not found in the org"
-  legacy_ci_signal:
-    enabled: true
-    travis_ci_active_column: "travis_ci.active"
-    github_actions_column: "github_actions"

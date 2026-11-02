@@ -18,7 +18,7 @@ OSSvitals is an unofficial community project. It is not affiliated with or endor
 - Per-tenant configuration and visualization rules
 
 ## Scoring and independence
-How scores are computed (metrics, weights, thresholds, grade bands, missing-data policy) is shown on each dashboard's **How Scoring Works** page, generated from that tenant's `scoring.yaml` (for example [dashboard/config/openedx/scoring.yaml](dashboard/config/openedx/scoring.yaml)).
+How scores are computed (metrics, weights, thresholds, grade bands, missing-data policy) is shown on each dashboard's **How Scoring Works** page, generated from the health kind's [scoring.yaml](dashboard/config/_kinds/health/scoring.yaml) with any `dashboard/config/<org>/scoring.yaml` of the tenant merged over it.
 
 Every check, weight, threshold and score for public repositories stays open and reproducible.
 

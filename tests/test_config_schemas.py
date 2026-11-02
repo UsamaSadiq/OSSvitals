@@ -1,8 +1,15 @@
-from dashboard.lib.config import read_config_file
+from dashboard.lib.config import get_config, kinds_dir, read_config_file
 from dashboard.lib.schema import validate_config_data
 
 
-def test_openedx_config_files_validate_against_schemas():
+def test_every_health_kind_default_validates_on_its_own():
+    """A tenant with no file of its own for a section gets the kind default unchanged."""
+    for path in sorted((kinds_dir() / "health").glob("*.yaml")):
+        if path.stem != "defaults":
+            assert validate_config_data(path.stem, read_config_file(path), strict=True), path.name
+
+
+def test_openedx_config_validates_against_schemas():
     config_names = [
         "data_source",
         "check_groups",
@@ -23,8 +30,7 @@ def test_openedx_config_files_validate_against_schemas():
     ]
 
     for name in config_names:
-        payload = read_config_file(f"config/openedx/{name}.yaml")
-        assert validate_config_data(name, payload, strict=True)
+        assert validate_config_data(name, get_config(name, "openedx"), strict=True)
 
 
 def test_feature_flags_config_validates_against_schema():
