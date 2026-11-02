@@ -18,9 +18,16 @@ function hasNoRedundantPrs(upgrades: UpgradesView): boolean {
   return redundant?.redundant === 0 && redundant.records.length === 0;
 }
 
+/** Views built before the list existed collected everything. */
+function collects(upgrades: UpgradesView, collector: string): boolean {
+  return upgrades.collectors?.includes(collector) ?? true;
+}
+
 function upgradeTabs(upgrades: UpgradesView): TabItem[] {
   return [
-    { id: "upgrade-jobs", label: "Upgrade jobs", content: () => <UpgradeJobsTab jobs={upgrades.upgrade_jobs} /> },
+    ...(collects(upgrades, "upgrade_jobs")
+      ? [{ id: "upgrade-jobs", label: "Upgrade jobs", content: () => <UpgradeJobsTab jobs={upgrades.upgrade_jobs} /> }]
+      : []),
     ...upgrades.waves.map((wave) => ({
       id: `wave-${wave.id}`,
       label: `Wave: ${wave.title}`,
@@ -31,7 +38,7 @@ function upgradeTabs(upgrades: UpgradesView): TabItem[] {
       label: `Campaign: ${campaign.title}`,
       content: () => <CampaignTab campaign={campaign} />,
     })),
-    ...(hasNoRedundantPrs(upgrades)
+    ...(!collects(upgrades, "redundant_prs") || hasNoRedundantPrs(upgrades)
       ? []
       : [
           {

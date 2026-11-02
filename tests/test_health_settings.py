@@ -104,3 +104,21 @@ def test_an_unknown_collector_is_rejected():
 def test_a_page_collector_for_an_unknown_page_is_rejected():
     with pytest.raises(HealthConfigError, match="/component$"):
         build_settings(_defaults(), {"page_collectors": {"/component": "catalog"}})
+
+
+def test_views_ignore_the_files_of_collectors_that_are_off():
+    from dashboard.lib.views_maintenance import maintenance_keys
+
+    keys = maintenance_keys({"uv": {}}, {"c": {}}, ["waves", "fix_prs"])
+    assert keys == ["fix_prs.json", "waves/uv.json"]
+    assert len(maintenance_keys({"uv": {}}, {"c": {}})) == 7
+
+
+def test_freshness_checks_only_the_files_of_collectors_that_are_on(monkeypatch):
+    import scripts.check_freshness as freshness
+
+    monkeypatch.setattr(freshness, "load_settings", lambda org: build_settings(_defaults(), {}))
+    files = [file for _, file in freshness._maintenance_files("newtenant")]
+    assert "upgrade_jobs.json" not in files
+    assert "support_windows.json" not in files
+    assert "redundant_prs.json" in files

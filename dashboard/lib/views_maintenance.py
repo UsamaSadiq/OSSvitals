@@ -1,12 +1,14 @@
 """Views built from the collect-maintenance files: Components, Upgrades and Support Window."""
 from __future__ import annotations
 
+from collections.abc import Collection
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from dashboard.lib import catalog, maintenance
+from dashboard.lib.health_settings import enabled_collectors, load_settings
 from dashboard.lib.schema import REPO_COL
 from dashboard.lib.upgrades import campaign_gaps, campaign_rule, done_rule, gaps
 from dashboard.lib.views_common import BuildContext, envelope, records
@@ -26,16 +28,22 @@ SUPPORT_WINDOW_SOURCE = "endoflife.date, Tutor release files and repo-tools barc
 REDUNDANT_FIELDS = [REPO_COL, "bot_pr_url", "superseded_by_url", "superseded_by_merged", "confidence"]
 
 
-def maintenance_keys(waves_config: dict[str, Any], campaigns_config: dict[str, Any] | None = None) -> list[str]:
-    return [
-        catalog.CATALOG_FILE,
-        maintenance.UPGRADE_JOBS,
-        maintenance.REDUNDANT_PRS,
-        maintenance.FIX_PRS,
-        maintenance.SUPPORT_WINDOWS,
-        *(maintenance.wave_file(wave_id) for wave_id in waves_config),
-        *(maintenance.campaign_file(campaign_id) for campaign_id in campaigns_config or {}),
-    ]
+def maintenance_keys(
+    waves_config: dict[str, Any],
+    campaigns_config: dict[str, Any] | None = None,
+    collectors: Collection[str] | None = None,
+) -> list[str]:
+    """The files the views read; with ``collectors``, only those collectors' files, so a turned-off one's last file is ignored."""
+    by_collector = {
+        "catalog": [catalog.CATALOG_FILE],
+        "upgrade_jobs": [maintenance.UPGRADE_JOBS],
+        "redundant_prs": [maintenance.REDUNDANT_PRS],
+        "fix_prs": [maintenance.FIX_PRS],
+        "support_windows": [maintenance.SUPPORT_WINDOWS],
+        "waves": [maintenance.wave_file(wave_id) for wave_id in waves_config],
+        "campaigns": [maintenance.campaign_file(campaign_id) for campaign_id in campaigns_config or {}],
+    }
+    return [key for name, keys in by_collector.items() if collectors is None or name in collectors for key in keys]
 
 
 def _generated(payload: dict[str, Any]) -> str | None:
@@ -155,10 +163,13 @@ def _redundant(payload: dict[str, Any] | None) -> dict[str, Any] | None:
 
 
 def build_upgrades(ctx: BuildContext) -> dict[str, Any]:
-    waves_config = ctx.config("waves").get("waves", {})
+    collectors = enabled_collectors(load_settings(ctx.org))
+    waves_config = ctx.config("waves").get("waves", {}) if "waves" in collectors else {}
+    campaigns_config = ctx.config("campaigns").get("campaigns", {}) if "campaigns" in collectors else {}
     return envelope(
         ctx,
         "collect-maintenance files",
+        collectors=collectors,
         upgrade_jobs=_upgrade_jobs(ctx.maintenance.get(maintenance.UPGRADE_JOBS)),
         waves=[
             _wave(wave_id, wave, ctx.maintenance.get(maintenance.wave_file(wave_id)))
@@ -166,7 +177,7 @@ def build_upgrades(ctx: BuildContext) -> dict[str, Any]:
         ],
         campaigns=[
             _campaign(campaign_id, campaign, ctx.maintenance.get(maintenance.campaign_file(campaign_id)))
-            for campaign_id, campaign in ctx.config("campaigns").get("campaigns", {}).items()
+            for campaign_id, campaign in campaigns_config.items()
         ],
         redundant_prs=_redundant(ctx.maintenance.get(maintenance.REDUNDANT_PRS)),
     )
@@ -192,10 +203,13 @@ def build_support_window(ctx: BuildContext) -> dict[str, Any]:
 
 
 def load_maintenance_dir(
-    directory: Path | None, waves_config: dict[str, Any], campaigns_config: dict[str, Any] | None = None
+    directory: Path | None,
+    waves_config: dict[str, Any],
+    campaigns_config: dict[str, Any] | None = None,
+    collectors: Collection[str] | None = None,
 ) -> dict[str, dict[str, Any] | None]:
     """Every maintenance file the views read, from a local directory; all None without one."""
-    keys = maintenance_keys(waves_config, campaigns_config)
+    keys = maintenance_keys(waves_config, campaigns_config, collectors)
     if directory is None:
         return dict.fromkeys(keys)
     return {key: maintenance.load_file(directory, key) for key in keys}

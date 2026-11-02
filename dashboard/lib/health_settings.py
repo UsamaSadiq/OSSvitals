@@ -51,7 +51,7 @@ def enabled_collectors(values: dict[str, Any]) -> list[str]:
 
 
 def published_pages(values: dict[str, Any]) -> list[str]:
-    """The configured pages, less any page whose collector is off, since it would only ever be empty."""
+    """The configured pages, less any page whose collector is off; its views ignore that collector's files."""
     collectors = values["collectors"]
     needs = values["page_collectors"]
     return [page for page in values["pages"] if page not in needs or collectors[needs[page]]]

@@ -338,6 +338,15 @@ describe("Upgrades page", () => {
     expect(screen.queryByRole("tab", { name: "Redundant PRs" })).not.toBeInTheDocument();
   });
 
+  it("hides the tabs of collectors the tenant turned off", async () => {
+    setUpgrades(upgradesFixture({ collectors: ["waves", "campaigns", "fix_prs"], upgrade_jobs: null, redundant_prs: null }));
+    renderRoute("/maintenance");
+
+    await screen.findByRole("tab", { name: /^Wave: / });
+    expect(screen.queryByRole("tab", { name: "Upgrade jobs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Redundant PRs" })).not.toBeInTheDocument();
+  });
+
   it("shows the missing state for redundant PRs", async () => {
     setUpgrades(upgradesFixture({ redundant_prs: null }));
     renderRoute("/maintenance");
