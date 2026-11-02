@@ -1,0 +1,18 @@
+# Defaults for every health tenant. A tenant overrides any key in dashboard/config/<org>/health.yaml;
+# mappings merge key by key, lists replace.
+version: 1
+# Web routes the tenant's site shows; the nav and direct links hide the rest.
+pages:
+  - /
+  - /repos
+  - /repo_detail
+  - /failing_checks
+  - /what_changed
+  - /needing_attention
+  - /at_risk
+  - /ownership_views
+  - /maintenance
+  - /support_window
+  - /components
+  - /glossary
+  - /scoring
