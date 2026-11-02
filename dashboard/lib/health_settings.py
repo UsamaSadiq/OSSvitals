@@ -1,7 +1,6 @@
 """A health tenant's settings: the kind defaults with the tenant's optional ``health.yaml`` merged over them."""
 from __future__ import annotations
 
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -32,11 +31,14 @@ def read_override(path: Path) -> dict[str, Any]:
 
 
 def build_settings(defaults: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """The default pages are every route the health web module has, so any other page is a typo that would hide one."""
     values = merge(defaults, override)
     validate_config_data(KIND, values, strict=True)
+    unknown = [page for page in values["pages"] if page not in defaults["pages"]]
+    if unknown:
+        raise HealthConfigError(f"unknown pages: {', '.join(unknown)}")
     return values
 
 
-@lru_cache(maxsize=8)
 def load_settings(org: str) -> dict[str, Any]:
     return build_settings(read_config_file(defaults_path(KIND)), read_override(override_path(org, KIND)))

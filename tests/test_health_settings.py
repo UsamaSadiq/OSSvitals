@@ -52,3 +52,8 @@ def test_an_unreadable_override_stops_the_run(tmp_path):
     path.write_text("- /", encoding="utf-8")
     with pytest.raises(HealthConfigError):
         read_override(path)
+
+
+def test_a_page_the_web_module_does_not_route_is_rejected():
+    with pytest.raises(HealthConfigError, match="/repo$"):
+        build_settings(_defaults(), {"pages": ["/", "/repo"]})
