@@ -36,7 +36,7 @@ def build_settings(defaults: dict[str, Any], override: dict[str, Any]) -> dict[s
         raise HealthConfigError(f"{defaults_path(KIND)} is missing or has no pages")
     values = merge(defaults, override)
     validate_config_data(KIND, values, strict=True)
-    unknown = [page for page in values["pages"] if page not in defaults["pages"]]
+    unknown = [page for page in [*values["pages"], *values["page_collectors"]] if page not in defaults["pages"]]
     if unknown:
         raise HealthConfigError(f"unknown pages: {', '.join(unknown)}")
     return values
@@ -44,3 +44,14 @@ def build_settings(defaults: dict[str, Any], override: dict[str, Any]) -> dict[s
 
 def load_settings(org: str) -> dict[str, Any]:
     return build_settings(read_config_file(defaults_path(KIND)), read_override(override_path(org, KIND)))
+
+
+def enabled_collectors(values: dict[str, Any]) -> list[str]:
+    return [name for name, on in values["collectors"].items() if on]
+
+
+def published_pages(values: dict[str, Any]) -> list[str]:
+    """The configured pages, less any page whose collector is off, since it would only ever be empty."""
+    collectors = values["collectors"]
+    needs = values["page_collectors"]
+    return [page for page in values["pages"] if page not in needs or collectors[needs[page]]]

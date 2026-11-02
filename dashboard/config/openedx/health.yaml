@@ -1,0 +1,5 @@
+# Overrides of dashboard/config/_kinds/health/defaults.yaml for openedx.
+collectors:
+  upgrade_jobs: true
+  catalog: true
+  support_windows: true

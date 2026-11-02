@@ -26,6 +26,7 @@ from collectors import (
 )
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import DEFAULT_ORG, get_config
+from dashboard.lib.health_settings import enabled_collectors, load_settings
 
 UPGRADE_JOBS_FILE = "upgrade_jobs.json"
 WAVES_DIR = "waves"
@@ -452,9 +453,19 @@ def collect_support_windows(out_dir: Path, scope: Scope, target: Target) -> int:
     return 0
 
 
+def select_collectors(requested: list[str] | None, *, merge_run: bool, enabled: list[str]) -> list[str]:
+    """The org's enabled collectors (mergeable ones for a --merge run); naming one the org turned off is an error."""
+    if requested:
+        off = [name for name in requested if name not in enabled]
+        if off:
+            raise SystemExit(f"Turned off for this org in its health settings: {', '.join(off)}")
+        return requested
+    return [name for name in (MERGEABLE if merge_run else COLLECTORS) if name in enabled]
+
+
 def main() -> int:
     args = _parse_args()
-    selected = args.collector or list(MERGEABLE if args.merge else COLLECTORS)
+    selected = select_collectors(args.collector, merge_run=args.merge, enabled=enabled_collectors(load_settings(args.org)))
     runners = {
         "upgrade_jobs": collect_upgrade_jobs,
         "waves": collect_waves,
@@ -467,7 +478,7 @@ def main() -> int:
     target = _target(args.org)
     scope = Scope(repos=args.repo, merge=args.merge)
     results = [runners[name](args.out_dir, scope, target) for name in selected]
-    return max(results)
+    return max(results, default=0)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,14 @@ import pytest
 from jsonschema import ValidationError
 
 from dashboard.lib.config import read_config_file
-from dashboard.lib.health_settings import HealthConfigError, build_settings, load_settings, read_override
+from dashboard.lib.health_settings import (
+    HealthConfigError,
+    build_settings,
+    enabled_collectors,
+    load_settings,
+    published_pages,
+    read_override,
+)
 from dashboard.lib.kinds import defaults_path
 from scripts.list_tenants import load_index, orgs_of_kind
 
@@ -62,3 +69,38 @@ def test_a_page_the_web_module_does_not_route_is_rejected():
 def test_unreadable_defaults_stop_the_run():
     with pytest.raises(HealthConfigError, match="defaults.yaml"):
         build_settings({}, {"version": 1, "pages": ["/"]})
+
+
+def test_default_collectors_are_exactly_the_maintenance_collectors():
+    from scripts.collect_maintenance import COLLECTORS
+
+    assert list(_defaults()["collectors"]) == list(COLLECTORS)
+
+
+def test_openedx_keeps_every_collector_and_page():
+    values = load_settings("openedx")
+    assert enabled_collectors(values) == list(_defaults()["collectors"])
+    assert published_pages(values) == _defaults()["pages"]
+
+
+def test_a_tenant_on_the_defaults_publishes_no_page_for_an_ecosystem_collector():
+    pages = published_pages(build_settings(_defaults(), {}))
+    assert "/components" not in pages
+    assert "/support_window" not in pages
+    assert "/maintenance" in pages
+
+
+def test_turning_a_collector_on_merges_into_the_defaults():
+    values = build_settings(_defaults(), {"collectors": {"catalog": True}})
+    assert "catalog" in enabled_collectors(values)
+    assert "fix_prs" in enabled_collectors(values)
+
+
+def test_an_unknown_collector_is_rejected():
+    with pytest.raises(ValidationError):
+        build_settings(_defaults(), {"collectors": {"catalogue": True}})
+
+
+def test_a_page_collector_for_an_unknown_page_is_rejected():
+    with pytest.raises(HealthConfigError, match="/component$"):
+        build_settings(_defaults(), {"page_collectors": {"/component": "catalog"}})
