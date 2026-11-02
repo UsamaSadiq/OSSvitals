@@ -1,3 +1,4 @@
+import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
 import { ShareLink } from "../../components/ShareLink";
@@ -9,7 +10,7 @@ import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import { CampaignTab } from "./CampaignTab";
 import { RedundantPrsTab } from "./RedundantPrs";
 import { UpgradeJobsTab } from "./UpgradeJobs";
-import { INTRO } from "./upgradesText";
+import { INTRO, NOTHING_TRACKED_BODY, NOTHING_TRACKED_TITLE } from "./upgradesText";
 import { WaveTab } from "./WaveTab";
 import "./upgrades.css";
 
@@ -56,9 +57,11 @@ function UpgradesContent() {
   if (upgrades.status === "error") {
     return <ErrorState title="The upgrades data could not be loaded." detail={upgrades.error.message} />;
   }
+  const tabs = upgradeTabs(upgrades.data);
+  if (tabs.length === 0) return <EmptyState kind="info" title={NOTHING_TRACKED_TITLE} body={NOTHING_TRACKED_BODY} />;
   return (
     <>
-      <Tabs label="Upgrades" tabs={upgradeTabs(upgrades.data)} />
+      <Tabs label="Upgrades" tabs={tabs} />
       <ShareLink />
     </>
   );

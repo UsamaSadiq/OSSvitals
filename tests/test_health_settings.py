@@ -122,3 +122,15 @@ def test_freshness_checks_only_the_files_of_collectors_that_are_on(monkeypatch):
     assert "upgrade_jobs.json" not in files
     assert "support_windows.json" not in files
     assert "redundant_prs.json" in files
+
+
+def test_broken_health_settings_are_reported_as_stale_not_raised(monkeypatch):
+    import scripts.check_freshness as freshness
+
+    def broken(org):
+        raise HealthConfigError("bad")
+
+    monkeypatch.setattr(freshness, "load_settings", broken)
+    monkeypatch.setattr(freshness, "get_config", lambda section, org: {"csv_url": "u", "scores_url": "s"})
+    [result] = freshness._upstream_statuses("newtenant", None)
+    assert result.name == "newtenant health settings"

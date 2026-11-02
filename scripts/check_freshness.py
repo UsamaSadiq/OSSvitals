@@ -15,11 +15,12 @@ import sys
 from pathlib import Path
 
 import requests
+from jsonschema import ValidationError
 
 from dashboard.lib.clock import now_utc
 from dashboard.lib import maintenance
 from dashboard.lib.config import get_config
-from dashboard.lib.health_settings import enabled_collectors, load_settings
+from dashboard.lib.health_settings import HealthConfigError, enabled_collectors, load_settings
 from dashboard.lib.freshness import DEFAULT_MAX_AGE_DAYS, SourceStatus, max_age_days_from_hours, report, status, to_date
 
 DATA_BRANCH_URL = "https://github.com/UsamaSadiq/OSSvitals/blob/data"
@@ -88,8 +89,13 @@ def _upstream_statuses(org: str, today) -> list[SourceStatus]:
     cfg = get_config("data_source", org)
     if not cfg.get("csv_url"):
         return []
+    try:
+        sources = _upstream_sources(org, cfg)
+    except (HealthConfigError, ValidationError) as exc:
+        url = f"https://github.com/UsamaSadiq/OSSvitals/blob/main/dashboard/config/{org}/health.yaml"
+        return [status(f"{org} health settings", url, None, today=today, max_age_days=DEFAULT_MAX_AGE_DAYS, detail=type(exc).__name__)]
     results = []
-    for name, url, read in _upstream_sources(org, cfg):
+    for name, url, read in sources:
         try:
             results.append(status(name, url, to_date(read(url)), today=today, max_age_days=DEFAULT_MAX_AGE_DAYS))
         except Exception as exc:  # noqa: BLE001 - an unreadable source is reported as stale
