@@ -25,6 +25,11 @@ on:
       - dashboard/lib/views_maintenance.py
       - dashboard/lib/redaction.py
       - dashboard/config/*/redact.yaml
+      - dashboard/lib/health_settings.py
+      - dashboard/lib/kinds.py
+      - dashboard/config/_kinds/health/**
+      - dashboard/config/*/health.yaml
+      - dashboard/config/schemas/health.schema.json
       - scripts/build_scores.py
       - scripts/build_views.py
 

@@ -9,11 +9,12 @@ from typing import Any
 import yaml
 
 from collectors.fleet.registry import BY_KEY, SIGNALS
-from dashboard.lib.config import CONFIG_DIR, read_config_file
+from dashboard.lib.config import read_config_file
+from dashboard.lib.kinds import defaults_path, merge, override_path
 from dashboard.lib.schema import validate_config_data
 
 KIND = "fleet"
-DEFAULTS_PATH = CONFIG_DIR / "_kinds" / KIND / "defaults.yaml"
+DEFAULTS_PATH = defaults_path(KIND)
 
 
 class FleetConfigError(ValueError):
@@ -50,13 +51,6 @@ class FleetSettings:
     def enabled_signals(self, *tiers: str) -> list[str]:
         """In registry order, which is also the order of the fields in a fork record."""
         return [signal.key for signal in SIGNALS if signal.tier in tiers and self.collects(signal.key)]
-
-
-def merge(base: Any, override: Any) -> Any:
-    """Mappings merge key by key; anything else in ``override`` replaces ``base``."""
-    if not (isinstance(base, dict) and isinstance(override, dict)):
-        return override
-    return {**base, **{key: merge(base.get(key), value) for key, value in override.items()}}
 
 
 def _threshold_owner(threshold: str) -> str | None:
@@ -121,4 +115,4 @@ def read_override(path: Path) -> dict[str, Any]:
 
 
 def load_settings(org: str) -> FleetSettings:
-    return build_settings(org, read_config_file(DEFAULTS_PATH), read_override(CONFIG_DIR / org / f"{KIND}.yaml"))
+    return build_settings(org, read_config_file(DEFAULTS_PATH), read_override(override_path(org, KIND)))

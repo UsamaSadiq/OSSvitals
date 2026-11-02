@@ -29,6 +29,7 @@ from dashboard.lib.checks import (
     failing_counts,
 )
 from dashboard.lib.config import get_feature_flags
+from dashboard.lib.health_settings import load_settings
 from dashboard.lib.ordering import bottom, top
 from dashboard.lib.overview import org_average_series, org_kpis, top_failing, top_movers
 from dashboard.lib.data import owner_handles
@@ -100,6 +101,7 @@ def build_meta(ctx: BuildContext) -> dict[str, Any]:
         "dashboard/config",
         config_version=str(scored["score_config_version"].iloc[0]) if "score_config_version" in scored.columns else None,
         branding=ctx.config("org_branding"),
+        pages=load_settings(ctx.org)["pages"],
         github_org=data_source.get("github_org", ctx.org),
         unmaintained_group=_stewardship_rule(ctx).get("unmaintained_group") or None,
         feature_flags=get_feature_flags(),
