@@ -5,11 +5,12 @@ This directory contains OSSvitals configuration: global flags plus one folder pe
 ## Layout
 
 - `feature_flags.yaml`: global feature toggles.
-- `tenants.json`: every tenant with its kind (`health` or `fleet`) and site; bundled by the web app and the MCP server, read by the fleet workflows. JSON because both bundlers import it without a plugin.
+- `tenants.json`: every tenant with its kind (`health` or `fleet`) and site; bundled by the web app and the MCP server, read by the fleet and health workflows. JSON because both bundlers import it without a plugin.
 - `<org>/*.yaml`: one folder per tenant, named after the GitHub organization. At least `org_branding.yaml` is required; see [Adding a tenant](../../docs/RUNBOOK.md#adding-a-tenant).
-  - `openedx/`: Open edX, a health tenant (scoring, checks, remediation, PR templates).
+  - `openedx/`: Open edX, a health tenant (scoring, checks, remediation, PR templates); `health.yaml` turns on the Open edX ecosystem collectors.
   - `moneta/`: Pressingly (Moneta), a fleet tenant: `apps.yaml` is the app inventory, `fleet.yaml` overrides the fleet defaults.
 - `_kinds/fleet/defaults.yaml`: defaults every fleet tenant's `fleet.yaml` is merged over (signals, status ladder, branches).
+- `_kinds/health/defaults.yaml`: defaults every health tenant's optional `health.yaml` is merged over (pages, maintenance collectors).
 - `schemas/*.schema.json`: JSON Schemas used to validate config payloads at load time.
 
 ## Validation Behavior

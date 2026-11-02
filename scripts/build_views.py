@@ -10,6 +10,7 @@ from dashboard.lib.clock import now_utc
 from dashboard.lib.config import DEFAULT_ORG, get_config
 from dashboard.lib.pipeline import score_org
 from dashboard.lib.views_export import BuildContext, write_views
+from dashboard.lib.health_settings import enabled_collectors, load_settings
 from dashboard.lib.views_maintenance import load_maintenance_dir
 
 
@@ -33,11 +34,12 @@ def main() -> int:
         return 1
     waves = get_config("waves", args.org).get("waves", {})
     campaigns = get_config("campaigns", args.org).get("campaigns", {})
+    collectors = enabled_collectors(load_settings(args.org))
     ctx = BuildContext(
         data=data,
         generated_at=now_utc(),
         commit_sha=os.environ.get("GITHUB_SHA", "local"),
-        maintenance=load_maintenance_dir(args.maintenance_dir, waves, campaigns),
+        maintenance=load_maintenance_dir(args.maintenance_dir, waves, campaigns, collectors),
     )
     written = write_views(ctx, args.out_dir)
     print(f"Wrote {len(written)} view files for {args.org} to {args.out_dir}")

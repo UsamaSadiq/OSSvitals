@@ -338,6 +338,31 @@ describe("Upgrades page", () => {
     expect(screen.queryByRole("tab", { name: "Redundant PRs" })).not.toBeInTheDocument();
   });
 
+  it("hides the tabs of collectors the tenant turned off", async () => {
+    setUpgrades(upgradesFixture({ collectors: ["waves", "campaigns", "fix_prs"], upgrade_jobs: null, redundant_prs: null }));
+    renderRoute("/maintenance");
+
+    await screen.findByRole("tab", { name: /^Wave: / });
+    expect(screen.queryByRole("tab", { name: "Upgrade jobs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Redundant PRs" })).not.toBeInTheDocument();
+  });
+
+  it("says nothing is tracked when every tab is left out", async () => {
+    setUpgrades(
+      upgradesFixture({
+        collectors: ["waves", "campaigns", "redundant_prs", "fix_prs"],
+        upgrade_jobs: null,
+        waves: [],
+        campaigns: [],
+        redundant_prs: { collected_at: null, redundant: 0, bot_prs_checked: 0, records: [] },
+      }),
+    );
+    renderRoute("/maintenance");
+
+    expect(await screen.findByText("No upgrade work is tracked for this organisation yet.")).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+  });
+
   it("shows the missing state for redundant PRs", async () => {
     setUpgrades(upgradesFixture({ redundant_prs: null }));
     renderRoute("/maintenance");

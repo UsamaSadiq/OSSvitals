@@ -15,9 +15,12 @@ import sys
 from pathlib import Path
 
 import requests
+from jsonschema import ValidationError
 
 from dashboard.lib.clock import now_utc
+from dashboard.lib import maintenance
 from dashboard.lib.config import get_config
+from dashboard.lib.health_settings import HealthConfigError, enabled_collectors, load_settings
 from dashboard.lib.freshness import DEFAULT_MAX_AGE_DAYS, SourceStatus, max_age_days_from_hours, report, status, to_date
 
 DATA_BRANCH_URL = "https://github.com/UsamaSadiq/OSSvitals/blob/data"
@@ -38,15 +41,31 @@ def _metadata_date(url: str, field: str) -> object:
     return _get(url).json().get("metadata", {}).get(field)
 
 
+def _generated_at(url: str) -> object:
+    return _metadata_date(url, "generated_at")
+
+
+def _maintenance_files(org: str) -> list[tuple[str, str]]:
+    """(name, file) for each maintenance file a collector the org turned on publishes daily."""
+    collectors = enabled_collectors(load_settings(org))
+    waves = get_config("waves", org).get("waves", {}) if "waves" in collectors else {}
+    files = [
+        ("upgrade_jobs", "upgrade jobs", maintenance.UPGRADE_JOBS),
+        ("redundant_prs", "redundant PRs", maintenance.REDUNDANT_PRS),
+        ("support_windows", "support windows", maintenance.SUPPORT_WINDOWS),
+    ]
+    return [
+        *((f"{wave_id} wave", maintenance.wave_file(wave_id)) for wave_id in waves),
+        *((name, file) for collector, name, file in files if collector in collectors),
+    ]
+
+
 def _upstream_sources(org: str, cfg: dict) -> list[tuple[str, str, callable]]:
-    maintenance = str(cfg.get("maintenance_base_url", "")).rstrip("/")
+    base = str(cfg.get("maintenance_base_url", "")).rstrip("/")
     sources = [
         ("repo health CSV", cfg["csv_url"], lambda url: _csv_timestamp(url)),
         ("pre-computed scores", cfg["scores_url"], lambda url: _metadata_date(url, "snapshot_timestamp")),
-        ("upgrade jobs", f"{maintenance}/upgrade_jobs.json", lambda url: _metadata_date(url, "generated_at")),
-        ("uv wave", f"{maintenance}/waves/uv_pyproject.json", lambda url: _metadata_date(url, "generated_at")),
-        ("redundant PRs", f"{maintenance}/redundant_prs.json", lambda url: _metadata_date(url, "generated_at")),
-        ("support windows", f"{maintenance}/support_windows.json", lambda url: _metadata_date(url, "generated_at")),
+        *((name, f"{base}/{file}", _generated_at) for name, file in _maintenance_files(org)),
     ]
     return [(f"{org} {name}", url, read) for name, url, read in sources]
 
@@ -70,8 +89,13 @@ def _upstream_statuses(org: str, today) -> list[SourceStatus]:
     cfg = get_config("data_source", org)
     if not cfg.get("csv_url"):
         return []
+    try:
+        sources = _upstream_sources(org, cfg)
+    except (HealthConfigError, ValidationError) as exc:
+        url = f"https://github.com/UsamaSadiq/OSSvitals/blob/main/dashboard/config/{org}/health.yaml"
+        return [status(f"{org} health settings", url, None, today=today, max_age_days=DEFAULT_MAX_AGE_DAYS, detail=type(exc).__name__)]
     results = []
-    for name, url, read in _upstream_sources(org, cfg):
+    for name, url, read in sources:
         try:
             results.append(status(name, url, to_date(read(url)), today=today, max_age_days=DEFAULT_MAX_AGE_DAYS))
         except Exception as exc:  # noqa: BLE001 - an unreadable source is reported as stale

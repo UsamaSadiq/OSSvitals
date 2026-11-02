@@ -69,3 +69,7 @@ export function pullLabel(url: string): string {
 export function mergedText(value: string | boolean | null | undefined): string {
   return value === null || value === undefined ? "" : String(value);
 }
+
+export const NOTHING_TRACKED_TITLE = "No upgrade work is tracked for this organisation yet.";
+export const NOTHING_TRACKED_BODY =
+  "Upgrade jobs, upgrade waves and package campaigns appear here once they are turned on or configured, and redundant bot PRs once any are found.";

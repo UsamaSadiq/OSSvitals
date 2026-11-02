@@ -436,6 +436,7 @@ const campaignSchema = waveSchema.extend({
 });
 
 export const upgradesSchema = view({
+  collectors: z.array(z.string()).optional(),
   upgrade_jobs: z
     .object({ collected_at: isoString.nullable(), states: z.record(z.string(), int), records: z.array(upgradeJobRowSchema) })
     .nullable(),

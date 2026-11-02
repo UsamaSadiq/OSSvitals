@@ -2,15 +2,81 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "A health tenant's settings after its health.yaml is merged over _kinds/health/defaults.yaml.",
   "type": "object",
-  "required": ["version", "pages"],
+  "required": [
+    "version",
+    "pages",
+    "collectors",
+    "page_collectors"
+  ],
   "properties": {
-    "version": {"type": "integer", "minimum": 1},
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
     "pages": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {"type": "string", "pattern": "^/"},
-      "contains": {"const": "/"}
+      "items": {
+        "type": "string",
+        "pattern": "^/"
+      },
+      "contains": {
+        "const": "/"
+      }
+    },
+    "collectors": {
+      "type": "object",
+      "required": [
+        "upgrade_jobs",
+        "waves",
+        "campaigns",
+        "redundant_prs",
+        "catalog",
+        "fix_prs",
+        "support_windows"
+      ],
+      "properties": {
+        "upgrade_jobs": {
+          "type": "boolean"
+        },
+        "waves": {
+          "type": "boolean"
+        },
+        "campaigns": {
+          "type": "boolean"
+        },
+        "redundant_prs": {
+          "type": "boolean"
+        },
+        "catalog": {
+          "type": "boolean"
+        },
+        "fix_prs": {
+          "type": "boolean"
+        },
+        "support_windows": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "page_collectors": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^/"
+      },
+      "additionalProperties": {
+        "enum": [
+          "upgrade_jobs",
+          "waves",
+          "campaigns",
+          "redundant_prs",
+          "catalog",
+          "fix_prs",
+          "support_windows"
+        ]
+      }
     }
   },
   "additionalProperties": false

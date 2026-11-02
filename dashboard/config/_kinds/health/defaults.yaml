@@ -16,3 +16,18 @@ pages:
   - /components
   - /glossary
   - /scoring
+# Maintenance collectors (scripts/collect_maintenance.py). The ones that work for any GitHub org are on;
+# the Open edX ecosystem ones (edx-repo-tools upgrade jobs, the Backstage catalog, Tutor support
+# windows) are off until a tenant turns them on.
+collectors:
+  upgrade_jobs: false
+  waves: true
+  campaigns: true
+  redundant_prs: true
+  catalog: false
+  fix_prs: true
+  support_windows: false
+# A page left out of meta.json pages while the collector it shows is off.
+page_collectors:
+  /components: catalog
+  /support_window: support_windows
