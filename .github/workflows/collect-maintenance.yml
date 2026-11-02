@@ -1,13 +1,15 @@
 name: Collect maintenance signals
 
-# Collects maintenance signals from public GitHub data (upgrade-job health, upgrade
+# For every health tenant in dashboard/config/tenants.json: collects maintenance signals
+# from public GitHub data (upgrade-job health, upgrade
 # wave progress, package upgrade campaigns, redundant bot campaign PRs, the catalog-info.yaml snapshot,
 # support windows from endoflife.date and Tutor releases) and publishes them to
-# openedx/maintenance/ on the orphan `data` branch, next to the scores. Read-only:
-# nothing here writes to openedx repos. The dashboard only reads these files.
+# <org>/maintenance/ on the orphan `data` branch, next to the scores. Read-only:
+# nothing here writes to the tenant's repos. The dashboard only reads these files.
 #
 # A dispatch with `repos` (from the ossvitals-events Worker in events/) re-collects only
-# those repos and merges them into the published files; upgrade jobs stay on the daily run.
+# those repos of `org` and merges them into the published files; upgrade jobs stay on the
+# daily run.
 
 on:
   schedule:
@@ -18,10 +20,10 @@ on:
         description: Space-separated bare repo names to refresh and merge; empty runs every repo.
         required: false
         default: ""
-
-concurrency:
-  group: collect-maintenance
-  cancel-in-progress: false
+      org:
+        description: Tenant whose repos `repos` names; ignored when `repos` is empty.
+        required: false
+        default: openedx
 
 permissions:
   contents: write
@@ -31,15 +33,32 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
+      orgs: ${{ steps.plan.outputs.orgs }}
       collectors: ${{ steps.plan.outputs.collectors }}
       scope: ${{ steps.plan.outputs.scope }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
       - id: plan
         env:
           REPOS: ${{ github.event.inputs.repos }}
+          ORG: ${{ github.event.inputs.org || 'openedx' }}
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           set -f
-          if [ -n "$REPOS" ]; then
+          health_orgs=$(python scripts/list_tenants.py --kind health)
+          if [ -z "$REPOS" ]; then
+            echo "orgs=$health_orgs" >> "$GITHUB_OUTPUT"
+          else
+            if ! jq -e --arg org "$ORG" 'any(. == $org)' <<< "$health_orgs" >/dev/null; then
+              echo "::error::Not a health tenant: $ORG"
+              exit 1
+            fi
+            echo "orgs=$(jq -c -n --arg org "$ORG" '[$org]')" >> "$GITHUB_OUTPUT"
             args="--merge"
             for repo in $REPOS; do
               if ! [[ "$repo" =~ ^[A-Za-z0-9._-]+$ ]]; then
@@ -54,10 +73,19 @@ jobs:
 
   collect:
     needs: plan
+    if: ${{ needs.plan.outputs.orgs != '[]' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        org: ${{ fromJSON(needs.plan.outputs.orgs) }}
+    concurrency:
+      group: collect-maintenance-${{ matrix.org }}
+      cancel-in-progress: false
     env:
-      OUT_DIR: ${{ github.workspace }}/out/openedx/maintenance
-      VIEWS_DIR: ${{ github.workspace }}/out/openedx/views
+      ORG: ${{ matrix.org }}
+      OUT_DIR: ${{ github.workspace }}/out/${{ matrix.org }}/maintenance
+      VIEWS_DIR: ${{ github.workspace }}/out/${{ matrix.org }}/views
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -65,19 +93,21 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt -r requirements-collectors.txt
-      # A --merge run folds into the published files, so start from them.
+      # A --merge run folds into the published files, so start from them. A new tenant has none yet.
       - name: Seed with published maintenance files
         run: |
           git fetch --depth 1 origin data
           mkdir -p "$OUT_DIR"
-          git archive FETCH_HEAD openedx/maintenance | tar -x --strip-components=2 -C "$OUT_DIR"
-      - run: python scripts/collect_maintenance.py --out-dir "$OUT_DIR" ${{ needs.plan.outputs.collectors }}
+          if git cat-file -e "FETCH_HEAD:$ORG/maintenance" 2>/dev/null; then
+            git archive FETCH_HEAD "$ORG/maintenance" | tar -x --strip-components=2 -C "$OUT_DIR"
+          fi
+      - run: python scripts/collect_maintenance.py --org "$ORG" --out-dir "$OUT_DIR" ${{ needs.plan.outputs.collectors }}
         env:
           PYTHONPATH: ${{ github.workspace }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Views that read these files are rebuilt here, from today's files, rather
       # than waiting for tomorrow's build-scores run.
-      - run: python scripts/build_views.py --org openedx --out-dir "$VIEWS_DIR" --maintenance-dir "$OUT_DIR"
+      - run: python scripts/build_views.py --org "$ORG" --out-dir "$VIEWS_DIR" --maintenance-dir "$OUT_DIR"
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -86,19 +116,19 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # build-scores.yml and the fleet collectors push to `data` too; a rejected push
-          # starts again from a fresh clone. Only this workflow writes openedx/maintenance.
+          # starts again from a fresh clone. Only this workflow writes <org>/maintenance.
           publish() {
             rm -rf data-branch
             git clone --depth 1 --branch data "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data-branch || return 1
-            mkdir -p data-branch/openedx/maintenance data-branch/openedx/views || return 1
-            cp -R "$OUT_DIR"/. data-branch/openedx/maintenance/ || return 1
-            cp -R "$VIEWS_DIR"/. data-branch/openedx/views/ || return 1
-            git -C data-branch add openedx/maintenance openedx/views || return 1
+            mkdir -p "data-branch/$ORG/maintenance" "data-branch/$ORG/views" || return 1
+            cp -R "$OUT_DIR"/. "data-branch/$ORG/maintenance/" || return 1
+            cp -R "$VIEWS_DIR"/. "data-branch/$ORG/views/" || return 1
+            git -C data-branch add "$ORG/maintenance" "$ORG/views" || return 1
             if git -C data-branch diff --cached --quiet; then
-              echo "Maintenance data unchanged."
+              echo "$ORG maintenance data unchanged."
               return 0
             fi
-            git -C data-branch commit -m "chore(data): update openedx maintenance signals $(date -u +%F)${SCOPE:+ ($SCOPE)}" || return 1
+            git -C data-branch commit -m "chore(data): update $ORG maintenance signals $(date -u +%F)${SCOPE:+ ($SCOPE)}" || return 1
             git -C data-branch push origin data
           }
           for attempt in 1 2 3; do
