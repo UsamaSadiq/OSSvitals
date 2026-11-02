@@ -1,8 +1,9 @@
 name: Build scores
 
-# Pre-computes scores and page-ready views (`views/`) from the
-# openedx/wg-maintenance CSVs so readers render files instead of running
-# scoring. Output goes to the orphan `data` branch:
+# For every health tenant in dashboard/config/tenants.json: pre-computes scores and
+# page-ready views (`views/`) from the CSVs its data_source.yaml names (openedx reads
+# openedx/wg-maintenance) so readers render files instead of running scoring.
+# Output goes to <org>/ on the orphan `data` branch.
 # Scoring-code changes on main trigger a rebuild, so the app never pairs new
 # code with a file built by the old code for up to a day.
 
@@ -27,18 +28,14 @@ on:
       - scripts/build_scores.py
       - scripts/build_views.py
 
-concurrency:
-  group: build-scores
-  cancel-in-progress: false
-
 permissions:
   contents: write
 
 jobs:
-  build:
+  discover:
     runs-on: ubuntu-latest
-    env:
-      OUT_DIR: ${{ github.workspace }}/out/openedx
+    outputs:
+      orgs: ${{ steps.list.outputs.orgs }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -46,11 +43,39 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python scripts/build_scores.py --org openedx --out-dir "$OUT_DIR"
+      - id: list
+        run: |
+          orgs=$(python scripts/list_tenants.py --kind health)
+          echo "orgs=$orgs" >> "$GITHUB_OUTPUT"
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      # collect-maintenance.yml also writes openedx/views, as often as every few minutes.
+  build:
+    needs: discover
+    if: ${{ needs.discover.outputs.orgs != '[]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        org: ${{ fromJSON(needs.discover.outputs.orgs) }}
+    concurrency:
+      group: build-scores-${{ matrix.org }}
+      cancel-in-progress: false
+    env:
+      ORG: ${{ matrix.org }}
+      OUT_DIR: ${{ github.workspace }}/out/${{ matrix.org }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/build_scores.py --org "$ORG" --out-dir "$OUT_DIR"
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      # collect-maintenance.yml also writes <org>/views, as often as every few minutes.
       # Views are built from the maintenance files in the clone being pushed, so a push
       # can only land on the state it was built from; a rejected push starts over.
       - name: Build views and publish to data branch
@@ -68,16 +93,16 @@ jobs:
           publish() {
             rm -rf data-branch "$OUT_DIR/views"
             clone_data_branch || return 1
-            python scripts/build_views.py --org openedx --out-dir "$OUT_DIR/views" \
-              --maintenance-dir data-branch/openedx/maintenance || return 1
-            mkdir -p data-branch/openedx || return 1
-            cp -R "$OUT_DIR"/. data-branch/openedx/ || return 1
-            git -C data-branch add openedx || return 1
+            python scripts/build_views.py --org "$ORG" --out-dir "$OUT_DIR/views" \
+              --maintenance-dir "data-branch/$ORG/maintenance" || return 1
+            mkdir -p "data-branch/$ORG" || return 1
+            cp -R "$OUT_DIR"/. "data-branch/$ORG/" || return 1
+            git -C data-branch add "$ORG" || return 1
             if git -C data-branch diff --cached --quiet; then
-              echo "Scores unchanged."
+              echo "$ORG scores unchanged."
               return 0
             fi
-            git -C data-branch commit -m "chore(data): update openedx scores $(date -u +%F)" || return 1
+            git -C data-branch commit -m "chore(data): update $ORG scores $(date -u +%F)" || return 1
             git -C data-branch push origin data
           }
           for attempt in 1 2 3; do
