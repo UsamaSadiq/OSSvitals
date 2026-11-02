@@ -32,6 +32,8 @@ def read_override(path: Path) -> dict[str, Any]:
 
 def build_settings(defaults: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     """The default pages are every route the health web module has, so any other page is a typo that would hide one."""
+    if not isinstance(defaults.get("pages"), list):
+        raise HealthConfigError(f"{defaults_path(KIND)} is missing or has no pages")
     values = merge(defaults, override)
     validate_config_data(KIND, values, strict=True)
     unknown = [page for page in values["pages"] if page not in defaults["pages"]]
