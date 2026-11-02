@@ -40,14 +40,15 @@ def _metadata_date(url: str, field: str) -> object:
 
 def _upstream_sources(org: str, cfg: dict) -> list[tuple[str, str, callable]]:
     maintenance = str(cfg.get("maintenance_base_url", "")).rstrip("/")
-    return [
-        (f"{org} repo health CSV", cfg["csv_url"], lambda url: _csv_timestamp(url)),
-        ("Pre-computed scores", cfg["scores_url"], lambda url: _metadata_date(url, "snapshot_timestamp")),
-        ("Upgrade jobs", f"{maintenance}/upgrade_jobs.json", lambda url: _metadata_date(url, "generated_at")),
+    sources = [
+        ("repo health CSV", cfg["csv_url"], lambda url: _csv_timestamp(url)),
+        ("pre-computed scores", cfg["scores_url"], lambda url: _metadata_date(url, "snapshot_timestamp")),
+        ("upgrade jobs", f"{maintenance}/upgrade_jobs.json", lambda url: _metadata_date(url, "generated_at")),
         ("uv wave", f"{maintenance}/waves/uv_pyproject.json", lambda url: _metadata_date(url, "generated_at")),
-        ("Redundant PRs", f"{maintenance}/redundant_prs.json", lambda url: _metadata_date(url, "generated_at")),
-        ("Support windows", f"{maintenance}/support_windows.json", lambda url: _metadata_date(url, "generated_at")),
+        ("redundant PRs", f"{maintenance}/redundant_prs.json", lambda url: _metadata_date(url, "generated_at")),
+        ("support windows", f"{maintenance}/support_windows.json", lambda url: _metadata_date(url, "generated_at")),
     ]
+    return [(f"{org} {name}", url, read) for name, url, read in sources]
 
 
 def _orgs(data_dir: Path) -> list[str]:
