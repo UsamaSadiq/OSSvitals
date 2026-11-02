@@ -1,3 +1,6 @@
+# Scoring for every health tenant (edx-repo-health check columns). A tenant's <org>/scoring.yaml is merged
+# over it: mappings merge key by key, lists replace. Weights are not re-normalised, so a partial override
+# must keep them summing to 1; to drop a metric, set its weight to 0.
 version: "2.0"
 # v2.0 changes (from v1.1):
 #   - readme_quality: per-column parse rules replace uniform boolean predicate;

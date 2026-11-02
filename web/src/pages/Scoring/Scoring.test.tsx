@@ -284,7 +284,9 @@ describe("How Scoring Works page", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("No scoring configuration found.");
-    expect(alert).toHaveTextContent("Expected dashboard/config/openedx/scoring.yaml with a metrics section.");
+    expect(alert).toHaveTextContent(
+      "Expected a metrics section in dashboard/config/_kinds/health/scoring.yaml or in dashboard/config/openedx/scoring.yaml, which is merged over it.",
+    );
     expect(screen.queryByRole("heading", { name: "Grade bands" })).not.toBeInTheDocument();
   });
 

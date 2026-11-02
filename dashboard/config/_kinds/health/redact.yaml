@@ -1,4 +1,4 @@
 # Regexes applied to every string value in the published views files, for
-# example to hide client names in branch or tag names. Empty for openedx.
+# example to hide client names in branch or tag names. A tenant sets its own in <org>/redact.yaml.
 patterns: []
 replacement: "[redacted]"
