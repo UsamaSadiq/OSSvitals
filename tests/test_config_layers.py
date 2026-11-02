@@ -10,7 +10,6 @@ def layout(tmp_path, monkeypatch):
     (tmp_path / "loner").mkdir()
     (tmp_path / "_kinds" / "health" / "strings.yaml").write_text("common:\n  a: kind\n  b: kind\n", encoding="utf-8")
     monkeypatch.setattr(config, "CONFIG_DIR", tmp_path)
-    monkeypatch.setattr(config, "KINDS_DIR", tmp_path / "_kinds")
     monkeypatch.setattr(config, "_tenant_kinds", lambda: {"acme": "health"})
     config._load_config.cache_clear()
     yield tmp_path
@@ -34,3 +33,16 @@ def test_every_tenant_in_the_index_has_a_known_kind():
     assert config.tenant_kind("openedx") == "health"
     assert config.tenant_kind("moneta") == "fleet"
     assert config.tenant_kind("not-a-tenant") is None
+
+
+def test_patching_the_config_dir_moves_the_kind_defaults_too(layout):
+    assert config.kinds_dir() == layout / "_kinds"
+
+
+
+def test_a_tenant_without_a_proposed_method_compares_against_its_live_scoring(monkeypatch):
+    from dashboard.lib import pipeline
+
+    live = {"metrics": {"m": {"weight": 1}}}
+    monkeypatch.setattr(pipeline, "get_config", lambda section, org: {})
+    assert pipeline.proposed_scoring(live, "acme") is live

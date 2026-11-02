@@ -1,10 +1,10 @@
-from dashboard.lib.config import KINDS_DIR, get_config, read_config_file
+from dashboard.lib.config import get_config, kinds_dir, read_config_file
 from dashboard.lib.schema import validate_config_data
 
 
 def test_every_health_kind_default_validates_on_its_own():
     """A tenant with no file of its own for a section gets the kind default unchanged."""
-    for path in sorted((KINDS_DIR / "health").glob("*.yaml")):
+    for path in sorted((kinds_dir() / "health").glob("*.yaml")):
         if path.stem != "defaults":
             assert validate_config_data(path.stem, read_config_file(path), strict=True), path.name
 

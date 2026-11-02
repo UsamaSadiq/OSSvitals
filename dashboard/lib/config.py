@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 LIB_DIR = Path(__file__).resolve().parent
 DASHBOARD_DIR = LIB_DIR.parent
 CONFIG_DIR = DASHBOARD_DIR / "config"
-KINDS_DIR = CONFIG_DIR / "_kinds"
-TENANTS_PATH = CONFIG_DIR / "tenants.json"
 DEFAULT_ORG = "openedx"
 ORG_ENV_VAR = "DASHBOARD_ORG"
 
@@ -47,9 +45,14 @@ def get_config(section: str, org: str | None = None) -> dict:
     return _load_config(section, org or active_org())
 
 
+def kinds_dir() -> Path:
+    return CONFIG_DIR / "_kinds"
+
+
 @lru_cache(maxsize=1)
 def _tenant_kinds() -> dict[str, str]:
-    index = json.loads(TENANTS_PATH.read_text(encoding="utf-8"))
+    """Unlike a section file, a broken tenant index stops the caller: without it no tenant gets its kind defaults."""
+    index = json.loads((CONFIG_DIR / "tenants.json").read_text(encoding="utf-8"))
     validate_config_data("tenants", index, strict=True)
     return {org: tenant["kind"] for org, tenant in index.items()}
 
@@ -62,7 +65,7 @@ def tenant_kind(org: str) -> str | None:
 def _section_files(section: str, org: str) -> list[Path]:
     """The kind's default for the section, then the org's own file, which is merged over it."""
     kind = tenant_kind(org)
-    candidates = [KINDS_DIR / kind / f"{section}.yaml"] if kind else []
+    candidates = [kinds_dir() / kind / f"{section}.yaml"] if kind else []
     return [path for path in [*candidates, CONFIG_DIR / org / f"{section}.yaml"] if path.exists()]
 
 

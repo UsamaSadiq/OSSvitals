@@ -36,10 +36,15 @@ def _source_urls(data_source: dict) -> tuple[str, str]:
     return snapshot_url, history_url
 
 
+def proposed_scoring(scoring: dict, org: str) -> dict:
+    """A tenant without its own proposed method compares the live one with itself: no swaps, no movement."""
+    return get_config("scoring_proposed", org) or scoring
+
+
 def score_org(org: str = DEFAULT_ORG) -> ScoredOrg:
     scoring = get_config("scoring", org)
     snapshot = annotate_tiers(load_snapshot(org), get_config("tiers", org))
-    proposed_config = applicable_config(get_config("scoring_proposed", org), scoring, list(snapshot.columns))
+    proposed_config = applicable_config(proposed_scoring(scoring, org), scoring, list(snapshot.columns))
     history = [
         Snapshot(timestamp=item.timestamp, df=calculate_scores(item.df, config=scoring))
         for item in load_history(org=org)
