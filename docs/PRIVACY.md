@@ -11,7 +11,7 @@ Each OSSvitals dashboard shows public information about the repositories of one 
 
 - Public files and metadata of public GitHub repositories, read by each tenant's daily collector.
 - For the Open edX tenant, also the public repo health CSV published daily by the Open edX Maintenance Working Group in [openedx/wg-maintenance](https://github.com/openedx/wg-maintenance).
-- No tenant's dashboard reads private repositories or private organization data.
+- No public dashboard reads private repositories or private organization data. A private tenant may; its dashboard is served only to people who sign in with an allowed Google account, and its data is kept out of this repository and the public data host.
 
 ## Corrections and removal
 
@@ -19,7 +19,7 @@ If you are named on the dashboard and something is wrong, or you want your handl
 
 ## Visitors
 
-- No account or login is needed, and the dashboard sets no cookies.
+- No account or login is needed for public dashboards, and they set no cookies. A private tenant's dashboard is behind Cloudflare Access, which sets its own sign-in cookie and sees the email address of the Google account used to sign in.
 - **Hosting:** the dashboard is a static site served by Cloudflare. Like any web host, Cloudflare processes the IP address and request details needed to deliver the pages; see [Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/).
 - **Analytics:** [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) counts page views in aggregate: pages, referrers, countries and browser or device type. It uses no cookies and no local storage, and does not build visitor profiles.
 - **Theme choice:** your dark or light choice is kept in your own browser's local storage and is never sent anywhere.

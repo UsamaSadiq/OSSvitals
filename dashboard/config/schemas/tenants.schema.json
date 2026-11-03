@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "Every tenant the web app, the MCP server and the collector workflows serve, keyed by org (its dashboard/config folder).",
+  "description": "Every tenant the web app, the MCP server and the collector workflows serve, keyed by org (its dashboard/config folder). A private tenant keeps its config, collector and data outside this repository and is served only behind sign-in.",
   "type": "object",
   "minProperties": 1,
   "propertyNames": {"pattern": "^[a-z0-9][a-z0-9-]*$"},
@@ -9,8 +9,30 @@
     "required": ["kind", "site"],
     "properties": {
       "kind": {"enum": ["health", "fleet"]},
-      "site": {"type": "string", "pattern": "^https://[a-z0-9.-]+$"}
+      "site": {"type": "string", "pattern": "^https://[a-z0-9.-]+$"},
+      "visibility": {"enum": ["public", "private"], "default": "public"},
+      "access": {
+        "description": "Who may sign in to a private tenant: an email address whose domain is listed here, as verified by Cloudflare Access.",
+        "type": "object",
+        "required": ["email_domains"],
+        "properties": {
+          "email_domains": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)+$"}
+          }
+        },
+        "additionalProperties": false
+      }
     },
+    "allOf": [
+      {
+        "if": {"properties": {"visibility": {"const": "private"}}, "required": ["visibility"]},
+        "then": {"required": ["access"]},
+        "else": {"not": {"required": ["access"]}}
+      }
+    ],
     "additionalProperties": false
   }
 }
