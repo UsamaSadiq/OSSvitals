@@ -7,7 +7,8 @@ const release = z.object({ tag: z.string(), date: nullableString });
 
 const appRecord = z.object({
   repo: z.string(),
-  class: z.enum(["fork", "original"]),
+  full_name: optionalString,
+  class: z.enum(["fork", "original", "dependency"]),
   url: z.string(),
   description: nullableString,
   licence: nullableString,
@@ -22,6 +23,7 @@ const appRecord = z.object({
   sso: optionalString,
   e2e: optionalString,
   runbook_url: optionalString,
+  pin: optionalString,
   pushed_at: z.string(),
   open_pull_requests: z.number().int().nullish(),
   latest_tag: nullableString,
@@ -221,6 +223,22 @@ const upgradeRecord = z.object({
     .nullish(),
 });
 export const upgradeSchema = view(upgradeRecord);
+const pinRecord = z.object({
+  repo: z.string(),
+  full_name: z.string(),
+  class: z.enum(["fork", "original", "dependency"]),
+  pin: z.string(),
+  pin_kind: z.enum(["tag", "branch", "commit"]),
+  pin_note: nullableString,
+  latest_release: nullableString,
+  releases_behind: z.number().int().nullable(),
+  commits_behind: z.number().int().nullable(),
+  status: z.enum(["current", "behind", "unknown"]),
+});
+export const pinsSchema = z
+  .object({ metadata: envelope, records: z.array(z.unknown()) })
+  .transform(splitFailed)
+  .pipe(z.object({ metadata: envelope, records: z.array(pinRecord), failed: z.array(failedRecord) }));
 
 const manifestSignal = z.object({
   collect: z.boolean(),
@@ -257,6 +275,7 @@ export const FLEET_VIEWS = {
   meta: spec("meta.json", fleetMetaSchema, false),
   carried: spec("carried_patches.json", carriedSchema, false),
   upgrade: spec("upgrade_risk.json", upgradeSchema, false),
+  pins: spec("pins.json", pinsSchema, false),
 };
 
 export type AppRecord = z.infer<typeof appRecord>;
@@ -280,3 +299,5 @@ export type CarriedRecord = z.infer<typeof carriedRecord>;
 export type CarriedView = z.infer<typeof carriedSchema>;
 export type UpgradeRecord = z.infer<typeof upgradeRecord>;
 export type UpgradeView = z.infer<typeof upgradeSchema>;
+export type PinRecord = z.infer<typeof pinRecord>;
+export type PinsView = z.infer<typeof pinsSchema>;

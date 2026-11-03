@@ -15,9 +15,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 from collectors import epss, github, kev, publish
-from collectors.fleet import badges, history, inventory, meta, versions
+from collectors.fleet import badges, history, inventory, meta, pins, versions
 from collectors.fleet.collect import collect_clone_signals, collect_fork
 from collectors.fleet.feeds import KEV_CACHE, Feeds
+from collectors.fleet.repos import duplicate_repos
 from collectors.fleet.settings import FleetSettings, load_settings
 from collectors.fleet.signals import API, CLONE
 from dashboard.lib.clock import now_utc
@@ -26,6 +27,7 @@ from dashboard.lib.config import get_config
 WORKERS = 4
 HISTORY_FILE = "drift_history.json"
 DRIFT_FILE = "drift.json"
+PINS_PAGE = "/pins"
 
 
 def _parse_args() -> argparse.Namespace:
@@ -49,7 +51,27 @@ def _isolated(repo: str, collect: Callable[[], dict[str, Any]]) -> dict[str, Any
 
 def _apps(org: str, repos: list[str]) -> tuple[str, list[dict[str, Any]]]:
     config = get_config("apps", org)
+    duplicates = duplicate_repos(config["apps"])
+    if duplicates:
+        raise ValueError(f"{org}: apps.yaml lists these repo names more than once: {', '.join(duplicates)}")
     return config["github_org"], [app for app in config["apps"] if not repos or app["repo"] in repos]
+
+
+def collect_pins(settings: FleetSettings, repos: list[str]) -> list[dict[str, Any]]:
+    github_org, apps = _apps(settings.org, repos)
+    pinned = [app for app in apps if "pin" in app]
+
+    def one(app: dict[str, Any]) -> dict[str, Any]:
+        return _isolated(app["repo"], lambda: pins.pin_record(github.api_optional, github_org, app, settings.fork_release_tag))
+
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        return list(pool.map(one, pinned))
+
+
+def pages(settings: FleetSettings, has_pins: bool) -> list[str]:
+    """The Pins page is listed only for a tenant that pins any app."""
+    listed = settings.values["pages"]
+    return [*listed, PINS_PAGE] if has_pins and PINS_PAGE not in listed else listed
 
 
 def collect(
@@ -116,6 +138,7 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     previous = history.with_last_licence(_previous_drift(args.previous_dir), previous_history, repos)
     feeds = _feeds(settings, args.feed_cache_dir)
     records, drift = collect(settings, args.repo, previous, feeds)
+    pin_records = collect_pins(settings, args.repo)
     healthy = [record for record in records if "error" not in record]
     if not healthy:
         print("No app could be collected; not writing.")
@@ -125,7 +148,7 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     branding = get_config("org_branding", org)
     github_org = get_config("apps", org)["github_org"]
     views = {
-        "meta": meta.meta_view(org, generated_at, branding=branding, settings=settings, github_org=github_org),
+        "meta": meta.meta_view(org, generated_at, branding=branding, settings=settings, github_org=github_org, pages=pages(settings, bool(pin_records))),
         "apps": meta.records_view(org, generated_at, records),
         "drift": meta.records_view(org, generated_at, drift),
         "drift_history": meta.records_view(
@@ -135,6 +158,8 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
         ),
         "updates": meta.records_view(org, generated_at, _updates(org)),
     }
+    if pin_records:
+        views["pins"] = meta.records_view(org, generated_at, pin_records)
     for name, content in views.items():
         publish.write(args.out_dir / "views" / f"{name}.json", content)
     for record in (record for record in drift if "error" not in record):

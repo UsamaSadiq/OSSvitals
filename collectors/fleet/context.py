@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 from collectors.fleet import conflicts, fork
+from collectors.fleet.repos import full_name, owner_of
 from collectors.fleet.release_gap import release_gap
 
 if TYPE_CHECKING:
@@ -42,7 +43,9 @@ class ForkContext:
         self.feeds = feeds
         self.workspace = workspace
         self._clone: Path | Exception | None = None
-        self.base = f"repos/{org}/{app['repo']}"
+        self.fork_owner = owner_of(org, app)
+        self.full_name = full_name(org, app)
+        self.base = f"repos/{self.full_name}"
         self.upstream = app["upstream"]
         self.owner = self.upstream.split("/")[0]
         self.production = app.get("production_branch", settings.production)
@@ -84,7 +87,7 @@ class ForkContext:
 
     @property
     def fork_url(self) -> str:
-        return f"https://github.com/{self.org}/{self.app['repo']}.git"
+        return f"https://github.com/{self.full_name}.git"
 
     @property
     def upstream_url(self) -> str:

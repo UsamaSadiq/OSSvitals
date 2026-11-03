@@ -10,6 +10,7 @@ import {
   type DriftView,
   type FleetMetaView,
   type HistoryView,
+  type PinsView,
   type UpdatesView,
   type ViewSpec,
 } from "./schemas";
@@ -22,6 +23,7 @@ export interface FleetViews {
   conflicts: ConflictsView | null;
   carried: CarriedView | null;
   upgrade: UpgradeView | null;
+  pins: PinsView | null;
   meta: FleetMetaView | null;
 }
 
@@ -41,7 +43,7 @@ async function fetchView<T>(org: string, view: ViewSpec<T>): Promise<T | null> {
 }
 
 async function loadViews(org: string): Promise<FleetViews> {
-  const [apps, drift, history, updates, conflicts, meta, carried, upgrade] = await Promise.all([
+  const [apps, drift, history, updates, conflicts, meta, carried, upgrade, pins] = await Promise.all([
     fetchView(org, FLEET_VIEWS.apps),
     fetchView(org, FLEET_VIEWS.drift),
     fetchView(org, FLEET_VIEWS.history),
@@ -50,8 +52,9 @@ async function loadViews(org: string): Promise<FleetViews> {
     fetchView(org, FLEET_VIEWS.meta),
     fetchView(org, FLEET_VIEWS.carried),
     fetchView(org, FLEET_VIEWS.upgrade),
+    fetchView(org, FLEET_VIEWS.pins),
   ]);
-  return { apps, drift, history, updates, conflicts, meta, carried, upgrade };
+  return { apps, drift, history, updates, conflicts, meta, carried, upgrade, pins };
 }
 
 export function clearFleetViews(): void {

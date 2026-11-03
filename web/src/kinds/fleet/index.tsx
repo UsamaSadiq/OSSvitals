@@ -7,6 +7,7 @@ import { FleetApps } from "./Apps";
 import { FleetAttention } from "./AttentionPage";
 import { FleetOverview } from "./Overview";
 import { FleetPaletteHost } from "./PaletteHost";
+import { FleetPins } from "./PinsPage";
 import { FleetSignals } from "./SignalsPage";
 import { SignalVisibilityProvider } from "./visibility";
 
@@ -22,6 +23,7 @@ const routes: RouteObject[] = [
       { path: "apps", element: <FleetApps /> },
       { path: "attention", element: <FleetAttention /> },
       { path: "apps/:repo", element: <AppDetail /> },
+      { path: "pins", element: <FleetPins /> },
       { path: "signals", element: <FleetSignals /> },
       { path: "*", element: <NotFound /> },
     ],
@@ -38,6 +40,7 @@ export function fleetTenant(org: string): Tenant {
           { path: "/", title: "Overview" },
           { path: "/apps", title: "Apps" },
           { path: "/attention", title: "Needs attention" },
+          { path: "/pins", title: "Pins" },
         ],
       },
       {

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from collectors.fleet.fork import Api, stable_tags
+from collectors.fleet.repos import full_name
 
 FORK_NOTES_PATH = "FORK.md"
 NOTES_LIMIT = 1500
@@ -20,7 +21,8 @@ def collect_app(
     production_default: str,
     read_text: Callable[[str, str, str], str | None] = lambda *_: None,
 ) -> dict[str, Any]:
-    base = f"repos/{org}/{app['repo']}"
+    name = full_name(org, app)
+    base = f"repos/{name}"
     repo = api(base)
     if repo is None:
         raise LookupError(f"{base} not found")
@@ -28,9 +30,10 @@ def collect_app(
     open_pulls = api(f"{base}/pulls?state=open&per_page=100") or []
     upstream = app.get("upstream")
     production = app.get("production_branch", production_default) if upstream else None
-    notes = _fork_notes(read_text, f"{org}/{app['repo']}", production or repo["default_branch"])
+    notes = _fork_notes(read_text, name, production or repo["default_branch"])
     return {
         "repo": app["repo"],
+        "full_name": name,
         "class": app["class"],
         "url": repo["html_url"],
         "description": repo.get("description"),
@@ -46,6 +49,7 @@ def collect_app(
         "sso": app.get("sso"),
         "e2e": app.get("e2e"),
         "runbook_url": app.get("runbook_url"),
+        "pin": app.get("pin"),
         "pushed_at": repo["pushed_at"],
         "open_pull_requests": len(open_pulls),
         "latest_tag": tags[0]["name"] if tags else None,

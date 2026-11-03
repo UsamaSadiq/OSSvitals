@@ -12,7 +12,7 @@ import { trendOf } from "./insights";
 import { advisoryUrl, checkedText, epssText } from "./exploited";
 import { contributorsText, healthNotes } from "./health";
 import { licenceHistoryUrl, licenceNotice } from "./licence";
-import { APPS_PATH, compareUrl, releaseUrl } from "./paths";
+import { APPS_PATH, compareUrl, releaseUrl, repoFullName } from "./paths";
 import { formatDay, pluralise, releaseGapText, type ForkRow } from "./rows";
 import type { CarriedRecord, ConflictRecord, DriftRecord, HistoryRow, UpgradeRecord } from "./schemas";
 import type { SignalKey } from "./signals";
@@ -41,8 +41,8 @@ function releaseText(release: DriftRecord["fork_release"]): string {
   return release ? `${release.tag}${release.date ? ` (${formatDay(release.date)})` : ""}` : "none yet";
 }
 
-function ourRelease(release: DriftRecord["fork_release"], githubOrg: string | undefined, repo: string): ReactNode {
-  return release && githubOrg ? external(releaseUrl(githubOrg, repo, release.tag), releaseText(release)) : releaseText(release);
+function ourRelease(release: DriftRecord["fork_release"], fullName: string | undefined): ReactNode {
+  return release && fullName ? external(releaseUrl(fullName, release.tag), releaseText(release)) : releaseText(release);
 }
 
 const STATUS_BASIS_NOTE = {
@@ -52,14 +52,14 @@ const STATUS_BASIS_NOTE = {
 
 const CI_TEXT = { passing: "Passing", failing: "Failing", pending: "Running", none: "No checks" } as const;
 
-function ReleaseFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined }) {
+function ReleaseFacts({ row, fullName }: { row: ForkRow; fullName: string | undefined }) {
   const { app, drift } = row;
   const { isShown } = useSignalVisibility();
   const ours = isShown("fork_release", "detail");
   const upstream = isShown("upstream_release", "detail");
   return (
     <>
-      {ours && <Fact term="Our latest release">{ourRelease(drift.fork_release ?? null, githubOrg, app.repo)}</Fact>}
+      {ours && <Fact term="Our latest release">{ourRelease(drift.fork_release ?? null, fullName)}</Fact>}
       {ours && drift.release_candidate && <Fact term="Release candidate pending">{drift.release_candidate.tag}</Fact>}
       {upstream && (
         <Fact term="Upstream latest release">
@@ -77,7 +77,7 @@ function ReleaseFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | un
   );
 }
 
-function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined }) {
+function ForkFacts({ row, fullName }: { row: ForkRow; fullName: string | undefined }) {
   const { drift } = row;
   const { advisories, promotion, ci, pull_requests: pulls, upstream_activity: activity } = drift;
   const { isShown } = useSignalVisibility();
@@ -99,7 +99,7 @@ function ForkFacts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undef
       <Fact term="Last upstream sync">
         {formatDay(drift.last_upstream_merge)} ({drift.days_since_upstream_merge} days ago)
       </Fact>
-      <ReleaseFacts row={row} githubOrg={githubOrg} />
+      <ReleaseFacts row={row} fullName={fullName} />
       {shown("advisories") && advisories && (
         <Fact term="Upstream advisories">
           {advisories.since_fork_release} published after our latest release
@@ -191,15 +191,15 @@ function ExploitedFact({ row }: { row: ForkRow }) {
   );
 }
 
-function Links({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined }) {
+function Links({ row, fullName }: { row: ForkRow; fullName: string | undefined }) {
   const { app } = row;
-  const canCompare = githubOrg && app.upstream && app.upstream_branch && app.production_branch;
+  const canCompare = fullName && app.upstream && app.upstream_branch && app.production_branch;
   return (
     <ul className="app-links">
       <li>{external(app.url, "Our repository")}</li>
       {app.upstream_url && <li>{external(app.upstream_url, "Upstream repository")}</li>}
       {canCompare && (
-        <li>{external(compareUrl(githubOrg, app.repo, app.upstream ?? "", app.upstream_branch ?? "", app.production_branch ?? ""), "Compare our branch with upstream")}</li>
+        <li>{external(compareUrl(fullName, app.upstream ?? "", app.upstream_branch ?? "", app.production_branch ?? ""), "Compare our branch with upstream")}</li>
       )}
       {app.runbook_url && <li>{external(app.runbook_url, "Sync runbook")}</li>}
     </ul>
@@ -237,12 +237,12 @@ function Maintainers({ drift }: { drift: DriftRecord }) {
   );
 }
 
-function Facts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined }) {
+function Facts({ row, fullName }: { row: ForkRow; fullName: string | undefined }) {
   const { app, drift } = row;
   const { isShown } = useSignalVisibility();
   return (
     <dl className="app-facts">
-      <ForkFacts row={row} githubOrg={githubOrg} />
+      <ForkFacts row={row} fullName={fullName} />
       <Fact term="Licence">
         {app.licence ?? "Not recorded"}
         {app.licence_note && <span className="app-fact__note">{app.licence_note}</span>}
@@ -256,14 +256,14 @@ function Facts({ row, githubOrg }: { row: ForkRow; githubOrg: string | undefined
 
 interface DetailProps {
   row: ForkRow;
-  githubOrg: string | undefined;
+  fullName: string | undefined;
   history: readonly HistoryRow[];
   conflict: ConflictRecord | undefined;
   carried: CarriedRecord | undefined;
   upgrade: UpgradeRecord | undefined;
 }
 
-function Detail({ row, githubOrg, history, conflict, carried, upgrade }: DetailProps) {
+function Detail({ row, fullName, history, conflict, carried, upgrade }: DetailProps) {
   const { app, drift } = row;
   const { isShown } = useSignalVisibility();
   usePageTitle(app.repo);
@@ -277,7 +277,7 @@ function Detail({ row, githubOrg, history, conflict, carried, upgrade }: DetailP
       </h1>
       {app.description && <p className="caption">{app.description}</p>}
       {app.purpose && <p>{app.purpose}</p>}
-      <Facts row={row} githubOrg={githubOrg} />
+      <Facts row={row} fullName={fullName} />
       <section className="overview-section" aria-labelledby="trend-heading">
         <h2 id="trend-heading">Trend</h2>
         <Sparkline points={trendOf(history, app.repo)} />
@@ -294,7 +294,7 @@ function Detail({ row, githubOrg, history, conflict, carried, upgrade }: DetailP
       {isShown("upgrade_risk", "detail") && <UpgradeRisk record={upgrade} />}
       <section className="overview-section" aria-labelledby="links-heading">
         <h2 id="links-heading">Links</h2>
-        <Links row={row} githubOrg={githubOrg} />
+        <Links row={row} fullName={fullName} />
       </section>
       <BadgeSnippet repo={app.repo} />
     </section>
@@ -308,7 +308,7 @@ function Resolved({ repo, views, githubOrg }: { repo: string; views: FleetViews;
   const conflict = views.conflicts?.records.find((record) => record.repo === repo);
   const carried = views.carried?.records.find((record) => record.repo === repo);
   const upgrade = views.upgrade?.records.find((record) => record.repo === repo);
-  return <Detail row={{ app, drift }} githubOrg={githubOrg} history={views.history?.records ?? []} conflict={conflict} carried={carried} upgrade={upgrade} />;
+  return <Detail row={{ app, drift }} fullName={repoFullName(app, githubOrg)} history={views.history?.records ?? []} conflict={conflict} carried={carried} upgrade={upgrade} />;
 }
 
 export function AppDetail() {
