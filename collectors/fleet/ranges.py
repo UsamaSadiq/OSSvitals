@@ -4,13 +4,24 @@ import re
 from typing import Any
 
 VERSION = re.compile(r"\d+(?:\.\d+)+")
+NUMBER = re.compile(r"\d+")
 CLAUSE = re.compile(r"^\s*(<=|>=|<|>|=)?\s*v?(\d+(?:\.\d+)*)")
 
 Version = tuple[int, ...]
 
 
 def version_key(tag: str) -> Version:
-    return tuple(int(part) for part in VERSION.search(tag).group().split("."))
+    """A dotted version, or the last number of a named release line such as ``release/ulmo.3``."""
+    dotted = VERSION.search(tag)
+    if dotted:
+        return tuple(int(part) for part in dotted.group().split("."))
+    numbers = NUMBER.findall(tag)
+    return (int(numbers[-1]),) if numbers else ()
+
+
+def is_release_name(name: str, pattern: re.Pattern[str]) -> bool:
+    """A tag on a tenant's chosen release line; the line may number its releases without dots (``release/ulmo.3``)."""
+    return bool(pattern.match(name)) and bool(NUMBER.search(name))
 
 
 def _padded(left: Version, right: Version) -> tuple[Version, Version]:

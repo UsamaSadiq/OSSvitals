@@ -21,8 +21,24 @@ def commit(date):
     return {"commit": {"committer": {"date": date}}}
 
 
+MATCHING_REFS = "/git/matching-refs/tags/"
+
+
+def with_tag_refs(lookup):
+    """Answers a matching-refs listing from the same repo's tags fixture, as GitHub would: every tag under the prefix."""
+
+    def api(path):
+        if MATCHING_REFS not in path or lookup(path) is not None:
+            return lookup(path)
+        base, prefix = path.split(MATCHING_REFS)
+        tags = lookup(f"{base}/tags?per_page=100") or []
+        return [{"ref": f"refs/tags/{tag['name']}", "object": {"sha": tag["commit"]["sha"], "type": "commit"}} for tag in tags if tag["name"].startswith(prefix)]
+
+    return api
+
+
 def api_for(routes):
-    return lambda path: routes.get(path)
+    return with_tag_refs(routes.get)
 
 
 def release(tag, published, prerelease=False):

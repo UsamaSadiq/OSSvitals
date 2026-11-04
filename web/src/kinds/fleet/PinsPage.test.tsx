@@ -29,7 +29,7 @@ function pin(overrides: Partial<PinRecord>): PinRecord {
 
 const PINS = [
   pin({}),
-  pin({ repo: "tutor", full_name: "overhangio/tutor", class: "dependency", pin: "v21.0.0", latest_release: "v21.0.0", releases_behind: 0, commits_behind: 0, status: "current" }),
+  pin({ repo: "tutor", full_name: "overhangio/tutor", class: "dependency", group: "Tutor plugin", pin: "v21.0.0", latest_release: "v21.0.0", releases_behind: 0, commits_behind: 0, status: "current" }),
   { repo: "broken", error: "not found" },
 ];
 
@@ -38,7 +38,10 @@ let files: Record<string, unknown>;
 beforeEach(() => {
   clearFleetViews();
   files = {
-    "apps.json": { metadata, records: [] },
+    "apps.json": {
+      metadata,
+      records: [{ repo: "tutor", full_name: "overhangio/tutor", class: "dependency", archived: true, url: "https://github.com/overhangio/tutor", description: null, licence: null, upstream: null, upstream_url: null, upstream_branch: null, production_branch: null, purpose: null, what_we_changed: null, pushed_at: "2026-10-01T00:00:00Z", latest_tag: "v21.0.0" }],
+    },
     "drift.json": { metadata, records: [] },
     "pins.json": { metadata, records: PINS },
   };
@@ -62,7 +65,10 @@ describe("Pins page", () => {
     expect(screen.getByRole("link", { name: "edx-platform" }).getAttribute("href")).toBe("/apps/edx-platform");
     const dependency = screen.getByRole("link", { name: "overhangio/tutor" });
     expect(dependency.getAttribute("href")).toBe("https://github.com/overhangio/tutor");
-    expect(within(dependency.closest("tr") as HTMLElement).getByText("Third-party")).toBeTruthy();
+    const dependencyRow = within(dependency.closest("tr") as HTMLElement);
+    expect(dependencyRow.getByText("Third-party")).toBeTruthy();
+    expect(dependencyRow.getByText("Tutor plugin")).toBeTruthy();
+    expect(dependencyRow.getByText("Archived on GitHub")).toBeTruthy();
     expect(screen.getByText(/broken/)).toBeTruthy();
   });
 

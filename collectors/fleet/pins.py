@@ -10,12 +10,10 @@ import re
 from typing import Any
 from urllib.parse import quote
 
-from collectors.fleet.fork import STABLE_TAG, Api
-from collectors.fleet.ranges import VERSION, version_key
+from collectors.fleet.fork import STABLE_TAG, Api, list_tags
+from collectors.fleet.ranges import is_release_name, version_key
 from collectors.fleet.repos import full_name
 
-LITERAL_PREFIX = re.compile(r"^\^((?:[A-Za-z0-9_/-](?![?*{]))*)")
-TAG_REF_PREFIX = "refs/tags/"
 CURRENT = "current"
 BEHIND = "behind"
 UNKNOWN = "unknown"
@@ -27,25 +25,8 @@ def release_pattern(app: dict[str, Any], fork_release_tag: str) -> re.Pattern[st
     return re.compile(app["release_tag"]) if "release_tag" in app else STABLE_TAG
 
 
-def _literal_prefix(pattern: re.Pattern[str]) -> str:
-    """The characters every match must start with; none when the pattern has alternatives."""
-    if "|" in pattern.pattern:
-        return ""
-    match = LITERAL_PREFIX.match(pattern.pattern)
-    return match.group(1) if match else ""
-
-
-def _tag_names(api: Api, base: str, pattern: re.Pattern[str]) -> list[str]:
-    """Tags under the pattern's literal prefix, so a repo with thousands of tags still lists every matching one."""
-    prefix = _literal_prefix(pattern)
-    if prefix:
-        refs = api(f"{base}/git/matching-refs/tags/{quote(prefix, safe='/')}?per_page=100") or []
-        return [ref["ref"].removeprefix(TAG_REF_PREFIX) for ref in refs]
-    return [tag["name"] for tag in api(f"{base}/tags?per_page=100") or []]
-
-
 def releases(api: Api, base: str, pattern: re.Pattern[str]) -> list[str]:
-    names = (name for name in _tag_names(api, base, pattern) if pattern.match(name) and VERSION.search(name))
+    names = (tag["name"] for tag in list_tags(api, base, pattern) if is_release_name(tag["name"], pattern))
     return sorted(names, key=version_key, reverse=True)
 
 
@@ -59,7 +40,7 @@ def _pin_kind(api: Api, base: str, pin: str, known_tags: list[str]) -> str:
 
 def _releases_behind(pin: str, ordered: list[str], pattern: re.Pattern[str]) -> int | None:
     """Only a pin on the release line itself can be counted in releases; a branch or commit is counted in commits."""
-    if not (pattern.match(pin) and VERSION.search(pin)):
+    if not is_release_name(pin, pattern):
         return None
     pinned = version_key(pin)
     return sum(1 for tag in ordered if version_key(tag) > pinned)
@@ -92,6 +73,7 @@ def pin_record(api: Api, github_org: str, app: dict[str, Any], fork_release_tag:
         "repo": app["repo"],
         "full_name": name,
         "class": app["class"],
+        "group": app.get("group"),
         "pin": pin,
         "pin_kind": _pin_kind(api, base, pin, ordered),
         "pin_note": app.get("pin_note"),

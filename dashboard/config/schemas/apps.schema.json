@@ -29,7 +29,8 @@
           "purpose": {"type": "string"},
           "what_we_changed": {"type": "string"},
           "pin": {"description": "The tag, branch or commit the production build installs.", "type": "string", "minLength": 1},
-          "pin_note": {"description": "Where the pin comes from, shown beside it.", "type": "string"}
+          "pin_note": {"description": "Where the pin comes from, shown beside it.", "type": "string"},
+          "group": {"description": "The part of the product this repo belongs to, used to group tables.", "type": "string", "minLength": 1}
         },
         "allOf": [
           {

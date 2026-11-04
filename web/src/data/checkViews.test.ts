@@ -1,12 +1,14 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { checkViews, type ReadView } from "./checkViews";
 
 const MONETA = resolve(__dirname, "../../../tests/fixtures/moneta/views");
 
+// Moneta pins nothing, so it publishes no pins.json: a missing file reads as absent, as it does in validate-data.
 function fixture(file: string): unknown {
-  return JSON.parse(readFileSync(resolve(MONETA, file), "utf8"));
+  const path = resolve(MONETA, file);
+  return existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : undefined;
 }
 
 function readFrom(views: Record<string, unknown>): ReadView {
@@ -16,7 +18,7 @@ function readFrom(views: Record<string, unknown>): ReadView {
 describe("checkViews", () => {
   it("accepts the published fleet fixtures", async () => {
     const results = await checkViews("fleet", async (file) => fixture(file));
-    expect(results.filter((result) => result.outcome !== "ok")).toEqual([]);
+    expect(results.filter((result) => result.outcome !== "ok").map(({ file, outcome }) => [file, outcome])).toEqual([["pins.json", "absent"]]);
   });
 
   it("lets a fleet tenant skip optional views but not apps or drift", async () => {

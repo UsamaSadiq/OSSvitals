@@ -5,7 +5,8 @@ import pytest
 from jsonschema import ValidationError
 
 from collectors import github
-from collectors.fleet import inventory, pins
+from collectors.fleet import fork, inventory, pins
+from collectors.fleet.ranges import version_key
 from collectors.fleet.repos import duplicate_repos, full_name
 from collectors.fleet.settings import load_settings
 from dashboard.lib.schema import validate_config_data
@@ -28,7 +29,7 @@ def refs(*names):
 
 def test_a_fork_pin_counts_our_newer_releases_from_every_tag_under_the_patterns_prefix():
     api = api_for({
-        "repos/edly-io/edx-platform/git/matching-refs/tags/edly-21?per_page=100": refs("edly-21.0.0", "edly-21.0.1", "edly-21.0.3", "edly-21.0.2", "edly-21.0.3-rc1"),
+        "repos/edly-io/edx-platform/git/matching-refs/tags/edly-21": refs("edly-21.0.0", "edly-21.0.1", "edly-21.0.3", "edly-21.0.2", "edly-21.0.3-rc1"),
         "repos/edly-io/edx-platform/compare/edly-21.0.1...edly-21.0.3": {"ahead_by": 12},
     })
     record = pins.pin_record(api, "edly-io", FORK, r"^edly-21\.\d+\.\d+$")
@@ -36,6 +37,7 @@ def test_a_fork_pin_counts_our_newer_releases_from_every_tag_under_the_patterns_
         "repo": "edx-platform",
         "full_name": "edly-io/edx-platform",
         "class": "fork",
+        "group": None,
         "pin": "edly-21.0.1",
         "pin_kind": "tag",
         "pin_note": None,
@@ -59,7 +61,7 @@ def test_a_dependency_reads_its_own_owner_and_stable_tags():
 def test_a_branch_pin_is_counted_in_commits_not_releases():
     app = {**FORK, "pin": "develop-ulmo", "fork_release_tag": r"^edly-ulmo-v\d+\.\d+\.\d+$"}
     api = api_for({
-        "repos/edly-io/edx-platform/git/matching-refs/tags/edly-ulmo-v?per_page=100": refs("edly-ulmo-v9.14.3"),
+        "repos/edly-io/edx-platform/git/matching-refs/tags/edly-ulmo-v": refs("edly-ulmo-v9.14.3"),
         "repos/edly-io/edx-platform/branches/develop-ulmo": {"name": "develop-ulmo"},
         "repos/edly-io/edx-platform/compare/develop-ulmo...edly-ulmo-v9.14.3": {"ahead_by": 0},
     })
@@ -131,4 +133,50 @@ def test_no_owner_tokens_keeps_the_default_token(monkeypatch):
     [(r"^edly-21\.\d+$", "edly-21"), (r"^v?\d+(\.\d+)+$", ""), (r"^twenty/v\d+$", "twenty/v"), (r"^ab*c$", "a"), (r"^a|^b", ""), (r"v\d+", "")],
 )
 def test_the_tag_prefix_is_only_what_every_match_starts_with(pattern, prefix):
-    assert pins._literal_prefix(re.compile(pattern)) == prefix
+    assert fork.literal_prefix(re.compile(pattern)) == prefix
+
+
+def test_a_named_release_line_counts_its_last_number():
+    app = {"repo": "frontend-app-learning", "class": "dependency", "owner": "openedx", "pin": "release/ulmo.1", "release_tag": r"^release/ulmo\.\d+$", "group": "MFE"}
+    api = api_for({
+        "repos/openedx/frontend-app-learning/git/matching-refs/tags/release/ulmo": refs("release/ulmo.1", "release/ulmo.10", "release/ulmo.2"),
+        "repos/openedx/frontend-app-learning/compare/release%2Fulmo.1...release%2Fulmo.10": {"ahead_by": 7},
+    })
+    record = pins.pin_record(api, "edly-io", app, "unused")
+    assert (record["latest_release"], record["releases_behind"], record["commits_behind"], record["group"]) == ("release/ulmo.10", 2, 7, "MFE")
+
+
+def test_version_key_reads_dotted_versions_first_then_a_trailing_number():
+    assert version_key("edly-21.0.3") == (21, 0, 3)
+    assert version_key("release/ulmo.3") == (3,)
+    assert version_key("nightly") == ()
+
+
+def test_listed_tags_keep_a_commit_sha_and_name_an_annotated_tag_by_itself():
+    api = api_for({"repos/o/r/git/matching-refs/tags/v": [
+        {"ref": "refs/tags/v1.0.0", "object": {"sha": "abc", "type": "commit"}},
+        {"ref": "refs/tags/v2.0.0", "object": {"sha": "tagobj", "type": "tag"}},
+    ]})
+    assert fork.list_tags(api, "repos/o/r", re.compile(r"^v\d+\.\d+\.\d+$")) == [
+        {"name": "v1.0.0", "commit": {"sha": "abc"}},
+        {"name": "v2.0.0", "commit": {"sha": "v2.0.0"}},
+    ]
+
+
+def test_a_pattern_without_a_literal_prefix_reads_the_tags_endpoint():
+    api = api_for({"repos/o/r/tags?per_page=100": [{"name": "1.2.3", "commit": {"sha": "s"}}]})
+    assert fork.list_tags(api, "repos/o/r", re.compile(r"^\d+\.\d+\.\d+$")) == [{"name": "1.2.3", "commit": {"sha": "s"}}]
+
+
+def test_the_fork_release_finds_our_tags_beyond_the_first_hundred():
+    from collectors.fleet.context import ForkContext
+
+    settings = load_settings("moneta")
+    app = {**FORK, "fork_release_tag": r"^edly-21\.\d+\.\d+$", "production_branch": "develop-ulmo"}
+    api = api_for({
+        "repos/edly-io/edx-platform/git/matching-refs/tags/edly-21": refs("edly-21.0.0", "edly-21.0.1"),
+        "repos/edly-io/edx-platform/compare/openedx:master...edly-21.0.1": {"ahead_by": 30},
+        "repos/edly-io/edx-platform/commits/edly-21.0.1": {"commit": {"committer": {"date": "2026-10-01T00:00:00Z"}}},
+    })
+    ctx = ForkContext(api, "edly-io", app, settings, None)
+    assert ctx.fork_release == {"tag": "edly-21.0.1", "date": "2026-10-01T00:00:00Z"}

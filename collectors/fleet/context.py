@@ -71,7 +71,7 @@ class ForkContext:
 
     @cached_property
     def tags(self) -> list[dict[str, Any]]:
-        return self.api(f"{self.base}/tags?per_page=100") or []
+        return fork.list_tags(self.api, self.base, self.fork_pattern)
 
     @cached_property
     def fork_release(self) -> dict[str, Any] | None:

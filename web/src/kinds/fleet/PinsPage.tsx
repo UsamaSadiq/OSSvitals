@@ -36,12 +36,21 @@ export function distanceText(pin: PinRecord): string {
   return `Latest is ${pin.latest_release}`;
 }
 
-function RepoCell({ pin }: { pin: PinRecord }) {
+function RepoLink({ pin }: { pin: PinRecord }) {
   if (pin.class === "fork") return <Link to={appPath(pin.repo)}>{pin.repo}</Link>;
   return (
     <a href={`https://github.com/${pin.full_name}`} target="_blank" rel="noreferrer">
       {pin.full_name}
     </a>
+  );
+}
+
+function RepoCell({ pin, archived }: { pin: PinRecord; archived: boolean }) {
+  return (
+    <>
+      <RepoLink pin={pin} />
+      {archived && <span className="app-fact__note">Archived on GitHub</span>}
+    </>
   );
 }
 
@@ -54,38 +63,42 @@ function PinCell({ pin }: { pin: PinRecord }) {
   );
 }
 
-const COLUMNS: Column<PinRecord>[] = [
-  { key: "repo", header: "Repository", cell: (pin) => <RepoCell pin={pin} />, sortValue: (pin) => pin.full_name.toLowerCase() },
-  { key: "class", header: "Kind", cell: (pin) => CLASS_LABELS[pin.class], sortValue: (pin) => CLASS_LABELS[pin.class] },
-  {
-    key: "status",
-    header: "Status",
-    cell: (pin) => <span className={`fork-status fork-status--${STATUS_PILL[pin.status].tone}`}>{STATUS_PILL[pin.status].label}</span>,
-    sortValue: (pin) => STATUS_ORDER[pin.status],
-    numeric: true,
-  },
-  { key: "pin", header: "Pinned in production", cell: (pin) => <PinCell pin={pin} />, sortValue: (pin) => pin.pin },
-  {
-    key: "distance",
-    header: "Against the latest release",
-    cell: distanceText,
-    sortValue: (pin) => pin.releases_behind ?? pin.commits_behind ?? -1,
-    numeric: true,
-  },
-];
+function columns(archived: ReadonlySet<string>): Column<PinRecord>[] {
+  return [
+    { key: "repo", header: "Repository", cell: (pin) => <RepoCell pin={pin} archived={archived.has(pin.repo)} />, sortValue: (pin) => pin.full_name.toLowerCase() },
+    { key: "group", header: "Group", cell: (pin) => pin.group ?? "–", sortValue: (pin) => pin.group ?? "" },
+    { key: "class", header: "Kind", cell: (pin) => CLASS_LABELS[pin.class], sortValue: (pin) => CLASS_LABELS[pin.class] },
+    {
+      key: "status",
+      header: "Status",
+      cell: (pin) => <span className={`fork-status fork-status--${STATUS_PILL[pin.status].tone}`}>{STATUS_PILL[pin.status].label}</span>,
+      sortValue: (pin) => STATUS_ORDER[pin.status],
+      numeric: true,
+    },
+    { key: "pin", header: "Pinned in production", cell: (pin) => <PinCell pin={pin} />, sortValue: (pin) => pin.pin },
+    {
+      key: "distance",
+      header: "Against the latest release",
+      cell: distanceText,
+      sortValue: (pin) => pin.releases_behind ?? pin.commits_behind ?? -1,
+      numeric: true,
+    },
+  ];
+}
 
 function Content() {
   const state = useFleetViews();
   if (state.status === "loading") return <Loading label="Loading pins…" />;
   if (state.status === "error") return <ErrorState title="The fork status data could not be loaded." detail={state.message} />;
   if (!state.pins) return <EmptyState kind="info" title="No app has a production pin yet." />;
+  const archived = new Set(state.apps.records.filter((app) => app.archived).map((app) => app.repo));
   return (
     <>
       <CollectionFailures failed={state.pins.failed} />
       <DataTable
         caption="Every pinned repository and how far its pin is behind the latest release"
         captionHidden
-        columns={COLUMNS}
+        columns={columns(archived)}
         rows={state.pins.records}
         rowKey={(pin) => pin.full_name}
         initialSort={{ key: "status", direction: "descending" }}

@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Fleet apps can live under their own `owner`, and the collector picks a token per owner from `GH_OWNER_TOKENS`. A `pin` on any app records the ref production installs: the daily run publishes `pins.json` (releases or commits behind the newest release) and the new Pins page lists them. `class: dependency` tracks a third-party repo the tenant installs without forking it.
+- Fleet apps can live under their own `owner`, and the collector picks a token per owner from `GH_OWNER_TOKENS`. A `pin` on any app records the ref production installs: the daily run publishes `pins.json` (releases or commits behind the newest release) and the new Pins page lists them. `class: dependency` tracks a third-party repo the tenant installs without forking it. Apps take an optional `group`, and archived repos are marked on the Pins page.
+
+### Fixed
+- Fork releases are found on repos with more than 100 tags: tags are listed under the release pattern's literal prefix instead of the newest 100 (edx-platform's `edly-21.*` tags were not among them), and the same applies to the tag fallback for upstreams that publish no GitHub releases. Named release lines such as Open edX's `release/ulmo.3` are now read as versions when chosen with `release_tag` or `fork_release_tag`. Moneta's releases are unchanged.
 
 ### Changed
 - The health web module is parameterised by org, like the fleet kind: `src/tenants/openedx/` moved to `src/kinds/health/` and exports `healthTenant(org)`, so a new health tenant needs only its `tenants.json` entry on the web side (its data pipeline is still openedx-only). Views are read for the tenant's org (`useView` takes it from the tenant context), a page left out of an org's `meta.json` `pages` list now returns Page not found as well as leaving the nav, and the Scoring page names the org's own `scoring.yaml`. The openedx site is unchanged. An org missing from `tenants.json` (including a `VITE_DEFAULT_ORG` preview) gets the openedx tenant and its data, so add the index entry before previewing a new tenant.
