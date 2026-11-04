@@ -1,0 +1,17 @@
+# Modularization facts about openedx-platform, collected daily by collect_maintenance.py.
+# Checked against a local clone on 2026-11-04: 8 of 8 toggles True, 2,003 legacy frontend files.
+repo: openedx/openedx-platform
+ref: master
+extracted_blocks:
+  path: openedx/envs/common.py
+  pattern: '^USE_EXTRACTED_([A-Z_]+)_BLOCK\s*=\s*(True|False)'
+  package: xblocks-contrib
+  acronyms: [HTML, LTI]
+legacy_frontend:
+  roots: [lms, cms, common, xmodule, openedx]
+  extensions: [js, jsx, underscore, html, scss]
+  exclude: [spec, /tests/, fixtures]
+  since_year: 2020
+pins:
+  path: requirements/edx/base.txt
+  packages: [openedx-core, xblocks-contrib, openedx-filters, openedx-events]

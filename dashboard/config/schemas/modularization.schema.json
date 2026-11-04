@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["repo", "ref", "extracted_blocks", "legacy_frontend", "pins"],
+  "properties": {
+    "repo": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+    "ref": {"type": "string"},
+    "extracted_blocks": {
+      "type": "object",
+      "required": ["path", "pattern"],
+      "properties": {
+        "path": {"type": "string"},
+        "pattern": {"type": "string"},
+        "package": {"type": "string"},
+        "acronyms": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "legacy_frontend": {
+      "type": "object",
+      "required": ["roots", "extensions", "since_year"],
+      "properties": {
+        "roots": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "extensions": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "exclude": {"type": "array", "items": {"type": "string"}},
+        "since_year": {"type": "integer", "minimum": 2008}
+      },
+      "additionalProperties": false
+    },
+    "pins": {
+      "type": "object",
+      "required": ["path", "packages"],
+      "properties": {
+        "path": {"type": "string"},
+        "packages": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

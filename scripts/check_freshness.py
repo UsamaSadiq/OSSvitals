@@ -53,6 +53,7 @@ def _maintenance_files(org: str) -> list[tuple[str, str]]:
         ("upgrade_jobs", "upgrade jobs", maintenance.UPGRADE_JOBS),
         ("redundant_prs", "redundant PRs", maintenance.REDUNDANT_PRS),
         ("support_windows", "support windows", maintenance.SUPPORT_WINDOWS),
+        ("modularization", "modularization", maintenance.MODULARIZATION),
     ]
     return [
         *((f"{wave_id} wave", maintenance.wave_file(wave_id)) for wave_id in waves),

@@ -23,6 +23,7 @@ UPGRADE_JOBS = "upgrade_jobs.json"
 REDUNDANT_PRS = "redundant_prs.json"
 FIX_PRS = "fix_prs.json"
 SUPPORT_WINDOWS = "support_windows.json"
+MODULARIZATION = "modularization.json"
 FIXTURE_SUBDIR = "maintenance"
 
 

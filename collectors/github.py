@@ -160,6 +160,20 @@ def _tree(full_name: str, tree_ref: str, *, recursive: bool) -> list[dict[str, A
         return []
 
 
+def blob_paths(full_name: str, tree_ref: str) -> list[str] | None:
+    """Every file path in a tree, or None when GitHub truncates the listing or has no such tree."""
+    data = api_optional(f"repos/{full_name}/git/trees/{tree_ref}?recursive=1")
+    if not data or data.get("truncated"):
+        return None
+    return [entry["path"] for entry in data.get("tree") or [] if entry["type"] == "blob"]
+
+
+def tree_before(full_name: str, ref: str, before: str) -> str | None:
+    """Tree SHA of the last commit on ``ref`` before the ISO timestamp ``before``."""
+    commits = api_optional(f"repos/{full_name}/commits?sha={ref}&until={before}&per_page=1")
+    return commits[0]["commit"]["tree"]["sha"] if commits else None
+
+
 def file_paths(full_name: str, ref: str, subdir: str) -> list[str]:
     """Top-level paths of ``ref`` plus every path under the ``subdir`` folder, without walking the whole repo."""
     top = _tree(full_name, ref, recursive=False)

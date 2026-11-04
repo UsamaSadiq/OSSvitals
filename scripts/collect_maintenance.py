@@ -18,6 +18,7 @@ from collectors import (
     fix_prs,
     github,
     merge,
+    modularization,
     publish,
     redundant_prs,
     support_windows,
@@ -36,13 +37,23 @@ CATALOG_FILE = "catalog.json"
 CATALOG_PATH = "catalog-info.yaml"
 FIX_PRS_FILE = "fix_prs.json"
 SUPPORT_WINDOWS_FILE = "support_windows.json"
+MODULARIZATION_FILE = "modularization.json"
 TUTOR_DEFAULTS = "tutor/templates/config/defaults.yml"
 OPENEDX_RELEASE_PATTERN = r'OPENEDX_COMMON_VERSION: "([^"]+)"'
 RELEASE_TAG_PATTERN = r"^([a-z]+)\.1$"
 MISSING_DECLARED = support_windows.Declared(support_windows.MISSING)
 TREE_WORKERS = 8
-COLLECTORS = ("upgrade_jobs", "waves", "campaigns", "redundant_prs", "catalog", "fix_prs", "support_windows")
-ORG_WIDE = ("upgrade_jobs", "support_windows")
+COLLECTORS = (
+    "upgrade_jobs",
+    "waves",
+    "campaigns",
+    "redundant_prs",
+    "catalog",
+    "fix_prs",
+    "support_windows",
+    "modularization",
+)
+ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization")
 MERGEABLE = tuple(name for name in COLLECTORS if name not in ORG_WIDE)
 
 Records = list[dict[str, Any]]
@@ -469,6 +480,52 @@ def collect_support_windows(out_dir: Path, scope: Scope, target: Target) -> int:
     return 0
 
 
+def _legacy_frontend_history(repo: str, ref: str, rules: dict, *, this_year: int) -> list[dict]:
+    """Legacy frontend file count at the start of each year since ``since_year``; years GitHub cannot list are skipped."""
+    points = []
+    for year in range(rules["since_year"], this_year + 1):
+        tree = github.tree_before(repo, ref, f"{year}-01-01T00:00:00Z")
+        paths = github.blob_paths(repo, tree) if tree else None
+        if paths is not None:
+            points.append({"date": f"{year}-01-01", "count": modularization.legacy_frontend_count(paths, rules)})
+    return points
+
+
+def collect_modularization(out_dir: Path, scope: Scope, target: Target) -> int:
+    config = get_config("modularization", target.org)
+    if not config:
+        print("Modularization: not configured for this org; skipped.")
+        return 0
+    generated_at = now_utc()
+    repo, ref = config["repo"], config["ref"]
+    toggles, pins, frontend = config["extracted_blocks"], config["pins"], config["legacy_frontend"]
+    blocks = modularization.extracted_blocks(
+        github.raw_text(repo, ref, toggles["path"]), toggles["pattern"], toggles.get("acronyms")
+    )
+    current_paths = github.blob_paths(repo, ref)
+    if not blocks or current_paths is None:
+        print(f"Modularization: could not read {repo}@{ref}; kept the published file.")
+        return 0
+    history = _legacy_frontend_history(repo, ref, frontend, this_year=generated_at.year)
+    today = {"date": generated_at.date().isoformat(), "count": modularization.legacy_frontend_count(current_paths, frontend)}
+    content = publish.payload(
+        blocks,
+        generated_at=generated_at,
+        source=modularization.SOURCE,
+        repo=repo,
+        ref=ref,
+        toggles_url=f"https://github.com/{repo}/blob/{ref}/{toggles['path']}",
+        extracted_package=toggles.get("package"),
+        pins=modularization.pinned_versions(github.raw_text(repo, ref, pins["path"]), pins["packages"]),
+        pins_url=f"https://github.com/{repo}/blob/{ref}/{pins['path']}",
+        legacy_frontend={"rules": frontend, "history": [*history, today]},
+        summary=modularization.summary(blocks),
+    )
+    publish.write(out_dir / MODULARIZATION_FILE, content)
+    print(f"Modularization: {modularization.summary(blocks)}, legacy frontend files {today['count']}")
+    return 0
+
+
 def select_collectors(requested: list[str] | None, *, merge_run: bool, enabled: list[str]) -> list[str]:
     """The org's enabled collectors (mergeable ones for a --merge run); naming one the org turned off is an error."""
     if requested:
@@ -490,6 +547,7 @@ def main() -> int:
         "catalog": collect_catalog,
         "fix_prs": collect_fix_prs,
         "support_windows": collect_support_windows,
+        "modularization": collect_modularization,
     }
     target = _target(args.org)
     scope = Scope(repos=args.repo, merge=args.merge)

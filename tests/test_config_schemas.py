@@ -27,6 +27,7 @@ def test_openedx_config_validates_against_schemas():
         "campaign_supersession",
         "campaigns",
         "support_windows",
+        "modularization",
     ]
 
     for name in config_names:

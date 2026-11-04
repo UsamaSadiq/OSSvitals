@@ -3,3 +3,4 @@ collectors:
   upgrade_jobs: true
   catalog: true
   support_windows: true
+  modularization: true

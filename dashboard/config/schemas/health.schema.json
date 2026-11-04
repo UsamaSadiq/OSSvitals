@@ -34,7 +34,8 @@
         "redundant_prs",
         "catalog",
         "fix_prs",
-        "support_windows"
+        "support_windows",
+        "modularization"
       ],
       "properties": {
         "upgrade_jobs": {
@@ -57,6 +58,9 @@
         },
         "support_windows": {
           "type": "boolean"
+        },
+        "modularization": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -74,7 +78,8 @@
           "redundant_prs",
           "catalog",
           "fix_prs",
-          "support_windows"
+          "support_windows",
+          "modularization"
         ]
       }
     }

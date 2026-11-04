@@ -40,6 +40,7 @@ def maintenance_keys(
         "redundant_prs": [maintenance.REDUNDANT_PRS],
         "fix_prs": [maintenance.FIX_PRS],
         "support_windows": [maintenance.SUPPORT_WINDOWS],
+        "modularization": [maintenance.MODULARIZATION],
         "waves": [maintenance.wave_file(wave_id) for wave_id in waves_config],
         "campaigns": [maintenance.campaign_file(campaign_id) for campaign_id in campaigns_config or {}],
     }
