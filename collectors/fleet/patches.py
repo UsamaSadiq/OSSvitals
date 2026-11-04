@@ -10,6 +10,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from collectors.fleet.git_env import git_env
+
 ITEMS = 20
 NULL_OBJECT = "0" * 40
 GITLINK = "160000"
@@ -30,9 +32,9 @@ def _command(args: tuple[str, ...]) -> str:
     return remaining[0] if remaining else "command"
 
 
-def _git(directory: Path, *args: str, stdin: str | None = None) -> str:
+def _git(directory: Path, *args: str, stdin: str | None = None, url: str = "") -> str:
     try:
-        result = subprocess.run(["git", "-C", str(directory), *args], input=stdin, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+        result = subprocess.run(["git", "-C", str(directory), *args], input=stdin, capture_output=True, text=True, timeout=TIMEOUT_SECONDS, env=git_env(url))
     except subprocess.TimeoutExpired as error:
         raise RuntimeError(f"git {_command(args)} took over {TIMEOUT_SECONDS}s") from error
     if result.returncode != 0:
@@ -80,6 +82,7 @@ def prefetch(directory: Path, remote: str, blobs: set[str]) -> None:
             remote,
             "--stdin",
             stdin="\n".join(sorted(blobs)) + "\n",
+            url=remote,
         )
 
 

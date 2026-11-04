@@ -29,7 +29,8 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
   );
 }
 
-function external(href: string, text: string) {
+function external(href: string | null, text: string) {
+  if (!href) return text;
   return (
     <a href={href} target="_blank" rel="noreferrer">
       {text}

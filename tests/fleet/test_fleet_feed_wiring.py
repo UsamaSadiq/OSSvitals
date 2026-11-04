@@ -18,7 +18,7 @@ def test_the_cached_catalog_round_trips_through_the_published_feeds_folder(tmp_p
     feeds = collect_fleet._feeds(load_settings("moneta"), cache_dir)
     assert feeds.kev().from_cache is True
     out_dir = tmp_path / "out"
-    collect_fleet._publish_feeds(feeds, out_dir)
+    collect_fleet._publish_feeds(feeds, out_dir, "openedx")
     assert json.loads((out_dir / "feeds" / KEV_CACHE).read_text()) == cached
 
 

@@ -1,4 +1,4 @@
-import { accessKeys, emailDomainAllowed, verifiedEmail, type AccessCheck } from "./access.ts";
+import { accessKeys, emailDomainAllowed, KeySetUnavailableError, verifiedEmail, type AccessCheck } from "./access.ts";
 import { DATA_PREFIX, dataKey, serveObject } from "./data.ts";
 import { TENANTS, type PrivateTenant, type TenantsByHost } from "./tenants.ts";
 
@@ -23,8 +23,15 @@ const SECURITY_HEADERS: Record<string, string> = {
   "Referrer-Policy": "no-referrer",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   "X-Robots-Tag": "noindex, nofollow",
-  "Cache-Control": "private, no-cache",
 };
+
+const REVALIDATE = "private, no-cache";
+const IMMUTABLE = "private, max-age=31536000, immutable";
+const HASHED_ASSET = /^\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.[a-z0-9]+$/;
+
+export function cacheControlFor(pathname: string, status: number): string {
+  return status === 200 && HASHED_ASSET.test(pathname) ? IMMUTABLE : REVALIDATE;
+}
 
 export function audienceVar(org: string): `ACCESS_AUD_${string}` {
   return `ACCESS_AUD_${org.toUpperCase().replaceAll("-", "_")}`;
@@ -34,10 +41,21 @@ function text(body: string, status: number): Response {
   return new Response(body, { status, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
 
-function withSecurityHeaders(response: Response): Response {
+function withSecurityHeaders(response: Response, pathname: string): Response {
   const secured = new Response(response.body, response);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) secured.headers.set(name, value);
+  secured.headers.set("Cache-Control", cacheControlFor(pathname, response.status));
   return secured;
+}
+
+async function guardedRoute(request: Request, env: GateEnv, deps: GateDeps): Promise<Response> {
+  try {
+    return await route(request, env, deps);
+  } catch (error) {
+    if (error instanceof KeySetUnavailableError) return text("Sign-in is temporarily unavailable", 503);
+    console.error("Unhandled gate error", error);
+    return text("Internal error", 500);
+  }
 }
 
 function accessCheck(env: GateEnv, tenant: PrivateTenant, deps: GateDeps): AccessCheck | null {
@@ -68,8 +86,9 @@ async function route(request: Request, env: GateEnv, deps: GateDeps): Promise<Re
 }
 
 export async function handle(request: Request, env: GateEnv, deps: GateDeps): Promise<Response> {
-  if (request.method !== "GET" && request.method !== "HEAD") return withSecurityHeaders(text("Method not allowed", 405));
-  return withSecurityHeaders(await route(request, env, deps));
+  const { pathname } = new URL(request.url);
+  if (request.method !== "GET" && request.method !== "HEAD") return withSecurityHeaders(text("Method not allowed", 405), pathname);
+  return withSecurityHeaders(await guardedRoute(request, env, deps), pathname);
 }
 
 const DEFAULT_DEPS: GateDeps = { tenants: TENANTS, keysFor: accessKeys };

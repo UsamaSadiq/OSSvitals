@@ -55,6 +55,14 @@ describe("pushedRepos", () => {
     expect(list.status === "changed" && list.etag).toBe('"new"');
   });
 
+  it("keeps reading while the oldest repo on the page is exactly at the watermark", async () => {
+    const page = (hour: number) => pushedPage(hour, 100);
+    const { fetch, calls } = fakeFetch((url) => Response.json(url.searchParams.get("page") === "1" ? page(6) : []));
+    const oldest = page(6).at(-1)!.pushed_at;
+    await client(fetch).pushedRepos(null, oldest);
+    expect(calls).toHaveLength(2);
+  });
+
   it("fails loudly on an API error", async () => {
     const { fetch } = fakeFetch(() => new Response("nope", { status: 403 }));
     await expect(client(fetch).pushedRepos(null, null)).rejects.toThrow("GitHub 403");
@@ -62,11 +70,11 @@ describe("pushedRepos", () => {
 });
 
 describe("updatedPulls", () => {
-  it("searches PRs updated after the watermark", async () => {
+  it("searches PRs updated at or after the watermark", async () => {
     const { fetch, calls } = fakeFetch(() => Response.json({ items: [] }));
     await client(fetch).updatedPulls("2026-10-23T06:03:35Z");
-    expect(calls[0]!.url).toContain(`q=${encodeURIComponent("org:openedx is:pr updated:>2026-10-23T06:03:35Z")}`);
-    expect(calls[0]!.url).toContain("updated%3A%3E");
+    expect(calls[0]!.url).toContain(`q=${encodeURIComponent("org:openedx is:pr updated:>=2026-10-23T06:03:35Z")}`);
+    expect(calls[0]!.url).toContain("updated%3A%3E%3D");
     expect(calls[0]!.url).toContain("sort=updated&order=desc&per_page=100");
   });
 
@@ -86,11 +94,11 @@ describe("workflow", () => {
     expect(await client(fakeFetch(() => runs(["completed"])).fetch).workflowBusy()).toBe(false);
   });
 
-  it("dispatches the repos as one space-separated input on the configured ref", async () => {
+  it("dispatches the org and repos as space-separated inputs on the configured ref", async () => {
     const { fetch, calls } = fakeFetch(() => new Response(null, { status: 204 }));
     await client(fetch).dispatch(["edx-platform", "xblock-lti-consumer"]);
     expect(calls[0]!.url).toBe("https://api.github.com/repos/UsamaSadiq/OSSvitals/actions/workflows/collect-maintenance.yml/dispatches");
     expect(calls[0]!.init.method).toBe("POST");
-    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ ref: "main", inputs: { repos: "edx-platform xblock-lti-consumer" } });
+    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ ref: "main", inputs: { org: "openedx", repos: "edx-platform xblock-lti-consumer" } });
   });
 });

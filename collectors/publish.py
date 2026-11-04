@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from dashboard.lib.redaction import redact_for_org
 from dashboard.lib.scores_export import dumps
 
 SCHEMA_VERSION = 1
@@ -22,6 +23,6 @@ def payload(records: list[dict[str, Any]], *, generated_at: datetime, source: st
     }
 
 
-def write(path: Path, content: dict[str, Any]) -> None:
+def write(path: Path, content: dict[str, Any], *, org: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(dumps(content), encoding="utf-8")
+    path.write_text(dumps(redact_for_org(content, org)), encoding="utf-8")

@@ -90,7 +90,7 @@ def test_published_payload_round_trips_as_strict_json(tmp_path, by_repo):
         repos_checked=4,
     )
 
-    publish.write(target, content)
+    publish.write(target, content, org="openedx")
 
     loaded = json.loads(target.read_text(encoding="utf-8"))
     assert loaded["metadata"]["schema_version"] == publish.SCHEMA_VERSION

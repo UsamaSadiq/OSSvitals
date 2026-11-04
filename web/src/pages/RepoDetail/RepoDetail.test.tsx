@@ -391,6 +391,16 @@ describe("Repo Detail page", () => {
     expect(within(catalog).getByText(/collected 2026-10-03\. User owners are checked against GitHub/)).toBeInTheDocument();
   });
 
+  it("renders a link without an unsafe url as plain text", async () => {
+    setViews({
+      detail: detailView(repoEntry({ catalog: { ...CATALOG, links: [{ title: "Docs", url: null }], backstage_url: null } })),
+    });
+    renderRoute(PATH);
+    const catalog = await screen.findByRole("region", { name: "Catalog" });
+    expect(within(catalog).getByText("Docs").closest("a")).toBeNull();
+    expect(within(catalog).queryByRole("link", { name: "Open in Backstage" })).toBeNull();
+  });
+
   it("shows the owner as plain code when it has no owner key", async () => {
     setViews({ detail: detailView(repoEntry({ catalog: { ...CATALOG, owner_key: null } })) });
     renderRoute(PATH);

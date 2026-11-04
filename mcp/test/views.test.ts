@@ -82,4 +82,54 @@ describe("fetchView", () => {
     const deps = { fetch: (async () => { throw new Error("down"); }) as typeof fetch, base: BASE };
     await expect(fetchView(deps, "openedx", "meta", schema)).rejects.toBeInstanceOf(ViewUnavailable);
   });
+
+  it("passes an abort signal to the upstream fetch", async () => {
+    let signal: AbortSignal | null | undefined;
+    const capturing: typeof fetch = async (input, init) => {
+      signal = init?.signal;
+      return respondWith('{"value":1}')(input, init);
+    };
+    await fetchView({ fetch: capturing, base: BASE }, "openedx", "meta", schema);
+    expect(signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("rejects a response whose Content-Length exceeds the cap", async () => {
+    const oversized: typeof fetch = async () =>
+      new Response('{"value":1}', {
+        headers: { "Content-Type": "application/json", "Content-Length": String(6 * 1024 * 1024) },
+      });
+    await expect(fetchView({ fetch: oversized, base: BASE }, "openedx", "meta", schema)).rejects.toThrow(
+      /too large/,
+    );
+  });
+
+  it("stops reading a streamed body that exceeds the cap without a Content-Length", async () => {
+    const chunk = new Uint8Array(1024 * 1024);
+    let pulled = 0;
+    const endless = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(chunk);
+      },
+    });
+    const streaming: typeof fetch = async () =>
+      new Response(endless, { headers: { "Content-Type": "application/json" } });
+    await expect(fetchView({ fetch: streaming, base: BASE }, "openedx", "meta", schema)).rejects.toThrow(
+      /too large/,
+    );
+    expect(pulled).toBeLessThan(10);
+  });
+
+  it("reports a network error when the body read fails", async () => {
+    const failing = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.error(new Error("reset"));
+      },
+    });
+    const broken: typeof fetch = async () =>
+      new Response(failing, { headers: { "Content-Type": "application/json" } });
+    await expect(fetchView({ fetch: broken, base: BASE }, "openedx", "meta", schema)).rejects.toThrow(
+      /network error/,
+    );
+  });
 });

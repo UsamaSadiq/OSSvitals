@@ -17,8 +17,19 @@ function hasBody(object: R2Object | R2ObjectBody): object is R2ObjectBody {
   return "body" in object;
 }
 
+const REVALIDATION_HEADERS = ["If-None-Match", "If-Modified-Since"];
+
+export function revalidationHeaders(source: Headers): Headers {
+  const forwarded = new Headers();
+  for (const name of REVALIDATION_HEADERS) {
+    const value = source.get(name);
+    if (value !== null) forwarded.set(name, value);
+  }
+  return forwarded;
+}
+
 export async function serveObject(bucket: R2Bucket, key: string, request: Request): Promise<Response> {
-  const object = await bucket.get(key, { onlyIf: request.headers });
+  const object = await bucket.get(key, { onlyIf: revalidationHeaders(request.headers) });
   if (object === null) return new Response("Not found", { status: 404 });
   const headers = new Headers({ "Content-Type": "application/json; charset=utf-8", ETag: object.httpEtag });
   if (!hasBody(object)) return new Response(null, { status: 304, headers });

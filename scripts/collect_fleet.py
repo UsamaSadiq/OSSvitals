@@ -120,10 +120,10 @@ def _feeds(settings: FleetSettings, cache_dir: Path | None) -> Feeds | None:
     return Feeds(kev.catalogue, cached, now_utc(), settings.signal("exploitability")["max_age_days"], epss.scores)
 
 
-def _publish_feeds(feeds: Feeds | None, out_dir: Path) -> None:
+def _publish_feeds(feeds: Feeds | None, out_dir: Path, org: str) -> None:
     copy = feeds.kev_cache_to_publish() if feeds else None
     if copy:
-        publish.write(out_dir / "feeds" / KEV_CACHE, copy)
+        publish.write(out_dir / "feeds" / KEV_CACHE, copy, org=org)
 
 
 def _updates(org: str) -> list[dict[str, Any]]:
@@ -161,11 +161,11 @@ def run_api_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
     if pin_records:
         views["pins"] = meta.records_view(org, generated_at, pin_records)
     for name, content in views.items():
-        publish.write(args.out_dir / "views" / f"{name}.json", content)
+        publish.write(args.out_dir / "views" / f"{name}.json", content, org=org)
     for record in (record for record in drift if "error" not in record):
-        publish.write(args.out_dir / "badges" / f"{record['repo']}.json", badges.badge(record, settings.statuses))
+        publish.write(args.out_dir / "badges" / f"{record['repo']}.json", badges.badge(record, settings.statuses), org=org)
     (args.out_dir / "VERSIONS.md").write_text(versions.render(records, drift, day), encoding="utf-8")
-    _publish_feeds(feeds, args.out_dir)
+    _publish_feeds(feeds, args.out_dir, org)
     print(f"{org}: {len(healthy)}/{len(records)} apps, {len(drift)} forks")
     return 0
 
@@ -189,7 +189,7 @@ def run_clone_tier(settings: FleetSettings, args: argparse.Namespace) -> int:
             print(f"{key}: no fork could be collected; not writing.")
             failed.append(key)
             continue
-        publish.write(args.out_dir / "views" / f"{key}.json", meta.records_view(settings.org, now_utc(), records))
+        publish.write(args.out_dir / "views" / f"{key}.json", meta.records_view(settings.org, now_utc(), records), org=settings.org)
         print(f"{key}: {len(records)} forks")
     return 1 if failed else 0
 

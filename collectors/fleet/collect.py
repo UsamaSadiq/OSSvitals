@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from collectors.fleet.errors import public_message
 from collectors.fleet.context import Api, ForkContext, MergedBy
 from collectors.fleet.registry import BY_KEY
 from collectors.fleet.settings import FleetSettings
@@ -68,8 +69,9 @@ def _clone_record(key: str, ctx: ForkContext) -> dict[str, Any]:
     try:
         return {"repo": ctx.app["repo"], **BY_KEY[key].collect(ctx)}
     except CLONE_ERRORS as error:
-        print(f"{ctx.app['repo']} {key}: {error}", file=sys.stderr)
-        return {"repo": ctx.app["repo"], "error": str(error)}
+        message = public_message(error)
+        print(f"{ctx.app['repo']} {key}: {message}", file=sys.stderr)
+        return {"repo": ctx.app["repo"], "error": message}
 
 
 def collect_clone_signals(
@@ -85,6 +87,7 @@ def collect_clone_signals(
         try:
             ctx = ForkContext(api, org, app, settings, now, workspace=Path(workspace))
         except CLONE_ERRORS as error:
-            print(f"{app['repo']}: {error}", file=sys.stderr)
-            return {key: {"repo": app["repo"], "error": str(error)} for key in keys}
+            message = public_message(error)
+            print(f"{app['repo']}: {message}", file=sys.stderr)
+            return {key: {"repo": app["repo"], "error": message} for key in keys}
         return {key: _clone_record(key, ctx) for key in keys}

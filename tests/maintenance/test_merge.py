@@ -26,7 +26,7 @@ def _count(records: list[dict]) -> dict:
 
 def _published(tmp_path, records, **metadata):
     path = tmp_path / "wave.json"
-    publish.write(path, publish.payload(records, generated_at=FULL_RUN, source="s", **metadata))
+    publish.write(path, publish.payload(records, generated_at=FULL_RUN, source="s", **metadata), org="openedx")
     return path
 
 
@@ -114,7 +114,7 @@ def test_merge_run_for_an_unlisted_repo_drops_its_stale_record(tmp_path, monkeyp
     monkeypatch.setattr(collect_maintenance, "get_config", lambda name, org: {"waves": {"w": wave}})
     path = tmp_path / "waves" / "w.json"
     records = [{**_record(repo, "done"), "pr_age_days": None} for repo in ("a", "gone")]
-    publish.write(path, publish.payload(records, generated_at=FULL_RUN, source="s"))
+    publish.write(path, publish.payload(records, generated_at=FULL_RUN, source="s"), org="openedx")
 
     result = collect_maintenance.collect_waves(tmp_path, Scope(repos=["gone"], merge=True), TARGET)
 

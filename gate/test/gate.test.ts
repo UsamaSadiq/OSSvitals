@@ -1,7 +1,7 @@
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type CryptoKey } from "jose";
 import { emailDomainAllowed } from "../src/access.ts";
-import { dataKey } from "../src/data.ts";
-import { audienceVar, handle, type GateDeps, type GateEnv } from "../src/index.ts";
+import { dataKey, revalidationHeaders } from "../src/data.ts";
+import { audienceVar, cacheControlFor, handle, type GateDeps, type GateEnv } from "../src/index.ts";
 import { privateTenantsByHost } from "../src/tenants.ts";
 
 const TEAM = "https://example-team.cloudflareaccess.com";
@@ -123,6 +123,62 @@ describe("gate", () => {
     expect(response.headers.get("Content-Security-Policy")).not.toContain("data.ossvitals.org");
     const post = await handle(new Request(HOST, { method: "POST" }), env(), deps);
     expect(post.status).toBe(405);
+  });
+});
+
+describe("failure handling", () => {
+  const secured = (response: Response) => {
+    expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'self'");
+    expect(response.headers.get("Strict-Transport-Security")).toBeTruthy();
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+  };
+
+  it("answers 503 and logs when the Access key set cannot be fetched", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const unreachable: GateDeps = { tenants, keysFor: () => async () => { throw new TypeError("fetch failed"); } };
+    const response = await handle(new Request(`${HOST}/`, { headers: await signedIn("a@arbisoft.com") }), env(), unreachable);
+    expect(response.status).toBe(503);
+    expect(logged).toHaveBeenCalled();
+    secured(response);
+    logged.mockRestore();
+  });
+
+  it("keeps a token with the wrong signature or audience at 401", async () => {
+    const wrongAudience = await signedIn("a@arbisoft.com", { audience: "other" });
+    expect((await get("/", wrongAudience)).status).toBe(401);
+    expect((await get("/", { "Cf-Access-Jwt-Assertion": "garbage" })).status).toBe(401);
+  });
+
+  it("returns a secured 500 when routing rejects", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const broken = env({ ASSETS: { fetch: async () => { throw new Error("boom"); } } as unknown as Fetcher });
+    const response = await get("/", await signedIn("a@arbisoft.com"), broken);
+    expect(response.status).toBe(500);
+    secured(response);
+    logged.mockRestore();
+  });
+});
+
+describe("caching", () => {
+  it("treats content-hashed bundles as immutable and everything else as revalidating", () => {
+    expect(cacheControlFor("/assets/index-DXVZt4pB.js", 200)).toBe("private, max-age=31536000, immutable");
+    expect(cacheControlFor("/assets/ChecksCatalog-BaSm8mCi.css", 200)).toBe("private, max-age=31536000, immutable");
+    expect(cacheControlFor("/assets/index-DXVZt4pB.js", 404)).toBe("private, no-cache");
+    expect(cacheControlFor("/assets/logo.svg", 200)).toBe("private, no-cache");
+    expect(cacheControlFor("/index.html", 200)).toBe("private, no-cache");
+    expect(cacheControlFor("/data/edly/views/meta.json", 200)).toBe("private, no-cache");
+  });
+
+  it("applies the immutable policy to a hashed asset response", async () => {
+    const response = await get("/assets/index-DXVZt4pB.js", await signedIn("a@arbisoft.com"));
+    expect(response.headers.get("Cache-Control")).toBe("private, max-age=31536000, immutable");
+  });
+});
+
+describe("revalidationHeaders", () => {
+  it("forwards only the conditions that can yield a 304", () => {
+    const forwarded = revalidationHeaders(new Headers({ "If-None-Match": '"v1"', "If-Modified-Since": "Wed, 21 Oct 2026 07:28:00 GMT", "If-Match": '"v0"', "If-Unmodified-Since": "Wed, 21 Oct 2026 07:28:00 GMT" }));
+    expect([...forwarded.keys()].sort()).toEqual(["if-modified-since", "if-none-match"]);
   });
 });
 

@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moneta fork releases no longer pick up upstream tags (default `v2x.y.z` pattern), and a multi-line upstream such as Twenty counts one release line.
 - The accessibility report crashed instead of listing findings (`_sort_key` was undefined).
 
+### Security
+- Fixes from the 2026-11-04 review. `zod` 4.6.7 (mcp) and 4.6.6 (web) and `@modelcontextprotocol/server` 2.4.0 clear the npm audit advisories.
+- Collectors: every file `publish.write` writes now goes through the collected org's `redact.yaml` (`org` is required), and redaction covers keys as well as values. Clone and fetch errors are published without URLs, tokens or extra lines. `gh` and `git` calls have timeouts, 4xx errors are not retried, GitHub API path segments are URL-encoded, and git uses the owner's token from `GH_OWNER_TOKENS` through a scoped header.
+- Web: third-party URLs must be `http(s)`; anything else renders as plain text. The Owners catalog link opens in a new tab with `rel="noreferrer"`.
+- Workers: the MCP rate limit keys IPv6 clients by /64, and view fetches have a 10 s timeout and a 5 MB cap. The events dispatch sends `org`, refuses a malformed `ORG` or dispatch gap, and no longer skips a repo pushed in the same second as the watermark. The gate forwards only `If-None-Match` and `If-Modified-Since`, returns 503 when Access keys are unreachable, adds security headers to 500s, and caches hashed assets for a year.
+
 ### Removed
 - The Streamlit dashboard, its UI tests, screenshot baselines and audit harness. The web app is the only front end.
 - `streamlit`, `plotly`, `duckdb`, `rapidfuzz` and `pydantic` dependencies.

@@ -120,7 +120,7 @@ def _publish(
     """
     if not scope.merge:
         final = order(fresh)
-        publish.write(path, publish.payload(final, generated_at=generated_at, **metadata, **(full_run or {}), **derive(final)))
+        publish.write(path, publish.payload(final, generated_at=generated_at, **metadata, **(full_run or {}), **derive(final)), org=target.org)
         return final
     existing = merge.published(path)
     if existing is None:
@@ -128,7 +128,7 @@ def _publish(
         return None
     refreshed = scope.refreshed(target.github_org)
     final = order(merge.records(existing["records"], fresh, refreshed))
-    publish.write(path, merge.payload(existing, final, refreshed_at=generated_at, refreshed=refreshed, **metadata, **derive(final)))
+    publish.write(path, merge.payload(existing, final, refreshed_at=generated_at, refreshed=refreshed, **metadata, **derive(final)), org=target.org)
     return final
 
 
@@ -152,7 +152,7 @@ def collect_upgrade_jobs(out_dir: Path, scope: Scope, target: Target) -> int:
         repos_checked=len(records),
         states=states,
     )
-    publish.write(out_dir / UPGRADE_JOBS_FILE, content)
+    publish.write(out_dir / UPGRADE_JOBS_FILE, content, org=target.org)
     print(f"Upgrade jobs: {len(records)} repos, {states}")
     return 0
 
@@ -475,7 +475,7 @@ def collect_support_windows(out_dir: Path, scope: Scope, target: Target) -> int:
         window=config.get("window", {}),
         summary=support_windows.summary(records),
     )
-    publish.write(out_dir / SUPPORT_WINDOWS_FILE, content)
+    publish.write(out_dir / SUPPORT_WINDOWS_FILE, content, org=target.org)
     print(f"Support windows: {len(records)} products, {support_windows.summary(records)}")
     return 0
 
@@ -521,7 +521,7 @@ def collect_modularization(out_dir: Path, scope: Scope, target: Target) -> int:
         legacy_frontend={"rules": frontend, "history": [*history, today]},
         summary=modularization.summary(blocks),
     )
-    publish.write(out_dir / MODULARIZATION_FILE, content)
+    publish.write(out_dir / MODULARIZATION_FILE, content, org=target.org)
     print(f"Modularization: {modularization.summary(blocks)}, legacy frontend files {today['count']}")
     return 0
 

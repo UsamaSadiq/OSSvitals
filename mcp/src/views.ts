@@ -1,6 +1,8 @@
 import type { z } from "zod";
 
 const CACHE_TTL_SECONDS = 300;
+const FETCH_TIMEOUT_MS = 10_000;
+const MAX_VIEW_BYTES = 5 * 1024 * 1024;
 
 export class ViewUnavailable extends Error {
   /** True when the view is not published at all, as opposed to unreachable or malformed. */
@@ -34,13 +36,40 @@ function isJsonContentType(response: Response): boolean {
   return (response.headers.get("Content-Type") ?? "").includes("json");
 }
 
+function declaredLength(response: Response): number {
+  return Number(response.headers.get("Content-Length") ?? 0);
+}
+
+async function readCappedText(response: Response, maxBytes: number): Promise<string | null> {
+  if (declaredLength(response) > maxBytes) return null;
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return text + decoder.decode();
+    received += value.byteLength;
+    if (received > maxBytes) {
+      await reader.cancel();
+      return null;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+}
+
 async function fetchJsonText(deps: ViewDeps, org: string, name: string, url: string): Promise<string> {
-  const response = await deps.fetch(url).catch(() => {
+  const response = await deps.fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }).catch(() => {
     throw new ViewUnavailable(org, name, "network error");
   });
   if (response.status !== 200) throw new ViewUnavailable(org, name, `HTTP ${response.status}`, response.status === 404);
   if (!isJsonContentType(response)) throw new ViewUnavailable(org, name, "not published", true);
-  return response.text();
+  const text = await readCappedText(response, MAX_VIEW_BYTES).catch(() => {
+    throw new ViewUnavailable(org, name, "network error");
+  });
+  if (text === null) throw new ViewUnavailable(org, name, "response too large");
+  return text;
 }
 
 function parseJson(org: string, name: string, text: string): unknown {

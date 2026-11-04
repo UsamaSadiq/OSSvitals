@@ -176,10 +176,10 @@ def test_scoring_includes_proposed_comparison(built):
     assert total == len(files["repos.json"]["records"])
 
 
-def test_redact_replaces_matches_in_values_only():
+def test_redact_replaces_matches_in_keys_and_values():
     patterns = compile_patterns({"patterns": [r"client-\w+"]})
     payload = {"client-a": ["release/client-acme", {"tag": "v1-client-beta"}], "n": 3}
-    assert redact(payload, patterns) == {"client-a": ["release/[redacted]", {"tag": "v1-[redacted]"}], "n": 3}
+    assert redact(payload, patterns) == {"[redacted]": ["release/[redacted]", {"tag": "v1-[redacted]"}], "n": 3}
 
 
 def test_redact_without_patterns_returns_input():

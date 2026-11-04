@@ -14,7 +14,8 @@ function Value({ value }: { value: string | null }) {
   );
 }
 
-function ExternalButton({ href, label, ariaLabel }: { href: string; label: string; ariaLabel?: string }) {
+function ExternalButton({ href, label, ariaLabel }: { href: string | null; label: string; ariaLabel?: string }) {
+  if (!href) return null;
   return (
     <a className="button-link" href={href} target="_blank" rel="noreferrer" aria-label={ariaLabel}>
       {label}
@@ -93,9 +94,13 @@ function FixPrNote({ fixPr }: { fixPr: FixPr }) {
   return (
     <p>
       <strong>Fix in progress:</strong>{" "}
-      <a href={fixPr.pr_url} target="_blank" rel="noreferrer">
-        {fixPr.pr_title}
-      </a>
+      {fixPr.pr_url ? (
+        <a href={fixPr.pr_url} target="_blank" rel="noreferrer">
+          {fixPr.pr_title}
+        </a>
+      ) : (
+        fixPr.pr_title
+      )}
       {fixPr.author ? ` by ${fixPr.author}` : ""}. Review that one instead of opening another.
     </p>
   );

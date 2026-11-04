@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { httpUrl, optionalHttpUrl } from "./httpUrl";
 
 // Zod's eval feature probe trips the CSP (script-src 'self') even though it catches the error.
 z.config({ jitless: true });
@@ -215,7 +216,7 @@ export const atRiskSchema = view({
       days_since_push: nullableNumber.optional(),
       delta: nullableNumber.optional(),
       reasons: z.string(),
-      catalog_link: optionalText,
+      catalog_link: optionalHttpUrl,
       production_or_release: z.boolean(),
     }),
   ),
@@ -228,7 +229,7 @@ const ownerRepoSchema = z.looseObject({
   score_activity: nullableNumber.optional(),
   lifecycle: optionalText,
   release: optionalText,
-  catalog_link: z.string(),
+  catalog_link: httpUrl,
 });
 
 const groupRowSchema = z.looseObject({ repo_count: int, avg_score: z.number(), d_or_f: int });
@@ -267,7 +268,7 @@ export const checksSchema = view({
         .looseObject({
           title: z.string(),
           description: z.string(),
-          source_url: z.string(),
+          source_url: httpUrl,
           snippet: z.string().nullable(),
           issue_body: z.string(),
         })
@@ -375,7 +376,7 @@ export const componentsSchema = view({
         score_letter: grade.nullable().optional(),
         score_composite: nullableNumber.optional(),
         finding_count: int,
-        backstage_url: optionalText,
+        backstage_url: optionalHttpUrl,
       }),
     )
     .optional(),
@@ -391,7 +392,7 @@ const upgradeJobRowSchema = z.looseObject({
   "github.upgrade_job_runs_failed": nullableNumber.optional(),
   "github.upgrade_job_runs_total": nullableNumber.optional(),
   "github.requirements_pr_last_merged": optionalText,
-  workflow_url: optionalText,
+  workflow_url: optionalHttpUrl,
 });
 
 const waveSchema = z.looseObject({
@@ -408,7 +409,7 @@ const waveSchema = z.looseObject({
       z.looseObject({
         repo_name: z.string(),
         status: z.string(),
-        pr_url: optionalText,
+        pr_url: optionalHttpUrl,
         pr_title: optionalText,
         pr_age_days: nullableNumber.optional(),
         gaps: z.string(),
@@ -424,7 +425,7 @@ const campaignSchema = waveSchema.extend({
       z.looseObject({
         repo_name: z.string(),
         status: z.string(),
-        pr_url: optionalText,
+        pr_url: optionalHttpUrl,
         pr_title: optionalText,
         pr_age_days: nullableNumber.optional(),
         gaps: z.string(),
@@ -451,8 +452,8 @@ export const upgradesSchema = view({
       records: z.array(
         z.looseObject({
           repo_name: z.string(),
-          bot_pr_url: optionalText,
-          superseded_by_url: optionalText,
+          bot_pr_url: optionalHttpUrl,
+          superseded_by_url: optionalHttpUrl,
           superseded_by_merged: z.union([z.string(), z.boolean()]).nullable().optional(),
           confidence: optionalText,
         }),
@@ -478,7 +479,7 @@ const supportProductSchema = z.object({
   declared: z.string().nullable(),
   declared_kind: z.enum(["declared", "follows_tutor", "missing"]),
   detected: z.string().nullable(),
-  detected_url: z.string().nullable(),
+  detected_url: optionalHttpUrl,
   current: z.string().nullable(),
   current_end: isoString.nullable(),
   status: z.enum(SUPPORT_STATUSES),
@@ -489,8 +490,8 @@ const supportProductSchema = z.object({
 export const supportWindowSchema = view({
   available: z.boolean(),
   collected_at: isoString.nullable().optional(),
-  declared_url: z.string().nullable().optional(),
-  edit_url: z.string().nullable().optional(),
+  declared_url: optionalHttpUrl,
+  edit_url: optionalHttpUrl,
   refs: z.record(z.string(), z.object({ repo: z.string(), ref: z.string().nullable() })).optional(),
   window: z.object({ years_back: int.optional(), years_ahead: int.optional() }).optional(),
   summary: z.record(z.string(), int).optional(),
@@ -511,15 +512,15 @@ const catalogDetailSchema = z.object({
   release: z.string(),
   interest: z.string(),
   description: z.string().nullable(),
-  links: z.array(z.object({ title: z.string(), url: z.string() })),
+  links: z.array(z.object({ title: z.string(), url: httpUrl })),
   relations: z.array(z.object({ label: z.string(), target: z.string(), suffix: z.string() })),
-  backstage_url: z.string().nullable(),
+  backstage_url: optionalHttpUrl,
   findings: z.array(z.object({ severity: z.string(), label: z.string() })),
 });
 
 const fixPrSchema = z.object({
   pr_number: int,
-  pr_url: z.string(),
+  pr_url: httpUrl,
   pr_title: z.string(),
   author: z.string().nullable(),
   is_draft: z.boolean(),

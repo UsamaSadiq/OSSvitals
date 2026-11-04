@@ -54,9 +54,13 @@ function About({ entry }: { entry: CatalogDetail }) {
         <ul>
           {entry.links.map((link) => (
             <li key={`link-${link.url}-${link.title}`}>
-              <a href={link.url} target="_blank" rel="noreferrer">
-                {link.title}
-              </a>
+              {link.url ? (
+                <a href={link.url} target="_blank" rel="noreferrer">
+                  {link.title}
+                </a>
+              ) : (
+                link.title
+              )}
             </li>
           ))}
           {entry.relations.map((relation) => (

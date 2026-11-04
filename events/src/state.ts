@@ -1,7 +1,9 @@
 export interface WatchState {
   reposEtag: string | null;
   pushedSince: string | null;
+  pushedSeen: string[];
   pullsUpdatedSince: string | null;
+  pullsSeen: string[];
   pending: string[];
   lastDispatchAt: string | null;
 }
@@ -9,7 +11,9 @@ export interface WatchState {
 export const EMPTY_STATE: WatchState = {
   reposEtag: null,
   pushedSince: null,
+  pushedSeen: [],
   pullsUpdatedSince: null,
+  pullsSeen: [],
   pending: [],
   lastDispatchAt: null,
 };

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { httpUrl, optionalHttpUrl } from "../../data/httpUrl";
 
 const nullableString = z.string().nullable();
 const optionalString = z.string().nullish();
@@ -16,7 +17,7 @@ const appRecord = z.object({
   licence: nullableString,
   licence_note: optionalString,
   upstream: nullableString,
-  upstream_url: nullableString,
+  upstream_url: optionalHttpUrl,
   upstream_branch: nullableString,
   production_branch: nullableString,
   purpose: nullableString,
@@ -24,7 +25,7 @@ const appRecord = z.object({
   mcp_server: optionalString,
   sso: optionalString,
   e2e: optionalString,
-  runbook_url: optionalString,
+  runbook_url: optionalHttpUrl,
   pin: optionalString,
   pushed_at: z.string(),
   open_pull_requests: z.number().int().nullish(),
@@ -35,7 +36,7 @@ const advisoryItem = z.object({
   ghsa_id: nullableString,
   severity: nullableString,
   summary: nullableString,
-  url: nullableString,
+  url: optionalHttpUrl,
   published_at: z.string(),
   after_our_release: z.boolean(),
   affects_fork_release: z.boolean().nullish(),
@@ -82,7 +83,7 @@ const driftRecord = z.object({
   promotion: z.object({ unpromoted_commits: z.number().int() }).nullish(),
   ci: z.object({ state: z.enum(["passing", "failing", "pending", "none"]), total: z.number().int() }).nullish(),
   pull_requests: z
-    .object({ open: z.number().int(), sync_pull: z.object({ number: z.number().int(), title: z.string(), url: z.string() }).nullable() })
+    .object({ open: z.number().int(), sync_pull: z.object({ number: z.number().int(), title: z.string(), url: httpUrl }).nullable() })
     .nullish(),
   maintainers: z.array(z.object({ login: z.string(), merged: z.number().int() })).nullish(),
   upstream_activity: z.object({ pushed_at: z.string(), idle_days: z.number().int(), quiet: z.boolean() }).nullish(),
@@ -160,7 +161,7 @@ const historyRow = z.object({
   advisories_since_release: z.number().int().optional(),
 });
 
-const update = z.object({ date: z.string(), title: z.string(), url: optionalString, repo: optionalString });
+const update = z.object({ date: z.string(), title: z.string(), url: optionalHttpUrl, repo: optionalString });
 
 const forecast = z.object({ clean: z.boolean(), conflicted_files: z.array(z.string()), conflicted_total: z.number().int() });
 
@@ -207,7 +208,7 @@ const carriedRecord = z.object({
   already_upstream_items: z.array(patchItem).optional(),
 });
 export const carriedSchema = view(carriedRecord);
-const flaggedRelease = z.object({ tag: z.string(), url: nullableString, published_at: nullableString, lines: z.array(z.string()) });
+const flaggedRelease = z.object({ tag: z.string(), url: optionalHttpUrl, published_at: nullableString, lines: z.array(z.string()) });
 const upgradeRecord = z.object({
   repo: z.string(),
   error: z.string().optional(),

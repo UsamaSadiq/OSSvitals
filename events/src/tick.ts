@@ -1,4 +1,4 @@
-import { latest, pullRepos, pushedSince } from "./feed.ts";
+import { advance, pullRepos, pullStamps, pushedSince, pushStamps, type Watermark } from "./feed.ts";
 import type { GitHubClient } from "./github.ts";
 import type { StateStore, WatchState } from "./state.ts";
 
@@ -32,19 +32,27 @@ function elapsedMs(since: string | null, now: Date): number {
   return since === null ? Number.POSITIVE_INFINITY : now.getTime() - Date.parse(since);
 }
 
+function pushMark(state: WatchState): Watermark {
+  return { time: state.pushedSince, seen: state.pushedSeen };
+}
+
+function pullMark(state: WatchState): Watermark {
+  return { time: state.pullsUpdatedSince, seen: state.pullsSeen };
+}
+
 async function pollPushes(state: WatchState, github: GitHubClient): Promise<Polled> {
   const list = await github.pushedRepos(state.reposEtag, state.pushedSince);
   if (list.status === "unchanged") return { state, found: [] };
-  const found = state.pushedSince === null ? [] : pushedSince(list.repos, state.pushedSince);
-  const watermark = latest(list.repos.map((repo) => repo.pushed_at), state.pushedSince);
-  return { state: { ...state, reposEtag: list.etag, pushedSince: watermark }, found };
+  const mark = advance(pushStamps(list.repos), pushMark(state));
+  const found = pushedSince(list.repos, pushMark(state));
+  return { state: { ...state, reposEtag: list.etag, pushedSince: mark.time, pushedSeen: [...mark.seen] }, found };
 }
 
 async function pollPulls(state: WatchState, github: GitHubClient): Promise<Polled> {
   const items = await github.updatedPulls(state.pullsUpdatedSince);
-  const found = state.pullsUpdatedSince === null ? [] : pullRepos(items);
-  const watermark = latest(items.map((item) => item.updated_at), state.pullsUpdatedSince);
-  return { state: { ...state, pullsUpdatedSince: watermark }, found };
+  const mark = advance(pullStamps(items), pullMark(state));
+  const found = pullRepos(items, pullMark(state));
+  return { state: { ...state, pullsUpdatedSince: mark.time, pullsSeen: [...mark.seen] }, found };
 }
 
 async function poll(state: WatchState, github: GitHubClient): Promise<WatchState> {

@@ -1,4 +1,5 @@
 import { createMcpHandler } from "@modelcontextprotocol/server";
+import { clientKeyFromAddress } from "./client-key.ts";
 import { limiterFromBinding, type Limiter } from "./limiter.ts";
 import { route } from "./router.ts";
 import { buildServer } from "./server.ts";
@@ -24,7 +25,7 @@ function indexText(origin: string): string {
 }
 
 function clientKey(request: Request): string {
-  return request.headers.get("CF-Connecting-IP") ?? "unknown";
+  return clientKeyFromAddress(request.headers.get("CF-Connecting-IP"));
 }
 
 function viewDeps(deps: HandlerDeps): ViewDeps {

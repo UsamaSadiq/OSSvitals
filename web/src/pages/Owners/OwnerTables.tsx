@@ -100,7 +100,14 @@ function ownerRepoColumns(catalogName: string): Column<OwnerRepo>[] {
   {
     key: "catalog_link",
     header: catalogName,
-    cell: (row) => (row.catalog_link ? <a href={row.catalog_link}>Catalog</a> : ""),
+    cell: (row) =>
+      row.catalog_link ? (
+        <a href={row.catalog_link} target="_blank" rel="noreferrer">
+          Catalog
+        </a>
+      ) : (
+        ""
+      ),
   },
 ];
 }

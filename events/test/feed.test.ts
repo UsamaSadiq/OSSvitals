@@ -1,4 +1,4 @@
-import { latest, pullRepos, pushedSince, repoOfPull, type PushedRepo } from "../src/feed.ts";
+import { advance, isUnseen, latest, pullRepos, pushedSince, repoOfPull, type PushedRepo } from "../src/feed.ts";
 
 const REPOS: PushedRepo[] = [
   { name: "wg-maintenance", pushed_at: "2026-10-23T05:23:24Z" },
@@ -9,16 +9,21 @@ const REPOS: PushedRepo[] = [
 
 describe("pushedSince", () => {
   it("lists repos pushed after the watermark", () => {
-    expect(pushedSince(REPOS, "2026-10-23T04:00:00Z")).toEqual(["edx-drf-extensions", "wg-maintenance"]);
+    expect(pushedSince(REPOS, { time: "2026-10-23T04:00:00Z", seen: [] })).toEqual(["edx-drf-extensions", "wg-maintenance"]);
   });
 
-  it("excludes a push exactly at the watermark", () => {
-    expect(pushedSince(REPOS, "2026-10-23T05:23:24Z")).toEqual([]);
+  it("excludes a push exactly at the watermark that was already seen", () => {
+    expect(pushedSince(REPOS, { time: "2026-10-23T05:23:24Z", seen: ["wg-maintenance"] })).toEqual([]);
+  });
+
+  it("includes a push in the same second as the watermark that was not seen", () => {
+    expect(pushedSince(REPOS, { time: "2026-10-23T05:23:24Z", seen: ["other"] })).toEqual(["wg-maintenance"]);
   });
 });
 
 describe("pull items", () => {
-  const item = (repo: string) => ({
+  const item = (repo: string, id = 1) => ({
+    id,
     repository_url: `https://api.github.com/repos/openedx/${repo}`,
     updated_at: "2026-10-23T06:03:35Z",
   });
@@ -28,7 +33,33 @@ describe("pull items", () => {
   });
 
   it("lists each repo once", () => {
-    expect(pullRepos([item("b"), item("a"), item("b")])).toEqual(["a", "b"]);
+    expect(pullRepos([item("b", 1), item("a", 2), item("b", 3)], { time: "2026-10-23T06:00:00Z", seen: [] })).toEqual(["a", "b"]);
+  });
+
+  it("skips pulls already seen at the watermark second but not new ones in the same repo", () => {
+    const mark = { time: "2026-10-23T06:03:35Z", seen: ["1"] };
+    expect(pullRepos([item("a", 1)], mark)).toEqual([]);
+    expect(pullRepos([item("a", 1), item("a", 2)], mark)).toEqual(["a"]);
+  });
+});
+
+describe("watermark", () => {
+  const at = (time: string, key: string) => ({ time, key });
+
+  it("never reports anything before a watermark exists", () => {
+    expect(isUnseen(at("2026-10-23T05:00:00Z", "a"), { time: null, seen: [] })).toBe(false);
+  });
+
+  it("remembers every key at the newest instant", () => {
+    const mark = advance([at("2026-10-23T05:00:00Z", "b"), at("2026-10-23T05:00:00Z", "a"), at("2026-10-23T04:00:00Z", "c")], { time: null, seen: [] });
+    expect(mark).toEqual({ time: "2026-10-23T05:00:00Z", seen: ["a", "b"] });
+  });
+
+  it("carries seen keys forward while the instant is unchanged and resets when it advances", () => {
+    const start = { time: "2026-10-23T05:00:00Z", seen: ["a"] };
+    expect(advance([at("2026-10-23T05:00:00Z", "b")], start).seen).toEqual(["a", "b"]);
+    expect(advance([at("2026-10-23T06:00:00Z", "c")], start)).toEqual({ time: "2026-10-23T06:00:00Z", seen: ["c"] });
+    expect(advance([], start)).toEqual(start);
   });
 });
 

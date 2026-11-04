@@ -1,4 +1,4 @@
-import { isLater, type PullItem, type PushedRepo } from "./feed.ts";
+import { isAtOrAfter, type PullItem, type PushedRepo } from "./feed.ts";
 
 const API = "https://api.github.com";
 const PER_PAGE = 100;
@@ -33,11 +33,11 @@ interface WorkflowRuns {
 
 function allLater(repos: readonly PushedRepo[], since: string | null): boolean {
   const oldest = repos.at(-1)?.pushed_at;
-  return since !== null && oldest != null && isLater(oldest, since);
+  return since !== null && oldest != null && isAtOrAfter(oldest, since);
 }
 
 export function pullQuery(org: string, since: string | null): string {
-  return since === null ? `org:${org} is:pr` : `org:${org} is:pr updated:>${since}`;
+  return since === null ? `org:${org} is:pr` : `org:${org} is:pr updated:>=${since}`;
 }
 
 export function gitHubClient(options: GitHubOptions): GitHubClient {
@@ -101,7 +101,7 @@ export function gitHubClient(options: GitHubOptions): GitHubClient {
     async dispatch(repos) {
       await request(`${workflowUrl}/dispatches`, {
         method: "POST",
-        body: JSON.stringify({ ref: options.ref, inputs: { repos: repos.join(" ") } }),
+        body: JSON.stringify({ ref: options.ref, inputs: { org: options.org, repos: repos.join(" ") } }),
       });
     },
   };

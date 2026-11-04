@@ -12,8 +12,11 @@ function pushed(name: string, at: string): PushedRepo {
   return { name, pushed_at: at };
 }
 
-function pull(repo: string, at: string): PullItem {
-  return { repository_url: `https://api.github.com/repos/openedx/${repo}`, updated_at: at };
+let nextPullId = 1;
+
+function pull(repo: string, at: string, id = nextPullId++): PullItem {
+  return {
+    id, repository_url: `https://api.github.com/repos/openedx/${repo}`, updated_at: at };
 }
 
 interface Fake {
@@ -118,6 +121,36 @@ describe("tick", () => {
     const bucket = memoryBucket(WATCHING);
     await expect(run(github, bucket)).rejects.toThrow("GitHub 422");
     expect(bucket.saved.at(-1)).toMatchObject({ pending: ["edx-platform"], pullsUpdatedSince: "2026-10-23T06:25:00Z" });
+  });
+
+  it("queues a push in the same second as the watermark once, then stops", async () => {
+    const same = "2026-10-23T06:00:00Z";
+    const known = { ...WATCHING, pushedSeen: ["edx-platform"] };
+    const repos: RepoList = { status: "changed", etag: '"e2"', repos: [pushed("edx-platform", same), pushed("late-comer", same)] };
+    const first = await run(fakeGitHub({ repos, busy: true }), memoryBucket(known));
+    expect(first.state.pending).toEqual(["late-comer"]);
+    expect(first.state.pushedSeen).toEqual(["edx-platform", "late-comer"]);
+    const second = await run(fakeGitHub({ repos, busy: true }), memoryBucket(first.state));
+    expect(second.state.pending).toEqual(["late-comer"]);
+    const dispatched = await run(fakeGitHub({ repos }), memoryBucket(first.state));
+    expect(dispatched.dispatched).toEqual(["late-comer"]);
+    const settled = await run(fakeGitHub({ repos }), memoryBucket(dispatched.state));
+    expect(settled.dispatched).toEqual([]);
+  });
+
+  it("does not re-dispatch a pull sitting at the watermark on every poll", async () => {
+    const known = { ...WATCHING, pullsSeen: ["7"] };
+    const github = fakeGitHub({ pulls: [pull("edx-platform", SEEN, 7)] });
+    const { dispatched } = await run(github, memoryBucket(known));
+    expect(dispatched).toEqual([]);
+  });
+
+  it("dispatches a new pull updated in the same second as the watermark", async () => {
+    const known = { ...WATCHING, pullsSeen: ["7"] };
+    const github = fakeGitHub({ pulls: [pull("edx-platform", SEEN, 7), pull("credentials", SEEN, 8)] });
+    const { dispatched, state } = await run(github, memoryBucket(known));
+    expect(dispatched).toEqual(["credentials"]);
+    expect(state.pullsSeen).toEqual(["7", "8"]);
   });
 
   it("saves nothing when it sees nothing new", async () => {
