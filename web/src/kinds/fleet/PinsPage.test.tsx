@@ -44,6 +44,7 @@ beforeEach(() => {
     },
     "drift.json": { metadata, records: [] },
     "pins.json": { metadata, records: PINS },
+    "meta.json": { kind: "fleet", pages: ["/", "/apps", "/attention", "/pins", "/signals"] },
   };
   vi.stubGlobal(
     "fetch",
@@ -70,6 +71,14 @@ describe("Pins page", () => {
     expect(dependencyRow.getByText("Tutor plugin")).toBeTruthy();
     expect(dependencyRow.getByText("Archived on GitHub")).toBeTruthy();
     expect(screen.getByText(/broken/)).toBeTruthy();
+  });
+
+  it("never requests pins.json for a tenant whose pages do not list Pins", async () => {
+    files["meta.json"] = { kind: "fleet", pages: ["/", "/apps"] };
+    renderRoute("/pins", META, tenant);
+    expect(await screen.findByText("No app has a production pin yet.")).toBeTruthy();
+    const requested = vi.mocked(fetch).mock.calls.map(([url]) => String(url).split("/").pop());
+    expect(requested).not.toContain("pins.json");
   });
 
   it("says so when the tenant pins nothing", async () => {

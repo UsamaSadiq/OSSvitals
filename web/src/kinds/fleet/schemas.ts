@@ -255,6 +255,7 @@ const manifestStatus = z.looseObject({ key: z.string(), label: z.string(), color
 
 export const fleetMetaSchema = z.looseObject({
   kind: z.string().optional(),
+  pages: z.array(z.string()).optional(),
   fleet: z.object({ signals: z.record(z.string(), manifestSignal), statuses: z.array(manifestStatus) }).optional(),
 });
 
