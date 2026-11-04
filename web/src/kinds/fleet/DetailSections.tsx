@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useTenant } from "../../tenants/context";
+import { isPrivateTenant } from "../../tenants/visibility";
 import { migrationsNotice, releaseNotesNotice, upgradeNotices } from "./upgrade";
 import { badgeMarkdown } from "./paths";
 import { formatDay, pluralise } from "./rows";
@@ -168,6 +169,7 @@ export function UpgradeRisk({ record }: { record: UpgradeRecord | undefined }) {
 
 export function BadgeSnippet({ repo }: { repo: string }) {
   const { org } = useTenant();
+  if (isPrivateTenant(org)) return null;
   return (
     <Section id="badge-heading" title="README badge">
       <p className="caption">Paste into a README to show this fork's live upstream status.</p>
