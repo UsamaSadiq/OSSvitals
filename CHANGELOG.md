@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Private tenants: a `tenants.json` entry with `visibility: private` and `access.email_domains` is served only behind Cloudflare Access with Google sign-in, by the new `ossvitals-gate` Worker (`gate/`), which re-verifies the Access token and email domain on every request and serves that host's own views from the private `ossvitals-private-data` bucket. `collect-private-fleet.yml` is a reusable workflow a private runner repository calls with its own config and per-owner tokens, so private repo names stay out of this repository and its logs. Public workflows, the bundled data, `ossvitals-data` and the MCP server skip private tenants.
 - Fleet apps can live under their own `owner`, and the collector picks a token per owner from `GH_OWNER_TOKENS`. A `pin` on any app records the ref production installs: the daily run publishes `pins.json` (releases or commits behind the newest release) and the new Pins page lists them. `class: dependency` tracks a third-party repo the tenant installs without forking it. Apps take an optional `group`, and archived repos are marked on the Pins page.
-
 
 ### Changed
 - The health web module is parameterised by org, like the fleet kind: `src/tenants/openedx/` moved to `src/kinds/health/` and exports `healthTenant(org)`, so a new health tenant needs only its `tenants.json` entry on the web side (its data pipeline is still openedx-only). Views are read for the tenant's org (`useView` takes it from the tenant context), a page left out of an org's `meta.json` `pages` list now returns Page not found as well as leaving the nav, and the Scoring page names the org's own `scoring.yaml`. The openedx site is unchanged. An org missing from `tenants.json` (including a `VITE_DEFAULT_ORG` preview) gets the openedx tenant and its data, so add the index entry before previewing a new tenant.

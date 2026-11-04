@@ -1,0 +1,61 @@
+name: Deploy gate
+
+# Builds the web app without any bundled data and deploys it behind the gate Worker in gate/, which serves
+# the private tenants: it checks each request's Cloudflare Access token and email domain, then serves the
+# app and that tenant's own views from the private ossvitals-private-data bucket. Deploys only from main.
+
+on:
+  pull_request:
+    paths:
+      - web/**
+      - gate/**
+      - dashboard/config/tenants.json
+      - .github/workflows/deploy-gate.yml
+  push:
+    branches: [main]
+    paths:
+      - web/**
+      - gate/**
+      - dashboard/config/tenants.json
+      - .github/workflows/deploy-gate.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('deploy-gate-pr-{0}', github.ref) || 'deploy-gate' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            gate/package-lock.json
+      - name: Build the web app with no bundled data
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          if [ -e dist/data ]; then echo "::error::dist/data must not exist in the gated build"; exit 1; fi
+      - name: Check the gate
+        working-directory: gate
+        run: |
+          npm ci
+          npm run check
+          npx wrangler deploy --dry-run
+      - if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v4
+        with:
+          wranglerVersion: "4.146.0"
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: gate
+          command: deploy

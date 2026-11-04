@@ -62,3 +62,13 @@ describe("a tenant with only meta.json", () => {
     expect(requested.filter((name) => name !== "meta")).toEqual([]);
   });
 });
+
+describe("isPrivateTenant", () => {
+  it("is true only for a listed tenant marked private", async () => {
+    const { isPrivateTenant } = await import("./visibility");
+    const index = { a: { kind: "fleet", site: "https://a.ossvitals.org" }, p: { kind: "fleet", site: "https://p.ossvitals.org", visibility: "private" } } as const;
+    expect(isPrivateTenant("a", index)).toBe(false);
+    expect(isPrivateTenant("p", index)).toBe(true);
+    expect(isPrivateTenant("missing", index)).toBe(false);
+  });
+});

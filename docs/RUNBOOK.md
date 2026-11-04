@@ -17,7 +17,7 @@ The Open edX tenant reads a CSV published by `openedx/wg-maintenance`; other ten
 
 The site does not rebuild when data changes. Each collector pushes to the `data` branch, `sync-data.yml` (on `workflow_run`) mirrors every tenant's `views/` and `maintenance/` folders to the public `ossvitals-data` R2 bucket, and the production build reads them from `https://data.ossvitals.org` (`VITE_DATA_BASE` in `deploy-web.yml`; local dev and the audit harness keep using `/data`). Before the upload, `npm run validate-data -- --prune` checks every tenant in `tenants.json` against the schemas of its kind: health views are all required; a fleet tenant needs `apps.json`, `drift.json` and a `meta.json` that also passes the site check the data host is trusted by, and its other views are checked when present. A tenant with no views yet (just added, not collected) is skipped. A tenant whose views fail is left out of that upload (views and maintenance), so the bucket keeps its last good copy, the other tenants still sync, and the run fails afterwards. `deploy-web.yml` runs the same check on the bundled fallback copy with `--allow-optional`: a required view that does not parse blocks the deploy (the code no longer matches the data), while a failing optional fleet view is dropped from the bundle, as the pages treat it as absent. Objects carry `Cache-Control: no-cache`, so browsers revalidate by ETag. `deploy-web.yml` runs only for code changes, and the MCP Worker reads the same host. The build still bundles the `data` branch under `/data` as a fallback. Once per session and org, the site checks `meta.json` on the data host (5 second deadline, and its `schema_version` must match the build). If that fails, it logs a console warning and reads every view for that org from the bundled copy, so all views and the freshness banner describe the same snapshot. The bundled copy is as old as the last code deploy, and the banner only flags it once it passes the stale threshold. After the check passes, a view that fails on the data host shows an error rather than falling back.
 
-Everything in `ossvitals-data` is public. A private tenant needs its own bucket with access control in front of it, and its files must stay off the `data` branch, which `sync-data.yml` copies wholesale.
+Everything in `ossvitals-data` is public. Private tenants never reach it; see [Private tenants](#private-tenants).
 
 Between daily runs the `ossvitals-events` Worker (`events/`) refreshes the maintenance files per repo. Every two minutes it lists openedx repos by `pushed_at` (ETag, so an unchanged list is free) and searches PRs updated since its last look, then dispatches `collect-maintenance.yml` with `repos=<names>` once the workflow is idle and at least `MIN_DISPATCH_GAP_MINUTES` after the last dispatch. That run merges the refreshed repos into the published files (`collect_maintenance.py --merge`) and keeps the full run's `generated_at`, so `data-freshness` still notices a broken daily run; `refreshed_at` and `refreshed_repos` record the partial run, and the pages show it. The watcher keeps its watermarks in the private `ossvitals-events-state` bucket.
 
@@ -75,6 +75,44 @@ A **fleet** tenant (a company's forks of open source apps) needs no code:
 5. List the dashboard on `sites/landing/public/index.html` once it is public.
 
 A **health** tenant needs its own collector publishing views under `<org>/views/` on the `data` branch (no CSV, scoring or openedx pipeline required; with the Python pipeline a metric with `parse_rule: boolean` needs no code). The health web module is still openedx's own, so a second health tenant also needs a module registered in `web/src/tenants/registry.ts`.
+
+### Private tenants
+
+A private tenant (`"visibility": "private"` in `tenants.json`, with `access.email_domains`) is served only to people who sign in with Google under one of those domains. Everything this public repository runs skips it: `list_tenants.py` lists public tenants unless asked for `--visibility private`, `data_branch_export.sh` never exports its folder (so neither the bundled fallback nor `ossvitals-data` can carry it), and the MCP server does not know it. `tests/test_tenant_index.py` fails if its host is routed by the public web Worker, or if `dashboard/config/<org>/` exists here: its config names private repositories, so it lives in the tenant's own private runner repository.
+
+How a request is served:
+1. Cloudflare Access, one application per private host, sends unsigned-in visitors to Google and lets through only the allowed email domains.
+2. The `ossvitals-gate` Worker (`gate/`, `run_worker_first`) checks the Access token again on every request: signature from `<team>.cloudflareaccess.com/cdn-cgi/access/certs`, issuer, the host's own application audience and the email domain against `tenants.json`. A missing setting fails closed (503).
+3. It serves the web app (built by `deploy-gate.yml` with no bundled data) and `/data/<org>/{views,maintenance}/*.json` from the private `ossvitals-private-data` bucket, only for the org of the host, so one private tenant never reads another's data. Every response is `Cache-Control: private, no-cache` and `noindex`.
+
+How data is collected: the runner repository calls `collect-private-fleet.yml` from this repository. A called workflow logs to the caller's run, so private repo names and errors never show in this repository's public logs. It copies the caller's `config/<org>/` into `dashboard/config/<org>/`, configures git and the collector with one read-only token per GitHub owner (`OWNER_TOKENS`), fetches the previous `drift.json`, `drift_history.json` and `feeds/kev.json` from the bucket, collects, validates (daily tier) and uploads under `<org>/`.
+
+#### Setting up the platform (once)
+
+1. `npx wrangler r2 bucket create ossvitals-private-data` from `gate/`. Never give it a custom domain or public access.
+2. Zero Trust → Settings → Authentication: add the **Google** login method (not Google Workspace, which allows one directory only). Note the team domain, e.g. `https://<team>.cloudflareaccess.com`.
+3. `printf %s https://<team>.cloudflareaccess.com | npx wrangler secret put ACCESS_TEAM_DOMAIN` from `gate/`.
+
+#### Adding a private tenant
+
+1. Add it to `tenants.json`: `{"kind": "fleet", "site": "https://<org>.ossvitals.org", "visibility": "private", "access": {"email_domains": ["example.com"]}}`, and its host to `routes` in `gate/wrangler.json` (custom domain), not to `web/wrangler.json`.
+2. Zero Trust → Access → Applications → Add a self-hosted application for `<org>.ossvitals.org`, login method Google only, with one Allow policy: Include → *Emails ending in* each domain in `access.email_domains`. Copy its Application Audience (AUD) tag.
+3. `printf %s <aud> | npx wrangler secret put ACCESS_AUD_<ORG>` from `gate/` (`<ORG>` upper-cased, `-` as `_`). Until it is set the site answers 503.
+4. Create the private runner repository with `config/<org>/` (`org_branding.yaml`, `apps.yaml`, `fleet.yaml`, `updates.yaml`, as for a fleet tenant) and two workflows calling this one:
+   ```yaml
+   jobs:
+     collect:
+       uses: UsamaSadiq/OSSvitals/.github/workflows/collect-private-fleet.yml@main
+       with: {org: <org>, tier: api}    # tier: clone in the weekly workflow
+       secrets: inherit
+   ```
+   Its secrets: `OWNER_TOKENS` (a JSON object of GitHub owner to a read-only token: a fine-grained PAT or GitHub App installation token with Contents, Metadata, Pull requests and Actions read on that owner's repos), `CLOUDFLARE_API_TOKEN` (R2 read and write on `ossvitals-private-data`) and `CLOUDFLARE_ACCOUNT_ID`.
+5. Merge, which deploys the gate with the new route, then run the runner's daily workflow once.
+
+Limits:
+- `data-freshness.yml` reads the `data` branch and so does not check private tenants yet.
+- An expired Access session redirects data requests to the login page, which the browser blocks; the pages show a download error until reloaded.
+- Only the fleet kind has a private collector workflow.
 
 ### Fleet tenants (Moneta)
 
