@@ -99,3 +99,49 @@ def test_allowed_leftover_does_not_block_done(uv_wave):
 
     assert waves.repo_status("openedx/repo-tools", paths, uv_wave, None, now=NOW)["status"] == waves.DONE
     assert waves.repo_status("openedx/other", paths, uv_wave, None, now=NOW)["status"] == waves.NOT_STARTED
+
+
+@pytest.fixture(scope="module")
+def frontend_base_wave() -> dict:
+    return get_config("waves")["waves"]["frontend_base"]
+
+
+CONVERTED_PACKAGE = '{"peerDependencies": {"@openedx/frontend-base": "^2.0.0-alpha.15"}}'
+LEGACY_PACKAGE = '{"dependencies": {"@edx/frontend-platform": "^8.7.0"}}'
+
+
+def test_frontend_app_on_frontend_base_is_done(frontend_base_wave):
+    record = waves.repo_status(
+        "openedx/frontend-app-authn", FRONTEND, frontend_base_wave, None, now=NOW, contents={"package.json": CONVERTED_PACKAGE}
+    )
+
+    assert record["status"] == waves.DONE
+
+
+def test_frontend_app_on_frontend_platform_lists_the_dependency_gap(frontend_base_wave):
+    record = waves.repo_status(
+        "openedx/frontend-app-learning", FRONTEND, frontend_base_wave, None, now=NOW, contents={"package.json": LEGACY_PACKAGE}
+    )
+
+    assert record["status"] == waves.NOT_STARTED
+    assert record["missing"] == ["@openedx/frontend-base dependency"]
+
+
+def test_unreadable_package_json_is_not_done(frontend_base_wave):
+    record = waves.repo_status("openedx/frontend-app-x", FRONTEND, frontend_base_wave, None, now=NOW, contents={"package.json": None})
+
+    assert record["status"] == waves.NOT_STARTED
+
+
+def test_name_regex_limits_the_wave_to_frontend_apps(frontend_base_wave):
+    record = waves.repo_status(
+        "openedx/frontend-base", FRONTEND, frontend_base_wave, None, now=NOW, contents={"package.json": CONVERTED_PACKAGE}
+    )
+
+    assert record["status"] == waves.NOT_APPLICABLE
+    assert record["missing"] == []
+
+
+def test_content_paths_lists_each_file_once(frontend_base_wave):
+    assert waves.content_paths(frontend_base_wave) == ["package.json"]
+    assert waves.content_paths({"done": {"present": ["uv.lock"]}}) == []

@@ -4,6 +4,14 @@ from __future__ import annotations
 from typing import Any
 
 
+def content_rules(wave: dict[str, Any]) -> list[dict[str, str]]:
+    return (wave.get("done") or {}).get("file_contains") or []
+
+
+def rule_label(rule: dict[str, str]) -> str:
+    return rule.get("label") or f"{rule['pattern']} in {rule['path']}"
+
+
 def done_rule(wave: dict[str, Any]) -> str:
     done = wave.get("done") or {}
     parts = []
@@ -11,6 +19,7 @@ def done_rule(wave: dict[str, Any]) -> str:
         parts.append("has " + ", ".join(f"`{path}`" for path in done["present"]))
     if done.get("absent"):
         parts.append("no " + ", ".join(f"`{path}`" for path in done["absent"]))
+    parts += [f"`{rule['path']}` has {rule_label(rule)}" for rule in content_rules(wave)]
     return "; ".join(parts)
 
 

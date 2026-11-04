@@ -5,6 +5,8 @@ import re
 from datetime import datetime
 from typing import Any
 
+from dashboard.lib.upgrades import content_rules, rule_label
+
 DONE = "done"
 PR_OPEN = "pr_open"
 NOT_STARTED = "not_started"
@@ -12,15 +14,37 @@ NOT_APPLICABLE = "not_applicable"
 STATUS_ORDER = (NOT_STARTED, PR_OPEN, DONE, NOT_APPLICABLE)
 
 
-def applies(paths: set[str], wave: dict[str, Any]) -> bool:
-    wanted = (wave.get("applies_to") or {}).get("has_any") or []
+def _bare_name(full_name: str) -> str:
+    return full_name.rsplit("/", 1)[-1]
+
+
+def applies(full_name: str, paths: set[str], wave: dict[str, Any]) -> bool:
+    scope = wave.get("applies_to") or {}
+    name_regex = scope.get("name_regex")
+    if name_regex and not re.search(name_regex, _bare_name(full_name)):
+        return False
+    wanted = scope.get("has_any") or []
     return not wanted or bool(paths & set(wanted))
 
 
-def done_gaps(full_name: str, paths: set[str], wave: dict[str, Any]) -> tuple[list[str], list[str]]:
+def content_paths(wave: dict[str, Any]) -> list[str]:
+    return sorted({rule["path"] for rule in content_rules(wave)})
+
+
+def _unmet_content(contents: dict[str, str | None], wave: dict[str, Any]) -> list[str]:
+    return [
+        rule_label(rule)
+        for rule in content_rules(wave)
+        if not re.search(rule["pattern"], contents.get(rule["path"]) or "")
+    ]
+
+
+def done_gaps(
+    full_name: str, paths: set[str], wave: dict[str, Any], contents: dict[str, str | None] | None = None
+) -> tuple[list[str], list[str]]:
     done = wave.get("done") or {}
     allowed = set((wave.get("allowed_leftovers") or {}).get(full_name, []))
-    missing = [path for path in done.get("present", []) if path not in paths]
+    missing = [path for path in done.get("present", []) if path not in paths] + _unmet_content(contents or {}, wave)
     leftover = [path for path in done.get("absent", []) if path in paths and path not in allowed]
     return missing, leftover
 
@@ -39,10 +63,16 @@ def matching_prs(prs: list[dict[str, Any]], wave: dict[str, Any]) -> dict[str, d
 
 
 def repo_status(
-    full_name: str, paths: set[str], wave: dict[str, Any], open_pr: dict[str, Any] | None, *, now: datetime
+    full_name: str,
+    paths: set[str],
+    wave: dict[str, Any],
+    open_pr: dict[str, Any] | None,
+    *,
+    now: datetime,
+    contents: dict[str, str | None] | None = None,
 ) -> dict[str, Any]:
-    missing, leftover = done_gaps(full_name, paths, wave)
-    if not applies(paths, wave):
+    missing, leftover = done_gaps(full_name, paths, wave, contents)
+    if not applies(full_name, paths, wave):
         status = NOT_APPLICABLE
     elif not missing and not leftover:
         status = DONE

@@ -158,6 +158,18 @@ def _summarized(records: Records) -> dict[str, Any]:
     return {"summary": waves.summary(records)}
 
 
+def _wave_contents(repos: list[dict], trees: dict[str, set[str]], wave: dict) -> dict[str, dict[str, str | None]]:
+    """Text of the files a wave's content rules read, fetched only for repos the wave applies to."""
+    paths = waves.content_paths(wave)
+    wanted = [repo for repo in repos if paths and waves.applies(repo["full_name"], trees.get(repo["full_name"], set()), wave)]
+
+    def files(repo: dict) -> tuple[str, dict[str, str | None]]:
+        return repo["full_name"], {path: github.raw_text(repo["full_name"], repo["default_branch"], path) for path in paths}
+
+    with ThreadPoolExecutor(max_workers=TREE_WORKERS) as pool:
+        return dict(pool.map(files, wanted))
+
+
 def collect_waves(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
     repos = _org_repos(scope, target)
@@ -168,7 +180,11 @@ def collect_waves(out_dir: Path, scope: Scope, target: Target) -> int:
     for wave_id, wave in get_config("waves", target.org).get("waves", {}).items():
         prs = [pr for term in wave["pull_requests"]["search_terms"] for pr in github.search_open_prs(target.github_org, term)]
         open_prs = waves.matching_prs(prs, wave)
-        fresh = [waves.repo_status(name, paths, wave, open_prs.get(name), now=generated_at) for name, paths in trees.items()]
+        contents = _wave_contents(repos, trees, wave)
+        fresh = [
+            waves.repo_status(name, paths, wave, open_prs.get(name), now=generated_at, contents=contents.get(name))
+            for name, paths in trees.items()
+        ]
         final = _publish(
             out_dir / WAVES_DIR / f"{wave_id}.json",
             fresh,

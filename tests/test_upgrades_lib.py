@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dashboard.lib.upgrades import campaign_gaps, campaign_rule, done_rule, gaps
+from dashboard.lib.upgrades import campaign_gaps, campaign_rule, done_rule, gaps, rule_label
 
 
 def test_done_rule_lists_required_and_forbidden_paths():
@@ -28,3 +28,12 @@ def test_campaign_gaps_group_paths_by_version():
     ]
     assert campaign_gaps(stale) == "2024.7.4 in requirements/old.txt; 2026.7.22 in requirements/base.txt, uv.lock"
     assert campaign_gaps(None) == ""
+
+
+def test_done_rule_describes_file_content_rules():
+    wave = {"done": {"file_contains": [{"path": "package.json", "pattern": "x", "label": "a dependency"}]}}
+    assert done_rule(wave) == "`package.json` has a dependency"
+
+
+def test_rule_label_falls_back_to_pattern_and_path():
+    assert rule_label({"path": "package.json", "pattern": "frontend-base"}) == "frontend-base in package.json"

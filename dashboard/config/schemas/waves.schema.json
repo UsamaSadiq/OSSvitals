@@ -13,13 +13,29 @@
           "epic": {"type": "string"},
           "applies_to": {
             "type": "object",
-            "properties": {"has_any": {"type": "array", "items": {"type": "string"}}}
+            "properties": {
+              "has_any": {"type": "array", "items": {"type": "string"}},
+              "name_regex": {"type": "string"}
+            }
           },
           "done": {
             "type": "object",
             "properties": {
               "present": {"type": "array", "items": {"type": "string"}},
-              "absent": {"type": "array", "items": {"type": "string"}}
+              "absent": {"type": "array", "items": {"type": "string"}},
+              "file_contains": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["path", "pattern"],
+                  "properties": {
+                    "path": {"type": "string"},
+                    "pattern": {"type": "string"},
+                    "label": {"type": "string"}
+                  },
+                  "additionalProperties": false
+                }
+              }
             }
           },
           "allowed_leftovers": {

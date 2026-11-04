@@ -19,3 +19,17 @@ waves:
     pull_requests:
       search_terms: ["uv", "pyproject"]
       title_regex: "\\buv\\b|pyproject"
+  frontend_base:
+    title: "Frontend apps on frontend-base"
+    epic: "https://discuss.openedx.org/t/frontend-base-the-plan-for-willow/19438"
+    applies_to:
+      name_regex: "^frontend-app-"
+      has_any: ["package.json"]
+    done:
+      file_contains:
+        - path: "package.json"
+          pattern: '"@openedx/frontend-base"\s*:'
+          label: "@openedx/frontend-base dependency"
+    pull_requests:
+      search_terms: ["frontend-base"]
+      title_regex: "frontend-base"
