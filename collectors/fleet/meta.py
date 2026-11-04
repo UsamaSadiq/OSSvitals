@@ -26,7 +26,9 @@ def signal_manifest(settings: FleetSettings) -> dict[str, Any]:
     }
 
 
-def meta_view(org: str, generated_at: datetime, *, branding: dict[str, Any], settings: FleetSettings, github_org: str) -> dict[str, Any]:
+def meta_view(
+    org: str, generated_at: datetime, *, branding: dict[str, Any], settings: FleetSettings, github_org: str, pages: list[str] | None = None
+) -> dict[str, Any]:
     freshness = settings.values["freshness"]
     return {
         "metadata": {
@@ -36,7 +38,7 @@ def meta_view(org: str, generated_at: datetime, *, branding: dict[str, Any], set
             "snapshot_timestamp": generated_at.isoformat(),
             "source": SOURCE,
         },
-        "pages": settings.values["pages"],
+        "pages": pages if pages is not None else settings.values["pages"],
         "branding": branding,
         "github_org": github_org,
         "feature_flags": settings.values["feature_flags"],

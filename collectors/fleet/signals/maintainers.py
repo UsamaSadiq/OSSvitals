@@ -17,7 +17,7 @@ def merged_by(lookup: Callable[[str, str, str], list[str] | None], owner: str, n
 
 
 def collect(ctx: ForkContext) -> dict[str, Any]:
-    return {"maintainers": guarded(lambda: merged_by(ctx.merged_by, ctx.org, ctx.app["repo"], ctx.production))}
+    return {"maintainers": guarded(lambda: merged_by(ctx.merged_by, ctx.fork_owner, ctx.app["repo"], ctx.production))}
 
 
 SIGNAL = Signal("maintainers", collect)

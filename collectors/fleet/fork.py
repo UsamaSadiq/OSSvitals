@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 from urllib.parse import quote
 
-from collectors.fleet.ranges import VERSION, affects, version_key
+from collectors.fleet.ranges import VERSION, affects, is_release_name, version_key
 
 Api = Callable[[str], Any]
 
@@ -19,10 +19,37 @@ RELEASE_PAGES = 4
 TAG_CANDIDATES = 5
 ADVISORY_SOURCE = "github-published-advisories"
 ADVISORY_ITEMS = 10
+LITERAL_PREFIX = re.compile(r"^\^((?:[A-Za-z0-9_/-](?![?*{]))*)")
+TAG_REF_PREFIX = "refs/tags/"
+
+
+def literal_prefix(pattern: re.Pattern[str]) -> str:
+    """The characters every match must start with; none when the pattern has alternatives."""
+    if "|" in pattern.pattern:
+        return ""
+    match = LITERAL_PREFIX.match(pattern.pattern)
+    return match.group(1) if match else ""
+
+
+def _tag_from_ref(ref: dict[str, Any]) -> dict[str, Any]:
+    """In the shape of the tags endpoint. An annotated tag's ref points at the tag object, not its commit, so its name
+    stands in for the commit: the compare and commit endpoints resolve a tag name to its commit."""
+    name = ref["ref"].removeprefix(TAG_REF_PREFIX)
+    target = ref["object"]
+    return {"name": name, "commit": {"sha": target["sha"] if target["type"] == "commit" else quote(name, safe="")}}
+
+
+def list_tags(api: Api, base: str, pattern: re.Pattern[str]) -> list[dict[str, Any]]:
+    """Every tag under the pattern's literal prefix, in one call, so a repo with thousands of tags (edx-platform has
+    over 1,600) still lists every match; without a prefix, the newest 100 of the tags endpoint."""
+    prefix = literal_prefix(pattern)
+    if prefix:
+        return [_tag_from_ref(ref) for ref in api(f"{base}/git/matching-refs/tags/{quote(prefix, safe='/')}") or []]
+    return api(f"{base}/tags?per_page=100") or []
 
 
 def stable_tags(tags: list[dict[str, Any]], pattern: re.Pattern[str] = STABLE_TAG) -> list[dict[str, Any]]:
-    stable = [tag for tag in tags if pattern.match(tag["name"]) and VERSION.search(tag["name"])]
+    stable = [tag for tag in tags if is_release_name(tag["name"], pattern)]
     return sorted(stable, key=lambda tag: version_key(tag["name"]), reverse=True)
 
 
@@ -80,8 +107,7 @@ def _stable_releases(releases: list[dict[str, Any]], pattern: re.Pattern[str] | 
         for release in releases
         if not release["draft"]
         and not release["prerelease"]
-        and VERSION.search(release["tag_name"])
-        and (pattern is None or pattern.match(release["tag_name"]))
+        and (is_release_name(release["tag_name"], pattern) if pattern else bool(VERSION.search(release["tag_name"])))
     ]
     return sorted(wanted, key=lambda release: release["published_at"], reverse=True)
 
@@ -95,7 +121,8 @@ def latest_upstream_release(
 ) -> dict[str, Any] | None:
     if releases:
         return {"tag": releases[0]["tag_name"], "date": releases[0]["published_at"]}
-    tags = stable_tags(api(f"repos/{upstream}/tags?per_page=100") or [], pattern or STABLE_TAG)
+    line = pattern or STABLE_TAG
+    tags = stable_tags(list_tags(api, f"repos/{upstream}", line), line)
     return {"tag": tags[0]["name"], "date": None} if tags else None
 
 

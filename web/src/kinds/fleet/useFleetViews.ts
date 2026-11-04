@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchDataJson } from "../../data/load";
 import { useTenant } from "../../tenants/context";
+import { PINS_PATH } from "./paths";
 import {
   FLEET_VIEWS,
   type AppsView,
@@ -10,6 +11,7 @@ import {
   type DriftView,
   type FleetMetaView,
   type HistoryView,
+  type PinsView,
   type UpdatesView,
   type ViewSpec,
 } from "./schemas";
@@ -22,6 +24,7 @@ export interface FleetViews {
   conflicts: ConflictsView | null;
   carried: CarriedView | null;
   upgrade: UpgradeView | null;
+  pins: PinsView | null;
   meta: FleetMetaView | null;
 }
 
@@ -40,18 +43,25 @@ async function fetchView<T>(org: string, view: ViewSpec<T>): Promise<T | null> {
   }
 }
 
+// The collector lists the Pins page only for a tenant that pins an app, so no other tenant asks for a file it never publishes.
+async function pinsListedIn(meta: Promise<FleetMetaView | null>, org: string): Promise<PinsView | null> {
+  return (await meta)?.pages?.includes(PINS_PATH) ? fetchView(org, FLEET_VIEWS.pins) : null;
+}
+
 async function loadViews(org: string): Promise<FleetViews> {
-  const [apps, drift, history, updates, conflicts, meta, carried, upgrade] = await Promise.all([
+  const metaView = fetchView(org, FLEET_VIEWS.meta);
+  const [apps, drift, history, updates, conflicts, meta, carried, upgrade, pins] = await Promise.all([
     fetchView(org, FLEET_VIEWS.apps),
     fetchView(org, FLEET_VIEWS.drift),
     fetchView(org, FLEET_VIEWS.history),
     fetchView(org, FLEET_VIEWS.updates),
     fetchView(org, FLEET_VIEWS.conflicts),
-    fetchView(org, FLEET_VIEWS.meta),
+    metaView,
     fetchView(org, FLEET_VIEWS.carried),
     fetchView(org, FLEET_VIEWS.upgrade),
+    pinsListedIn(metaView, org),
   ]);
-  return { apps, drift, history, updates, conflicts, meta, carried, upgrade };
+  return { apps, drift, history, updates, conflicts, meta, carried, upgrade, pins };
 }
 
 export function clearFleetViews(): void {
