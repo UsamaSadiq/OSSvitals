@@ -1,7 +1,12 @@
-"""Minimal read-only GitHub access through the ``gh`` CLI (authenticated by GH_TOKEN)."""
+"""Minimal read-only GitHub access through the ``gh`` CLI.
+
+Each call is authenticated by GH_TOKEN, or by the token GH_OWNER_TOKENS (a JSON object of owner to token) holds for
+the owner the call reads, so one run can read private repos of several owners that no single token covers.
+"""
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import time
@@ -11,13 +16,40 @@ import requests
 
 RETRIES = 3
 SEARCH_PAUSE_SECONDS = 2.5
+OWNER_TOKENS_ENV = "GH_OWNER_TOKENS"
+REPO_PATH = re.compile(r"^/?repos/([^/?]+)/")
+OWNER_FIELD = "owner="
+
+
+def owner_tokens(raw: str | None) -> dict[str, str]:
+    """Owners compared case-insensitively, as GitHub does."""
+    tokens = json.loads(raw) if raw else {}
+    return {owner.lower(): token for owner, token in tokens.items()}
+
+
+def owner_of(args: tuple[str, ...]) -> str | None:
+    """The owner an ``api`` call reads: the ``repos/<owner>/`` path, or a GraphQL ``owner`` variable."""
+    for arg in args:
+        match = REPO_PATH.match(arg)
+        if match:
+            return match.group(1)
+        if arg.startswith(OWNER_FIELD):
+            return arg.removeprefix(OWNER_FIELD)
+    return None
+
+
+def _env(args: tuple[str, ...]) -> dict[str, str] | None:
+    """None keeps the process environment (GH_TOKEN) when no owner token applies."""
+    owner = owner_of(args)
+    token = owner_tokens(os.environ.get(OWNER_TOKENS_ENV)).get(owner.lower()) if owner else None
+    return {**os.environ, "GH_TOKEN": token} if token else None
 
 
 def gh_json(*args: str) -> Any:
     last_error: subprocess.CalledProcessError | None = None
     for attempt in range(RETRIES):
         try:
-            result = subprocess.run(["gh", *args], check=True, capture_output=True, text=True)
+            result = subprocess.run(["gh", *args], check=True, capture_output=True, text=True, env=_env(args))
             return json.loads(result.stdout or "null")
         except subprocess.CalledProcessError as error:
             last_error = error
@@ -28,7 +60,7 @@ def gh_json(*args: str) -> Any:
 def _gh_optional(*args: str) -> str | None:
     """stdout of a ``gh`` call, or None when GitHub answers 404; other failures raise."""
     for attempt in range(RETRIES):
-        result = subprocess.run(["gh", *args], capture_output=True, text=True)
+        result = subprocess.run(["gh", *args], capture_output=True, text=True, env=_env(args))
         if result.returncode == 0:
             return result.stdout
         if "HTTP 404" in result.stderr:

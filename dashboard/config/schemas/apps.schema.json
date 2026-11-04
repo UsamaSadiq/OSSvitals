@@ -13,7 +13,8 @@
         "required": ["repo", "class"],
         "properties": {
           "repo": {"type": "string"},
-          "class": {"enum": ["fork", "original"]},
+          "class": {"enum": ["fork", "original", "dependency"]},
+          "owner": {"description": "GitHub owner of this repo when it is not github_org.", "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"},
           "upstream": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
           "upstream_branch": {"type": "string"},
           "production_branch": {"type": "string"},
@@ -26,12 +27,22 @@
           "e2e": {"type": "string"},
           "runbook_url": {"type": "string"},
           "purpose": {"type": "string"},
-          "what_we_changed": {"type": "string"}
+          "what_we_changed": {"type": "string"},
+          "pin": {"description": "The tag, branch or commit the production build installs.", "type": "string", "minLength": 1},
+          "pin_note": {"description": "Where the pin comes from, shown beside it.", "type": "string"},
+          "group": {"description": "The part of the product this repo belongs to, used to group tables.", "type": "string", "minLength": 1}
         },
         "allOf": [
           {
             "if": {"properties": {"class": {"const": "fork"}}},
             "then": {"required": ["upstream", "upstream_branch"]}
+          },
+          {
+            "if": {"properties": {"class": {"const": "dependency"}}},
+            "then": {
+              "required": ["owner", "pin"],
+              "not": {"anyOf": [{"required": ["upstream"]}, {"required": ["upstream_branch"]}, {"required": ["production_branch"]}, {"required": ["fork_release_tag"]}]}
+            }
           }
         ],
         "additionalProperties": false
