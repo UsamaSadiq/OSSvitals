@@ -401,6 +401,14 @@ const UPGRADE_COLUMNS: Column<UpgradeRelease>[] = [
   },
 ];
 
+function otherTickets(section: UpgradeCost): string {
+  const parts = [
+    section.earlier?.total ? `${formatNumber(section.earlier.total)} name an earlier release` : null,
+    section.withdrawn?.total ? `${formatNumber(section.withdrawn.total)} were withdrawn and are not counted` : null,
+  ].filter(Boolean);
+  return parts.length ? `; ${parts.join(", ")}` : "";
+}
+
 function UpgradeCostSection({ section }: { section: UpgradeCost }) {
   const releases = section.releases ?? [];
   const deprecations = barChart(
@@ -420,7 +428,8 @@ function UpgradeCostSection({ section }: { section: UpgradeCost }) {
             {section.deprecations_url ? <a href={section.deprecations_url}>DEPR tickets</a> : "DEPR tickets"} whose
             form names that release as the first one without the deprecated functionality;{" "}
             {formatNumber(section.unscheduled?.total ?? 0)} name no release yet ({formatNumber(section.unscheduled?.open ?? 0)}{" "}
-            of them open). Breaking changes are the items in each release&rsquo;s developer and operator notes.
+            of them open){otherTickets(section)}. Breaking changes are the changes listed under Breaking Changes in each
+            release&rsquo;s developer and operator notes.
           </p>
           <div className="pf-summary">
             <KpiTile

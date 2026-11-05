@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from collectors import (
     campaigns,
@@ -659,14 +660,20 @@ def _extension_row(config: dict[str, Any], release: str, ref: str, frontend_refs
     }
 
 
-def _named_releases(config: dict[str, Any]) -> list[tuple[str, ReleaseTag]]:
+def _tagged_releases(config: dict[str, Any]) -> tuple[list[tuple[str, ReleaseTag]], int]:
+    """Every tagged release in date order, and the position of the configured ``first`` one."""
     found = release_tags(config["platform"]["repo"], config["releases"]["tag_prefixes"])
     ordered = sorted(found.items(), key=lambda item: item[1].date)
     names = [name for name, _ in ordered]
     first = config["releases"]["first"]
     if first not in names:
         raise RuntimeError(f"first release {first!r} has no readable .1 tag")
-    return ordered[names.index(first):]
+    return ordered, names.index(first)
+
+
+def _named_releases(config: dict[str, Any]) -> list[tuple[str, ReleaseTag]]:
+    ordered, start = _tagged_releases(config)
+    return ordered[start:]
 
 
 def _frontend_repos(frontend: dict[str, Any]) -> list[dict[str, Any]]:
@@ -725,46 +732,65 @@ def collect_extension_points(out_dir: Path, scope: Scope, target: Target) -> int
     return 0
 
 
-def _release_sequence(config: dict[str, Any]) -> tuple[list[str], list[tuple[str, date | None]]]:
-    """Every name tickets can match (all tagged releases plus upcoming ones), and the rows' releases from ``first`` on."""
-    settings = config["releases"]
-    tagged = sorted(release_tags(config["platform"]["repo"], settings["tag_prefixes"]).items(), key=lambda item: item[1].date)
-    names = [name for name, _ in tagged]
-    if settings["first"] not in names:
-        raise RuntimeError(f"first release {settings['first']!r} has no readable .1 tag")
-    upcoming = [name for name in settings.get("upcoming", []) if name not in names]
-    shown = [(name, release.date.date()) for name, release in tagged[names.index(settings["first"]):]]
-    return [*names, *upcoming], [*shown, *((name, None) for name in upcoming)]
+def _release_sequence(config: dict[str, Any]) -> tuple[list[str], list[tuple[str, date | None]], date | None]:
+    """Every name tickets can match, the rows' releases (``first`` on, then upcoming ones), and the release date before ``first``."""
+    ordered, start = _tagged_releases(config)
+    names = [name for name, _ in ordered]
+    upcoming = [name for name in config["releases"].get("upcoming", []) if name not in names]
+    shown = [(name, release.date.date()) for name, release in ordered[start:]]
+    before = ordered[start - 1][1].date.date() if start else None
+    return [*names, *upcoming], [*shown, *((name, None) for name in upcoming)], before
 
 
-def _breaking_changes(notes: dict[str, str], releases: list[str]) -> dict[str, int | None]:
-    return {
-        release: upgrade_cost.section_items(
-            github.raw_text(notes["repo"], notes["ref"], notes["path"].format(release=release)), notes["heading"]
-        )
-        for release in releases
-    }
+def _release_notes(notes: dict[str, Any], release: str) -> tuple[str | None, str | None]:
+    """The notes text and its path: the first of the configured paths that exists (older releases use another layout)."""
+    for template in notes["paths"]:
+        path = template.format(release=release)
+        text = github.raw_text(notes["repo"], notes["ref"], path)
+        if text is not None:
+            return text, path
+    return None, None
 
 
-def _upgrade_cost_rows(config: dict[str, Any]) -> tuple[Records, dict[str, int]]:
-    names, releases = _release_sequence(config)
+def _breaking_changes(notes: dict[str, Any], releases: list[str]) -> tuple[dict[str, int | None], dict[str, str]]:
+    counts, paths, untitled = {}, {}, []
+    for release in releases:
+        text, path = _release_notes(notes, release)
+        counts[release] = upgrade_cost.section_items(text, notes["heading"])
+        if path:
+            paths[release] = path
+        if text is not None and counts[release] is None:
+            untitled.append(release)
+    if untitled:
+        print(f"::warning::Upgrade cost: no {notes['heading']!r} section in the notes of {', '.join(untitled)}")
+    return counts, paths
+
+
+def _upgrade_cost_rows(config: dict[str, Any]) -> tuple[Records, dict[str, dict[str, int]]]:
+    names, releases, before = _release_sequence(config)
     deprecations = config["deprecations"]
     tickets = github.labelled_issues(deprecations["repo"], deprecations["label"])
-    grouped = upgrade_cost.by_release(tickets, names, deprecations["release_field"])
-    breaking = _breaking_changes(config["release_notes"], [name for name, _ in releases])
-    shown = {name for name, _ in releases}
-    unscheduled = upgrade_cost.deprecation_counts(grouped.get(None, []))
-    earlier = upgrade_cost.deprecation_counts([ticket for name, group in grouped.items() if name and name not in shown for ticket in group])
+    if not tickets:
+        raise RuntimeError(f"no issues labelled {deprecations['label']!r} in {deprecations['repo']}")
+    counted = [ticket for ticket in tickets if not upgrade_cost.is_withdrawn(ticket)]
+    grouped = upgrade_cost.by_release(counted, names, deprecations["release_field"])
     notes = config["release_notes"]
+    breaking, paths = _breaking_changes(notes, [name for name, _ in releases])
+    shown = {name for name, _ in releases}
+    buckets = {
+        "unscheduled": upgrade_cost.deprecation_counts(grouped.get(None, [])),
+        "earlier": upgrade_cost.deprecation_counts([ticket for name, group in grouped.items() if name and name not in shown for ticket in group]),
+        "withdrawn": upgrade_cost.deprecation_counts([ticket for ticket in tickets if upgrade_cost.is_withdrawn(ticket)]),
+    }
     rows = [
-        {**row, "notes_url": _notes_url(notes, row["release"]) if row["breaking_changes"] is not None else None}
-        for row in upgrade_cost.release_rows(releases, grouped, breaking)
+        {**row, "notes_url": _notes_url(notes, paths[row["release"]]) if row["release"] in paths else None}
+        for row in upgrade_cost.release_rows(releases, grouped, breaking, before)
     ]
-    return rows, {"unscheduled": unscheduled, "earlier": earlier}
+    return rows, buckets
 
 
-def _notes_url(notes: dict[str, str], release: str) -> str:
-    return f"https://github.com/{notes['repo']}/blob/{notes['ref']}/{notes['path'].format(release=release)}"
+def _notes_url(notes: dict[str, Any], path: str) -> str:
+    return f"https://github.com/{notes['repo']}/blob/{notes['ref']}/{path}"
 
 
 def collect_upgrade_cost(out_dir: Path, scope: Scope, target: Target) -> int:
@@ -778,17 +804,20 @@ def collect_upgrade_cost(out_dir: Path, scope: Scope, target: Target) -> int:
     except Exception as error:  # noqa: BLE001 - any failure keeps the published file so the other collectors still publish
         print(f"::warning::Upgrade cost: {public_message(error)}; kept the published file.")
         return 0
+    deprecations = config["deprecations"]
+    search = quote(f"label:{deprecations['label']}")
+    totals = upgrade_cost.summary(rows, buckets)
     content = publish.payload(
         rows,
         generated_at=generated_at,
         source=upgrade_cost.SOURCE,
         collector_version=upgrade_cost.VERSION,
-        deprecations_url=f"https://github.com/{config['deprecations']['repo']}/issues?q=label%3A{config['deprecations']['label']}",
+        deprecations_url=f"https://github.com/{deprecations['repo']}/issues?q={search}",
         **buckets,
-        summary=upgrade_cost.summary(rows, buckets["unscheduled"]),
+        summary=totals,
     )
     publish.write(out_dir / UPGRADE_COST_FILE, content, org=target.org)
-    print(f"Upgrade cost: {len(rows)} releases, {upgrade_cost.summary(rows, buckets['unscheduled'])}")
+    print(f"Upgrade cost: {len(rows)} releases, {totals}")
     return 0
 
 

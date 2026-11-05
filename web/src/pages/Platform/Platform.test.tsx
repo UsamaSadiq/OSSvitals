@@ -274,6 +274,7 @@ function upgradeCost(overrides: Partial<UpgradeCost> = {}): UpgradeCost {
     deprecations_url: "https://github.com/openedx/public-engineering/issues?q=label%3Adepr",
     unscheduled: { total: 60, open: 7, closed: 53 },
     earlier: { total: 0, open: 0, closed: 0 },
+    withdrawn: { total: 3, open: 0, closed: 3 },
     summary: { releases: 2, median_days_between: 206, deprecations: 21, open_deprecations: 16 },
     releases: [
       upgradeRow("teak", "2025-06-23", null, 4, 0, 3),
@@ -298,7 +299,7 @@ describe("Platform upgrade cost section", () => {
 
     expect(await screen.findByRole("group", { name: "Time between releases" })).toHaveTextContent("206 days");
     expect(screen.getByRole("group", { name: "Open deprecations" })).toHaveTextContent("16");
-    expect(screen.getByText(/60 name no release yet \(7 of them open\)/)).toBeInTheDocument();
+    expect(screen.getByText(/60 name no release yet \(7 of them open\); 3 were withdrawn and are not counted/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "DEPR tickets" })).toHaveAttribute("href", expect.stringContaining("label%3Adepr"));
 
     const table = screen.getByRole("table", { name: "Upgrade cost by release" });

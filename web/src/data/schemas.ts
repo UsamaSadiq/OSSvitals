@@ -608,6 +608,7 @@ const upgradeCostSchema = z.object({
   deprecations_url: optionalHttpUrl,
   unscheduled: ticketCountsSchema.partial().optional(),
   earlier: ticketCountsSchema.partial().optional(),
+  withdrawn: ticketCountsSchema.partial().optional(),
   summary: z
     .object({
       releases: int,

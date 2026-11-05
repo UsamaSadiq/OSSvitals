@@ -31,11 +31,11 @@
     },
     "release_notes": {
       "type": "object",
-      "required": ["repo", "ref", "path", "heading"],
+      "required": ["repo", "ref", "paths", "heading"],
       "properties": {
         "repo": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
         "ref": {"type": "string"},
-        "path": {"type": "string", "pattern": "\\{release\\}"},
+        "paths": {"type": "array", "items": {"type": "string", "pattern": "\\{release\\}"}, "minItems": 1},
         "heading": {"type": "string"}
       },
       "additionalProperties": false
