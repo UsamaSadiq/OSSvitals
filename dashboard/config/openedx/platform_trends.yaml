@@ -1,5 +1,5 @@
 # Stability trends of openedx-platform from its git history, collected by collect_maintenance.py from a
-# bare shallow clone. The series runs by month through the last complete month, so the clone runs only on
+# full bare clone of the branch. The series runs by month through the last complete month, so the clone runs only on
 # the first daily run after a month ends, or when this file changes.
 # Checked against a local clone on 2026-11-05: 2,538 counted commits by 229 authors in 2021, 1,097 by 183
 # in 2025; 290,775 counted Python lines at the end of 2020, 356,721 at the end of October 2026.

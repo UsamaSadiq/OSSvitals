@@ -245,10 +245,9 @@ def _trends(payload: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def build_platform(ctx: BuildContext) -> dict[str, Any]:
-    sections = {
-        "modularization": _modularization(ctx.maintenance.get(maintenance.MODULARIZATION)),
-        "trends": _trends(ctx.maintenance.get(maintenance.PLATFORM_TRENDS)),
-    }
+    sections = {"modularization": _modularization(ctx.maintenance.get(maintenance.MODULARIZATION))}
+    if maintenance.PLATFORM_TRENDS in ctx.maintenance:
+        sections["trends"] = _trends(ctx.maintenance[maintenance.PLATFORM_TRENDS])
     return envelope(
         ctx,
         PLATFORM_SOURCE,

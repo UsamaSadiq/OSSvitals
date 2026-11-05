@@ -7,7 +7,7 @@ import tempfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -42,7 +42,6 @@ FIX_PRS_FILE = "fix_prs.json"
 SUPPORT_WINDOWS_FILE = "support_windows.json"
 MODULARIZATION_FILE = "modularization.json"
 PLATFORM_TRENDS_FILE = "platform_trends.json"
-SHALLOW_MARGIN = timedelta(days=31)
 TUTOR_DEFAULTS = "tutor/templates/config/defaults.yml"
 OPENEDX_RELEASE_PATTERN = r'OPENEDX_COMMON_VERSION: "([^"]+)"'
 RELEASE_TAG_PATTERN = r"^([a-z]+)\.1$"
@@ -541,8 +540,12 @@ def _published_metadata(path: Path) -> dict[str, Any]:
 
 
 def is_current(published: dict[str, Any], *, through: str, config: dict[str, Any]) -> bool:
-    """The series only grows when a month ends, so a file already through that month with the same settings stands."""
-    return published.get("through") == through and published.get("settings") == config
+    """The series only grows when a month ends, so a file already through that month from the same code and settings stands."""
+    return (
+        published.get("through") == through
+        and published.get("collector_version") == platform_trends.VERSION
+        and published.get("settings") == config
+    )
 
 
 def _read_history(config: dict[str, Any], months: list[str]) -> tuple[str, list[platform_trends.Commit], dict[str, int | None]]:
@@ -550,7 +553,7 @@ def _read_history(config: dict[str, Any], months: list[str]) -> tuple[str, list[
     first = date.fromisoformat(f"{months[0]}-01")
     with tempfile.TemporaryDirectory() as tmp:
         git_dir = Path(tmp) / "repo.git"
-        platform_history.clone(url, ref, since=first - SHALLOW_MARGIN, dest=git_dir)
+        platform_history.clone(url, ref, dest=git_dir)
         history = platform_history.commits(git_dir, ref, since=first, until=platform_trends.month_end(months[-1]), url=url)
         lines = platform_history.python_lines(git_dir, ref, months, config["python"], url=url)
         return platform_history.head(git_dir, ref, url=url), history, lines
@@ -570,7 +573,7 @@ def collect_platform_trends(out_dir: Path, scope: Scope, target: Target) -> int:
     months = platform_trends.months_between(config["since"], through)
     try:
         head, history, lines = _read_history(config, months)
-    except RuntimeError as error:
+    except Exception as error:  # noqa: BLE001 - any failure keeps the published file so the other collectors still publish
         print(f"::warning::Platform trends: {public_message(error)}; kept the published file.")
         return 0
     rules = {"python": config["python"], "mechanical": config["mechanical"], "bot_pattern": config["bot_pattern"]}
@@ -583,6 +586,7 @@ def collect_platform_trends(out_dir: Path, scope: Scope, target: Target) -> int:
         repo=config["repo"],
         ref=config["ref"],
         head=head,
+        collector_version=platform_trends.VERSION,
         since=months[0],
         through=through,
         settings=config,

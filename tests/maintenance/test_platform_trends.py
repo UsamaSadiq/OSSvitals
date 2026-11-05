@@ -121,7 +121,7 @@ def test_email_bucket(config, email, bucket):
 
 def test_organisations_fold_small_and_trailing_domains(rules):
     emails = ["a@big.org", "b@big.org", "c@big.org", "d@mid.org", "e@mid.org", "f@low.org", "g@low.org", "solo@person.dev"]
-    history = [commit("2025-01", email, "a.py") for email in [*emails, "x@gmail.com", "1+y@users.noreply.github.com"]]
+    history = [commit("2025-01", email, "a.py", author=email) for email in [*emails, "x@gmail.com", "1+y@users.noreply.github.com"]]
     _, by_year = platform_trends.tallies(history, ["2025-01"], rules)
 
     rows = platform_trends.organisations(by_year["2025"], {"top": 2, "min_authors": 2, "personal_domains": ["gmail.com"]})
@@ -170,17 +170,17 @@ def test_month_helpers_cross_year_boundaries():
     assert platform_trends.month_end("2025-12") == date(2026, 1, 1)
 
 
-def test_parse_log_drops_changes_of_shallow_roots():
+def test_parse_log_buckets_commits_by_utc_month():
     text = (
         "\x1eaaa\x1f2025-01-31T23:30:00-05:00\x1fDev\x1fd@x.org\x1ffeat: a\n\n3\t1\tlms/a.py\n-\t-\timg.png\n"
         "\x1ebbb\x1f2025-01-02T10:00:00+00:00\x1fDev\x1fd@x.org\x1ffeat: b\n\n900\t0\tlms/b.py\n"
     )
 
-    first, second = platform_history.parse_log(text, {"bbb"})
+    first, second = platform_history.parse_log(text)
 
-    assert first.month == "2025-02"
+    assert (first.month, second.month) == ("2025-02", "2025-01")
     assert first.changes == (FileChange("lms/a.py", 3, 1), FileChange("img.png", 0, 0))
-    assert second.changes == ()
+    assert second.changes == (FileChange("lms/b.py", 900, 0),)
 
 
 def _git(repo: Path, *args: str, when: str | None = None) -> None:
@@ -226,14 +226,18 @@ def test_history_reads_commits_and_month_end_lines(monolith, config):
 def test_collector_keeps_a_file_that_is_already_through_last_month(tmp_path, monkeypatch, config):
     monkeypatch.setattr(collect_maintenance, "now_utc", lambda: datetime(2026, 11, 5, tzinfo=timezone.utc))
     path = tmp_path / collect_maintenance.PLATFORM_TRENDS_FILE
-    path.write_text(json.dumps({"metadata": {"through": "2026-10", "settings": config}, "records": []}), encoding="utf-8")
+    published = {"through": "2026-10", "collector_version": platform_trends.VERSION, "settings": config}
+    path.write_text(json.dumps({"metadata": published, "records": []}), encoding="utf-8")
     monkeypatch.setattr(collect_maintenance, "_read_history", lambda *args: pytest.fail("should not clone"))
 
     assert collect_maintenance.collect_platform_trends(tmp_path, scope=None, target=collect_maintenance.Target("openedx", "openedx")) == 0
     assert json.loads(path.read_text(encoding="utf-8"))["metadata"]["through"] == "2026-10"
 
 
-def test_collector_recollects_when_settings_change(config):
+def test_collector_recollects_when_settings_or_code_change(config):
+    current = {"through": "2026-10", "collector_version": platform_trends.VERSION, "settings": config}
+    assert collect_maintenance.is_current(current, through="2026-10", config=config)
+    assert not collect_maintenance.is_current({**current, "collector_version": 0}, through="2026-10", config=config)
     assert not collect_maintenance.is_current({"through": "2026-10", "settings": {**config, "since": "2021-01"}}, through="2026-10", config=config)
     assert not collect_maintenance.is_current({"through": "2026-09", "settings": config}, through="2026-10", config=config)
     assert not collect_maintenance.is_current({}, through="2026-10", config=config)
@@ -287,3 +291,60 @@ def test_clone_failure_reports_git_stderr_without_urls_or_tokens(tmp_path, monke
     assert "clone failed with exit code 128: fatal: unable to access" in out and "RPC failed" in out
     assert token not in out and "github.com" not in out
     assert not (tmp_path / collect_maintenance.PLATFORM_TRENDS_FILE).exists()
+
+
+def test_a_domain_with_one_person_behind_two_addresses_is_folded(rules):
+    history = [
+        commit("2025-01", "a@vanity.dev", "a.py", author="Ana Lee"),
+        commit("2025-01", "b@vanity.dev", "a.py", author="ana  LEE"),
+        commit("2025-01", "c@team.org", "a.py", author="Cy"),
+        commit("2025-01", "d@team.org", "a.py", author="Di"),
+    ]
+    _, by_year = platform_trends.tallies(history, ["2025-01"], rules)
+
+    rows = platform_trends.organisations(by_year["2025"], {"top": 5, "min_authors": 2})
+
+    assert [row["name"] for row in rows] == ["team.org", "other"]
+
+
+@pytest.fixture
+def long_lived_branch(tmp_path) -> Path:
+    """A merge inside the series whose second parent is a branch tip from before the series starts."""
+    repo = tmp_path / "upstream"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "master")
+    _commit(repo, "2019-05-01T10:00:00Z", "a@axim.org", {"lms/a.py": "1\n"}, "feat: base")
+    _git(repo, "branch", "side")
+    _commit(repo, "2019-12-15T10:00:00Z", "a@axim.org", {"lms/a.py": "1\n2\n"}, "feat: december")
+    _commit(repo, "2020-01-10T10:00:00Z", "b@axim.org", {"lms/b.py": "1\n2\n3\n"}, "feat: january")
+    _git(repo, "checkout", "-q", "side")
+    _commit(repo, "2019-05-14T10:00:00Z", "c@axim.org", {"cms/c.py": "1\n"}, "feat: old branch")
+    _git(repo, "checkout", "-q", "master")
+    _git(repo, "-c", "user.name=Dev", "-c", "user.email=d@axim.org", "merge", "-q", "--no-ff", "side", "-m", "Merge side", when="2020-02-10T10:00:00Z")
+    _commit(repo, "2020-02-20T10:00:00Z", "d@axim.org", {"lms/d.py": "1\n"}, "feat: after merge")
+    return repo
+
+
+def test_clone_keeps_the_first_parent_line_behind_an_old_branch_merge(long_lived_branch, tmp_path, config):
+    url = f"file://{long_lived_branch}"
+    git_dir = tmp_path / "clone.git"
+
+    platform_history.clone(url, "master", dest=git_dir)
+    history = platform_history.commits(git_dir, "master", since=date(2020, 1, 1), until=date(2020, 3, 1), url=url)
+    lines = platform_history.python_lines(git_dir, "master", ["2020-01", "2020-02"], config["python"], url=url)
+
+    assert [item.subject for item in history] == ["feat: after merge", "feat: january"]
+    assert lines == {"2020-01": 5, "2020-02": 7}
+
+
+def test_non_ascii_python_paths_are_counted(tmp_path, config):
+    repo = tmp_path / "unicode"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "master")
+    _commit(repo, "2025-01-10T10:00:00Z", "a@axim.org", {"lms/café.py": "1\n2\n"}, "feat: unicode")
+
+    history = platform_history.commits(repo / ".git", "master", since=date(2025, 1, 1), until=date(2025, 2, 1), url=URL)
+    lines = platform_history.python_lines(repo / ".git", "master", ["2025-01"], config["python"], url=URL)
+
+    assert history[0].changes == (FileChange("lms/café.py", 2, 0),)
+    assert lines == {"2025-01": 2}

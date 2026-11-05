@@ -12,6 +12,7 @@ from datetime import date
 from typing import Any
 
 SOURCE = "Monolith git history on GitHub"
+VERSION = 1
 NOREPLY = "noreply"
 PERSONAL = "personal"
 UNKNOWN = "unknown"
@@ -115,6 +116,7 @@ class Tally:
     python_deleted: int = 0
     authors: set[str] = field(default_factory=set)
     author_commits: Counter = field(default_factory=Counter)
+    author_names: dict[str, str] = field(default_factory=dict)
 
     def counts(self) -> dict[str, int]:
         return {
@@ -140,6 +142,7 @@ def _add(tally: Tally, commit: Commit, rules: dict[str, Any]) -> None:
     tally.python_deleted += deleted
     tally.authors.add(commit.email.lower())
     tally.author_commits[commit.email.lower()] += 1
+    tally.author_names[commit.email.lower()] = " ".join(commit.author.lower().split())
 
 
 def tallies(commits: Iterable[Commit], months: list[str], rules: dict[str, Any]) -> tuple[dict[str, Tally], dict[str, Tally]]:
@@ -157,18 +160,20 @@ def tallies(commits: Iterable[Commit], months: list[str], rules: dict[str, Any])
 def organisations(tally: Tally, rules: dict[str, Any]) -> list[dict[str, Any]]:
     """Authors and commits per email domain, largest first.
 
-    Domains past ``top``, and domains with fewer than ``min_authors`` authors (a one-person domain names that
-    person), fold into one ``other`` row.
+    Domains past ``top``, and domains with fewer than ``min_authors`` distinct addresses or distinct author names
+    (a one-person domain names that person, even when they commit from two addresses), fold into one ``other`` row.
     """
     authors: Counter = Counter()
     commits: Counter = Counter()
+    names: dict[str, set[str]] = {}
     for email, count in tally.author_commits.items():
         bucket = email_bucket(email, rules.get("personal_domains", []))
         authors[bucket] += 1
         commits[bucket] += count
+        names.setdefault(bucket, set()).add(tally.author_names.get(email, email))
     buckets = {NOREPLY, PERSONAL, UNKNOWN}
     domains = sorted((name for name in authors if name not in buckets), key=lambda name: (-authors[name], -commits[name], name))
-    eligible = [name for name in domains if authors[name] >= rules["min_authors"]]
+    eligible = [name for name in domains if min(authors[name], len(names[name])) >= rules["min_authors"]]
     shown = eligible[: rules["top"]]
     folded = [name for name in domains if name not in shown]
     rows = [{"name": name, "kind": "domain", "authors": authors[name], "commits": commits[name]} for name in shown]

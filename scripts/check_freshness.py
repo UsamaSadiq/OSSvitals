@@ -104,10 +104,12 @@ def _upstream_statuses(org: str, today) -> list[SourceStatus]:
         return [status(f"{org} health settings", url, None, today=today, max_age_days=DEFAULT_MAX_AGE_DAYS, detail=type(exc).__name__)]
     results = []
     for name, url, read, limit in sources:
+        note = "" if limit == DEFAULT_MAX_AGE_DAYS else f"limit {limit} days"
         try:
-            results.append(status(name, url, to_date(read(url)), today=today, max_age_days=limit))
+            results.append(status(name, url, to_date(read(url)), today=today, max_age_days=limit, detail=note))
         except Exception as exc:  # noqa: BLE001 - an unreadable source is reported as stale
-            results.append(status(name, url, None, today=today, max_age_days=limit, detail=type(exc).__name__))
+            detail = ", ".join(filter(None, [type(exc).__name__, note]))
+            results.append(status(name, url, None, today=today, max_age_days=limit, detail=detail))
     return results
 
 

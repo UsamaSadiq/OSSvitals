@@ -24,29 +24,28 @@ def _failure(label: str, result: subprocess.CompletedProcess[str]) -> HistoryErr
     return HistoryError(f"{label} failed with exit code {result.returncode}{f': {last.strip()}' if last else ''}")
 
 
-def _git(git_dir: Path, args: list[str], *, url: str, label: str, ok: tuple[int, ...] = (0,)) -> str:
-    result = run_git(["--git-dir", str(git_dir), *args], url=url, label=label)
+def _run(args: list[str], *, url: str, label: str, ok: tuple[int, ...] = (0,)) -> str:
+    result = run_git(["-c", "core.quotePath=false", *args], url=url, label=label, errors="replace")
     if result.returncode not in ok:
         raise _failure(label, result)
     return result.stdout
 
 
-def clone(url: str, ref: str, *, since: date, dest: Path) -> None:
-    """A bare clone of ``ref`` alone, with history back to ``since``: enough for the series and far smaller than a full clone."""
-    args = ["clone", "--quiet", "--bare", "--single-branch", "--branch", ref, f"--shallow-since={since.isoformat()}", url, str(dest)]
-    result = run_git(args, url=url, label="clone")
-    if result.returncode != 0:
-        raise _failure("clone", result)
+def _git(git_dir: Path, args: list[str], *, url: str, label: str, ok: tuple[int, ...] = (0,)) -> str:
+    return _run(["--git-dir", str(git_dir), *args], url=url, label=label, ok=ok)
+
+
+def clone(url: str, ref: str, *, dest: Path) -> None:
+    """A full bare clone of ``ref`` alone.
+
+    Not shallow: ``--shallow-since`` cuts every parent older than the date, so a merge of a long-lived branch inside
+    the series arrives without its in-window first parent, and that whole first-parent line drops out.
+    """
+    _run(["clone", "--quiet", "--bare", "--single-branch", "--branch", ref, url, str(dest)], url=url, label="clone")
 
 
 def head(git_dir: Path, ref: str, *, url: str) -> str:
     return _git(git_dir, ["rev-parse", ref], url=url, label="rev-parse").strip()
-
-
-def _shallow_roots(git_dir: Path) -> set[str]:
-    """Commits whose parents were cut off by the shallow clone; their diffs would count the whole tree as added."""
-    path = git_dir / "shallow"
-    return set(path.read_text(encoding="utf-8").split()) if path.is_file() else set()
 
 
 def _change(line: str) -> FileChange | None:
@@ -61,12 +60,12 @@ def _utc_month(stamp: str) -> str:
     return month_key(datetime.fromisoformat(stamp).astimezone(timezone.utc).date())
 
 
-def parse_log(text: str, shallow_roots: set[str] = frozenset()) -> list[Commit]:
+def parse_log(text: str) -> list[Commit]:
     commits = []
     for entry in text.split(RECORD)[1:]:
         header, _, body = entry.partition("\n")
         sha, stamp, author, email, subject = header.split(UNIT, 4)
-        changes = () if sha in shallow_roots else tuple(filter(None, (_change(line) for line in body.splitlines())))
+        changes = tuple(filter(None, (_change(line) for line in body.splitlines())))
         commits.append(Commit(sha=sha, month=_utc_month(stamp), author=author, email=email, subject=subject, changes=changes))
     return commits
 
@@ -77,7 +76,7 @@ def commits(git_dir: Path, ref: str, *, since: date, until: date, url: str) -> l
         "log", ref, "--no-merges", "--numstat", "--find-renames", LOG_FORMAT,
         f"--since={since.isoformat()}T00:00:00Z", f"--until={until.isoformat()}T00:00:00Z",
     ]
-    return parse_log(_git(git_dir, args, url=url, label="log"), _shallow_roots(git_dir))
+    return parse_log(_git(git_dir, args, url=url, label="log"))
 
 
 def _commit_before(git_dir: Path, ref: str, moment: date, *, url: str) -> str | None:
@@ -97,7 +96,7 @@ def _lines_at(git_dir: Path, sha: str, rules: dict[str, Any], *, url: str) -> in
 
 
 def python_lines(git_dir: Path, ref: str, months: list[str], rules: dict[str, Any], *, url: str) -> dict[str, int | None]:
-    """Counted Python lines on ``ref`` at the end of each month; ``None`` before the clone's history starts."""
+    """Counted Python lines on ``ref`` at the end of each month; ``None`` before its first commit."""
     by_sha: dict[str, int] = {}
     lines: dict[str, int | None] = {}
     for month in months:

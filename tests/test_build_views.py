@@ -319,7 +319,7 @@ def test_views_without_maintenance_files_mark_them_unavailable(built, tmp_path):
     assert json.loads((tmp_path / "support_window.json").read_text())["available"] is False
     platform = json.loads((tmp_path / "platform.json").read_text())
     assert platform["available"] is False and platform["modularization"] == {"available": False}
-    assert platform["trends"] == {"available": False}
+    assert "trends" not in platform
 
 
 def test_support_window_carries_products_and_drift(built):
@@ -409,3 +409,12 @@ def test_platform_carries_stability_trends(built):
     complete = [year for year in trends["years"] if year["complete"]]
     assert trends["summary"]["latest_year"] == complete[-1]["year"]
     assert all(row["authors"] >= 2 for year in trends["years"] for row in year["organisations"] if row["kind"] == "domain")
+
+
+def test_platform_view_has_trends_only_when_the_collector_runs(built):
+    from dashboard.lib.views_maintenance import build_platform
+
+    data, _ = built
+    assert "trends" not in build_platform(BuildContext(data=data, generated_at=GENERATED_AT))
+    enabled = BuildContext(data=data, generated_at=GENERATED_AT, maintenance={"platform_trends.json": None})
+    assert build_platform(enabled)["trends"] == {"available": False}
