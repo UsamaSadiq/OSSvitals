@@ -71,7 +71,6 @@ function Breakdown({ repo, bars, composite, metrics }: BreakdownProps) {
       <ChartFigure chart={chart} />
       <DataTable
         caption={`Score contributions for ${repo}`}
-        captionHidden
         columns={COLUMNS}
         rows={breakdown.rows}
         rowKey={(row) => row.metric}

@@ -223,12 +223,14 @@ describe("Checks Catalog page", () => {
   it("lists saturated and sparse checks with Streamlit's column labels", async () => {
     renderRoute("/glossary");
 
-    expect(await screen.findByRole("heading", { level: 3, name: "Saturated (2)" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 3, name: "Saturated checks" })).toBeInTheDocument();
+    expect(screen.getByText("2 checks")).toBeInTheDocument();
     expect(headers("Saturated checks")).toEqual(["Check", "Value almost every repo has", "Share", "Repos with another value"]);
     expect(rowCells("Saturated checks", 1)).toEqual(["dependabot.has_ecosystem.npm", "false", "99.4%", "1"]);
     expect(rowCells("Saturated checks", 2)).toEqual(["exists.travis.yml", "false", "98.8%", "2"]);
 
-    expect(screen.getByRole("heading", { level: 3, name: "Sparse (1)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Sparse checks" })).toBeInTheDocument();
+    expect(screen.getByText("1 check")).toBeInTheDocument();
     expect(headers("Sparse checks")).toEqual(["Check", "Repos reporting it"]);
     expect(rowCells("Sparse checks", 1)).toEqual(["readme.badges", "4.3%"]);
   });

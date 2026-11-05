@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { DataTable, type Column } from "../../components/DataTable";
 import { GradePill, GRADE_ORDER, type Grade } from "../../components/GradePill";
 import { RepoLink } from "../../components/RepoName";
-import { formatNumber, formatScore } from "../../format";
+import { formatCount, formatNumber, formatScore } from "../../format";
 import { useCatalogName } from "../../layout/siteMeta";
 import {
   groupLabel,
@@ -135,7 +135,8 @@ export function OwnerSummaryTable({ rows }: { rows: readonly OwnerRecord[] }) {
   return (
     <DataTable
       caption="Owners"
-      captionHidden
+      headingLevel={2}
+      count={formatCount(rows.length, "owner")}
       columns={OWNER_COLUMNS}
       rows={rows}
       rowKey={(row) => row.owner_key}
@@ -151,7 +152,6 @@ export function OwnerReposTable({ owner, rows }: { owner: string; rows: readonly
   return (
     <DataTable
       caption={`Repositories owned by ${owner}`}
-      captionHidden
       columns={columns}
       rows={rows}
       rowKey={(row) => row.repo_name}
@@ -163,7 +163,7 @@ export function GroupTable({ group, rows }: { group: GroupName; rows: readonly G
   return (
     <DataTable
       caption={`Repositories by ${group}`}
-      captionHidden
+      headingLevel={2}
       columns={GROUP_COLUMNS[group]}
       rows={rows}
       rowKey={(row) => groupLabel(row, group)}
@@ -176,7 +176,7 @@ export function HandleReposTable({ rows }: { rows: readonly HandleRepo[] }) {
   return (
     <DataTable
       caption="Repositories matching the handle"
-      captionHidden
+      headingLevel={2}
       columns={HANDLE_COLUMNS}
       rows={rows}
       rowKey={(row) => row.repo_name}

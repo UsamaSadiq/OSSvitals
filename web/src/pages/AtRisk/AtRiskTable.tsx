@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { DataTable, type Column } from "../../components/DataTable";
 import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { RepoLink } from "../../components/RepoName";
-import { formatNumber, formatScore } from "../../format";
+import { formatCount, formatNumber, formatScore } from "../../format";
 import { useCatalogName } from "../../layout/siteMeta";
 import { formatSignedDelta, type AtRiskRow } from "./atRiskText";
 
@@ -86,7 +86,8 @@ export function AtRiskTable({ rows }: { rows: readonly AtRiskRow[] }) {
   return (
     <DataTable
       caption="Repositories at risk"
-      captionHidden
+      headingLevel={2}
+      count={formatCount(rows.length, "repository", "repositories")}
       columns={columns}
       rows={rows}
       rowKey={(row) => row.repo_name}

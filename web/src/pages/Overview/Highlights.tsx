@@ -2,6 +2,7 @@ import { DataTable, type Column } from "../../components/DataTable";
 import { RepoPillList } from "../../components/RepoPillList";
 import { RepoLink } from "../../components/RepoName";
 import type { OverviewView } from "../../data/schemas";
+import { formatCount } from "../../format";
 import { formatScoreChange, moversCaption } from "./overviewText";
 
 type Mover = OverviewView["gainers"][number];
@@ -14,10 +15,9 @@ const MOVER_COLUMNS: Column<Mover>[] = [
 function MoverTable({ title, rows, emptyMessage }: { title: string; rows: readonly Mover[]; emptyMessage: string }) {
   return (
     <div className="mover-table">
-      <h3>{title}</h3>
       <DataTable
         caption={title}
-        captionHidden
+        count={formatCount(rows.length, "repository", "repositories")}
         columns={MOVER_COLUMNS}
         rows={rows}
         rowKey={(row) => row.repo_name}

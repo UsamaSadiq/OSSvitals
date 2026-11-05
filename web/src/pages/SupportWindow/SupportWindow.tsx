@@ -60,7 +60,7 @@ const COLUMNS: Column<SupportProduct>[] = [
     cell: (row) => monthLabel(row.current_end),
     sortValue: (row) => row.current_end ?? "9999",
   },
-  { key: "reason", header: "Why", cell: (row) => <span className="sw-why">{row.reason}</span> },
+  { key: "reason", header: "Why", wrap: true, priority: "secondary", cell: (row) => row.reason },
 ];
 
 function SummaryTiles({ summary }: { summary: Record<string, number> }) {

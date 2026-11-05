@@ -3,7 +3,7 @@ import { CodeText } from "../../components/CodeText";
 import { DataTable, type Column } from "../../components/DataTable";
 import { KpiTile } from "../../components/KpiTile";
 import type { UpgradesView } from "../../data/schemas";
-import { formatNumber } from "../../format";
+import { formatCount, formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
 import { PullLink } from "./PullLink";
 import { waveCaption, waveProgressText } from "./upgradesText";
@@ -95,10 +95,10 @@ export function WaveTiles({ summary }: { summary: Summary }) {
 function WaveTables({ records }: { records: readonly WaveRow[] }) {
   return (
     <>
-      <h2 className="upgrades-section-title">Open migration PRs, oldest first</h2>
       <DataTable
         caption="Open migration PRs, oldest first"
-        captionHidden
+        headingLevel={2}
+        count={formatCount(withStatus(records, "pr_open").length, "repository", "repositories")}
         columns={OPEN_PR_COLUMNS}
         rows={withStatus(records, "pr_open")}
         rowKey={(row) => row.repo_name}
@@ -106,10 +106,10 @@ function WaveTables({ records }: { records: readonly WaveRow[] }) {
         emptyMessage="No migration PRs open."
         maxHeight="380px"
       />
-      <h2 className="upgrades-section-title">Not started</h2>
       <DataTable
         caption="Not started"
-        captionHidden
+        headingLevel={2}
+        count={formatCount(withStatus(records, "not_started").length, "repository", "repositories")}
         columns={NOT_STARTED_COLUMNS}
         rows={withStatus(records, "not_started")}
         rowKey={(row) => row.repo_name}

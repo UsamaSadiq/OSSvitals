@@ -41,12 +41,6 @@
   overflow-x: auto;
 }
 
-.sw-why {
-  display: inline-block;
-  min-width: 18rem;
-  white-space: normal;
-}
-
 .sw-timeline__row {
   display: grid;
   grid-template-columns: 5rem minmax(36rem, 1fr);

@@ -17,7 +17,7 @@ import type {
   UpgradeRelease,
 } from "../../data/schemas";
 import { useView } from "../../data/useView";
-import { formatNumber, formatUtcDate } from "../../format";
+import { formatCount, formatNumber, formatUtcDate } from "../../format";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import {
@@ -130,10 +130,9 @@ function ModularizationSection({ section }: { section: Modularization }) {
           )}
           <div className="pf-columns">
             <div>
-              <h3>Core XBlocks</h3>
               <DataTable
                 caption="Core XBlocks"
-                captionHidden
+                count={formatCount((section.blocks ?? []).length, "block")}
                 columns={BLOCK_COLUMNS}
                 rows={section.blocks ?? []}
                 rowKey={(row) => row.toggle}
@@ -141,10 +140,8 @@ function ModularizationSection({ section }: { section: Modularization }) {
               />
             </div>
             <div>
-              <h3>Extracted packages the platform pins</h3>
               <DataTable
-                caption="Extracted packages"
-                captionHidden
+                caption="Extracted packages the platform pins"
                 columns={PIN_COLUMNS}
                 rows={pinRows(section.pins)}
                 rowKey={(row) => row.name}
@@ -251,10 +248,9 @@ function TrendsSection({ section }: { section: PlatformTrends }) {
               <ChartFigure chart={lines} />
             </>
           )}
-          <h3>By year</h3>
           <DataTable
             caption="Platform activity by year"
-            captionHidden
+            count={formatCount(years.length, "year")}
             columns={YEAR_COLUMNS}
             rows={years}
             rowKey={(row) => String(row.year)}
@@ -262,14 +258,9 @@ function TrendsSection({ section }: { section: PlatformTrends }) {
           />
           {latest && (
             <>
-              <h3>Contributor organisations in {latest.year}</h3>
-              <p className="caption">
-                By author email domain. A domain with a single author is counted under other domains, so no one is
-                named.
-              </p>
               <DataTable
                 caption={`Contributor organisations in ${latest.year}`}
-                captionHidden
+                description="By author email domain. A domain with a single author is counted under other domains, so no one is named."
                 columns={ORGANISATION_COLUMNS}
                 rows={latest.organisations}
                 rowKey={(row) => `${row.kind}:${row.name}`}
@@ -363,10 +354,9 @@ function ExtensionPointsSection({ section }: { section: ExtensionPoints }) {
               <ChartFigure chart={slots} />
             </>
           )}
-          <h3>By release</h3>
           <DataTable
             caption="Extension points by release"
-            captionHidden
+            count={formatCount(releases.length, "release")}
             columns={RELEASE_COLUMNS}
             rows={releases}
             rowKey={(row) => row.release}
@@ -455,10 +445,9 @@ function UpgradeCostSection({ section }: { section: UpgradeCost }) {
               <ChartFigure chart={deprecations} />
             </>
           )}
-          <h3>By release</h3>
           <DataTable
             caption="Upgrade cost by release"
-            captionHidden
+            count={formatCount(releases.length, "release")}
             columns={UPGRADE_COLUMNS}
             rows={releases}
             rowKey={(row) => row.release}

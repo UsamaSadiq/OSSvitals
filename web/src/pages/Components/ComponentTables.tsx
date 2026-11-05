@@ -84,7 +84,6 @@ export function ComponentsTable({ rows }: { rows: readonly ComponentRow[] }) {
   return (
     <DataTable
       caption="Declared components"
-      captionHidden
       columns={columns}
       rows={rows}
       rowKey={(row) => row.repo_name}

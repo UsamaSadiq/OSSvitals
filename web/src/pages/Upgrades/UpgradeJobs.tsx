@@ -3,7 +3,7 @@ import { CodeText } from "../../components/CodeText";
 import { DataTable, type Column } from "../../components/DataTable";
 import { KpiTile } from "../../components/KpiTile";
 import type { UpgradesView } from "../../data/schemas";
-import { formatNumber } from "../../format";
+import { formatCount, formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
 import { JOB_STATES, JOB_STATES_CAPTION, STATE_LABELS, runsText, upgradeJobsCaption } from "./upgradesText";
 import { RepoGitHubLink } from "../../components/RepoName";
@@ -22,7 +22,7 @@ function lastMerged(row: JobRow): string {
 const COLUMNS: Column<JobRow>[] = [
   { key: "repo_name", header: "Repository", cell: (row) => <RepoGitHubLink name={row.repo_name} />, sortValue: (row) => row.repo_name },
   { key: "state", header: "State", cell: stateLabel, sortValue: stateLabel },
-  { key: "reason", header: "Why", cell: (row) => row.reason ?? "", sortValue: (row) => row.reason ?? "" },
+  { key: "reason", header: "Why", wrap: true, cell: (row) => row.reason ?? "", sortValue: (row) => row.reason ?? "" },
   {
     key: "runs",
     header: "Failed runs",
@@ -61,6 +61,7 @@ function HealthyToggle({ checked, onChange }: { checked: boolean; onChange: (che
 
 function UpgradeJobsSection({ jobs }: { jobs: UpgradeJobs }) {
   const [includeHealthy, setIncludeHealthy] = useState(false);
+  const rows = visibleJobs(jobs.records, includeHealthy);
   return (
     <>
       <p className="caption">
@@ -68,12 +69,13 @@ function UpgradeJobsSection({ jobs }: { jobs: UpgradeJobs }) {
       </p>
       <StateTiles states={jobs.states} />
       <p className="caption">{JOB_STATES_CAPTION}</p>
-      <HealthyToggle checked={includeHealthy} onChange={setIncludeHealthy} />
       <DataTable
         caption="Upgrade jobs"
-        captionHidden
+        headingLevel={2}
+        count={formatCount(rows.length, "repository", "repositories")}
+        actions={<HealthyToggle checked={includeHealthy} onChange={setIncludeHealthy} />}
         columns={COLUMNS}
-        rows={visibleJobs(jobs.records, includeHealthy)}
+        rows={rows}
         rowKey={(row) => row.repo_name}
         emptyMessage="No repos in these states."
         maxHeight="420px"

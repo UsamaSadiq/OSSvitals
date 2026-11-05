@@ -1,5 +1,6 @@
 import "./components.css";
-import { useMemo, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
+import { EmptyState } from "./EmptyState";
 import { sortRows, type Comparator, type SortDirection, type SortValue } from "./sortRows";
 
 export interface Column<Row> {
@@ -8,6 +9,11 @@ export interface Column<Row> {
   cell: (row: Row) => ReactNode;
   sortValue?: (row: Row) => SortValue;
   numeric?: boolean;
+  align?: "start" | "center" | "end";
+  /** Prose columns (reasons, rules, owners) wrap instead of widening the table. */
+  wrap?: boolean;
+  /** Secondary columns are hidden on narrow screens. */
+  priority?: "primary" | "secondary";
 }
 
 export interface SortState {
@@ -16,8 +22,13 @@ export interface SortState {
 }
 
 interface DataTableProps<Row> {
+  /** The table's visible title, unless ``captionHidden``; it also names the table for assistive technology. */
   caption: string;
   captionHidden?: boolean;
+  headingLevel?: 2 | 3 | 4;
+  description?: ReactNode;
+  count?: ReactNode;
+  actions?: ReactNode;
   columns: Column<Row>[];
   rows: readonly Row[];
   rowKey: (row: Row) => string;
@@ -56,6 +67,40 @@ function sortedRows<Row>(
   return sortRows(rows, sortValue, sort.direction, tieBreak);
 }
 
+/**
+ * Whether the table fits its box without scrolling sideways. A table that fits needs no scroll container, so its
+ * header can stick to the page instead of to the box; a table with ``maxHeight`` always scrolls in its own box.
+ */
+function useFits(scrollsOwnBox: boolean): [(node: HTMLDivElement | null) => void, boolean] {
+  const [node, setNode] = useState<HTMLDivElement | null>(null);
+  const [fits, setFits] = useState(false);
+  useLayoutEffect(() => {
+    if (scrollsOwnBox || !node || typeof ResizeObserver === "undefined") {
+      setFits(false);
+      return;
+    }
+    const measure = () => setFits(node.scrollWidth <= node.clientWidth);
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    if (node.firstElementChild) observer.observe(node.firstElementChild);
+    measure();
+    return () => observer.disconnect();
+  }, [node, scrollsOwnBox]);
+  return [setNode, !scrollsOwnBox && fits];
+}
+
+export function cellClass<Row>(column: Column<Row>): string | undefined {
+  const align = column.align ?? (column.numeric ? "end" : "start");
+  const classes = [
+    column.numeric ? "data-table__numeric" : null,
+    align === "center" ? "data-table__center" : null,
+    align === "end" && !column.numeric ? "data-table__end" : null,
+    column.wrap ? "data-table__wrap" : null,
+    column.priority === "secondary" ? "data-table__col--secondary" : null,
+  ].filter(Boolean);
+  return classes.length ? classes.join(" ") : undefined;
+}
+
 function HeaderCell<Row>({
   column,
   sort,
@@ -65,7 +110,7 @@ function HeaderCell<Row>({
   sort: SortState | undefined;
   onSort: (column: Column<Row>) => void;
 }) {
-  const className = column.numeric ? "data-table__numeric" : undefined;
+  const className = cellClass(column);
   if (!column.sortValue) {
     return (
       <th scope="col" className={className}>
@@ -86,9 +131,41 @@ function HeaderCell<Row>({
   );
 }
 
+function TitleBar({
+  id,
+  level,
+  caption,
+  count,
+  actions,
+  description,
+}: {
+  id: string;
+  level: 2 | 3 | 4;
+  caption: string;
+  count?: ReactNode;
+  actions?: ReactNode;
+  description?: ReactNode;
+}) {
+  const Heading = `h${level}` as const;
+  return (
+    <div className="table-card__head">
+      <Heading id={id} className="table-card__title">
+        {caption}
+      </Heading>
+      {count != null && <span className="table-card__count">{count}</span>}
+      {actions && <div className="table-card__actions">{actions}</div>}
+      {description && <p className="table-card__desc">{description}</p>}
+    </div>
+  );
+}
+
 export function DataTable<Row>({
   caption,
   captionHidden = false,
+  headingLevel = 3,
+  description,
+  count,
+  actions,
   columns,
   rows,
   rowKey,
@@ -99,45 +176,67 @@ export function DataTable<Row>({
   sort: controlledSort,
   onSortChange,
 }: DataTableProps<Row>) {
+  const titleId = useId();
   const [sort, setSort] = useSort(initialSort, controlledSort, onSortChange);
   const visibleRows = useMemo(() => sortedRows(rows, columns, sort, tieBreak), [rows, columns, sort, tieBreak]);
-
-  if (rows.length === 0) return <p className="caption">{emptyMessage}</p>;
+  const [scrollRef, fits] = useFits(Boolean(maxHeight));
+  const titled = !captionHidden;
+  const regionLabel = { "aria-label": `${caption}, scrollable` };
+  const tableLabel = titled ? { "aria-labelledby": titleId } : {};
 
   return (
-    <div
-      className="table-scroll data-table__scroll"
-      role="region"
-      aria-label={`${caption}, scrollable`}
-      tabIndex={0}
-      style={maxHeight ? { maxHeight } : undefined}
-    >
-      <table className="data-table">
-        <caption className={captionHidden ? "visually-hidden" : undefined}>{caption}</caption>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <HeaderCell
-                key={column.key}
-                column={column}
-                sort={sort}
-                onSort={(clicked) => setSort(nextSort(sort, clicked))}
-              />
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {visibleRows.map((row) => (
-            <tr key={rowKey(row)}>
-              {columns.map((column) => (
-                <td key={column.key} className={column.numeric ? "data-table__numeric" : undefined}>
-                  {column.cell(row)}
-                </td>
+    <div className="table-card">
+      {titled && (
+        <TitleBar
+          id={titleId}
+          level={headingLevel}
+          caption={caption}
+          count={count}
+          actions={actions}
+          description={description}
+        />
+      )}
+      {rows.length === 0 ? (
+        <div className="table-card__empty">
+          <EmptyState kind="info" title={emptyMessage} />
+        </div>
+      ) : (
+        <div
+          ref={scrollRef}
+          className={`data-table__scroll${fits ? " data-table__scroll--fits" : ""}`}
+          role={fits ? undefined : "region"}
+          {...(fits ? {} : regionLabel)}
+          tabIndex={fits ? undefined : 0}
+          style={maxHeight ? { maxHeight } : undefined}
+        >
+          <table className="data-table" {...tableLabel}>
+            {captionHidden && <caption className="visually-hidden">{caption}</caption>}
+            <thead>
+              <tr>
+                {columns.map((column) => (
+                  <HeaderCell
+                    key={column.key}
+                    column={column}
+                    sort={sort}
+                    onSort={(clicked) => setSort(nextSort(sort, clicked))}
+                  />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.map((row) => (
+                <tr key={rowKey(row)}>
+                  {columns.map((column) => (
+                    <td key={column.key} className={cellClass(column)}>
+                      {column.cell(row)}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

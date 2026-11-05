@@ -1,7 +1,7 @@
 import { DataTable, type Column } from "../../components/DataTable";
 import { KpiTile } from "../../components/KpiTile";
 import type { UpgradesView } from "../../data/schemas";
-import { formatNumber } from "../../format";
+import { formatCount, formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
 import { PullLink } from "./PullLink";
 import { mergedText, redundantCaption } from "./upgradesText";
@@ -32,7 +32,8 @@ function RedundantTable({ records }: { records: readonly RedundantRow[] }) {
   return (
     <DataTable
       caption="Redundant bot PRs"
-      captionHidden
+      headingLevel={2}
+      count={formatCount(records.length, "PR")}
       columns={COLUMNS}
       rows={records}
       rowKey={(row) => row.bot_pr_url ?? row.repo_name}
