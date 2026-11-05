@@ -1,0 +1,46 @@
+# Stability trends of openedx-platform from its git history, collected by collect_maintenance.py from a
+# full bare clone of the branch. The series runs by month through the last complete month, so the clone runs only on
+# the first daily run after a month ends, or when this file changes.
+# Checked against a local clone on 2026-11-05: 2,538 counted commits by 229 authors in 2021, 1,097 by 183
+# in 2025; 290,775 counted Python lines at the end of 2020, 356,721 at the end of October 2026.
+repo: openedx/openedx-platform
+ref: master
+since: "2020-01"
+# Non-test, non-migration Python lines; also the files Python churn counts.
+python:
+  extensions: [py]
+  exclude:
+    - '(^|/)tests?/'
+    - '(^|/)test_[^/]*\.py$'
+    - '_tests?\.py$'
+    - '(^|/)conftest\.py$'
+    - '(^|/)migrations/'
+# Left out of commits, authors and churn, and counted separately: sweeps over many files (import
+# rewrites, vendored upgrades, the 2026 isort/ruff migration) and lint-only changes.
+mechanical:
+  max_files: 500
+  subject_patterns:
+    - '^style(\(|!|:)'
+    - '(?i)\b(isort|ruff|pylint|pycodestyle|eslint|lint-amnesty)\b'
+bot_pattern: '\[bot\]|requirements[- ]bot|dependabot'
+# Contributor organisations by author email domain. Only domains are published, never names or addresses;
+# a domain with fewer than min_authors authors names its one person, so it folds into "other".
+organisations:
+  top: 12
+  min_authors: 2
+  # Domains that name no organisation; counted together as personal addresses.
+  personal_domains:
+    - gmail.com
+    - googlemail.com
+    - hotmail.com
+    - outlook.com
+    - live.com
+    - yahoo.com
+    - icloud.com
+    - me.com
+    - protonmail.com
+    - proton.me
+    - yandex.ru
+    - mail.ru
+    - qq.com
+    - 163.com

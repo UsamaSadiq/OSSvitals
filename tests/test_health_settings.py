@@ -112,7 +112,7 @@ def test_views_ignore_the_files_of_collectors_that_are_off():
 
     keys = maintenance_keys({"uv": {}}, {"c": {}}, ["waves", "fix_prs"])
     assert keys == ["fix_prs.json", "waves/uv.json"]
-    assert len(maintenance_keys({"uv": {}}, {"c": {}})) == 8
+    assert len(maintenance_keys({"uv": {}}, {"c": {}})) == 9
 
 
 def test_freshness_checks_only_the_files_of_collectors_that_are_on(monkeypatch):

@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata } from "../../data/fixtures";
-import type { Modularization, PlatformView, ViewName } from "../../data/schemas";
+import type { Modularization, PlatformTrends, PlatformView, TrendYear, ViewName } from "../../data/schemas";
 import type { ViewState } from "../../data/useView";
 import { renderRoute } from "../../test/renderRoute";
 
@@ -87,5 +87,95 @@ describe("Platform page", () => {
     expect(within(blocks).getByRole("row", { name: /Word Cloud/ })).toHaveTextContent("USE_EXTRACTED_WORD_CLOUD_BLOCK");
     const pins = screen.getByRole("table", { name: "Extracted packages" });
     expect(within(pins).getByRole("row", { name: /openedx-events/ })).toHaveTextContent("Not pinned");
+  });
+});
+
+function year(overrides: Partial<TrendYear>): TrendYear {
+  return {
+    year: 2024,
+    complete: true,
+    through: "2024-12",
+    commits: 100,
+    authors: 20,
+    python_added: 1000,
+    python_deleted: 500,
+    bot_commits: 3,
+    mechanical_commits: 2,
+    python_lines: 300000,
+    organisations: [],
+    ...overrides,
+  };
+}
+
+function trends(overrides: Partial<PlatformTrends> = {}): PlatformTrends {
+  return {
+    available: true,
+    collected_at: "2026-11-01T08:58:00+00:00",
+    repo: "openedx/openedx-platform",
+    ref: "master",
+    since: "2024-01",
+    through: "2026-10",
+    mechanical_max_files: 500,
+    summary: {
+      first_year: 2024,
+      latest_year: 2025,
+      first: { commits: 200, authors: 40, python_lines: 300000 },
+      latest: { commits: 150, authors: 30, python_lines: 330000 },
+    },
+    years: [
+      year({ year: 2024, commits: 200, authors: 40, python_lines: 300000 }),
+      year({
+        year: 2025,
+        commits: 150,
+        authors: 30,
+        python_lines: 330000,
+        organisations: [
+          { name: "axim.org", kind: "domain", authors: 5, commits: 90 },
+          { name: "other", kind: "other", domains: 4, authors: 4, commits: 9 },
+          { name: "noreply", kind: "noreply", authors: 12, commits: 40 },
+        ],
+      }),
+      year({ year: 2026, complete: false, through: "2026-10", commits: 90, authors: 25, python_lines: 345000 }),
+    ],
+    months: [],
+    ...overrides,
+  };
+}
+
+describe("Platform stability section", () => {
+  it("is absent when the view has no trends", async () => {
+    renderRoute("/platform");
+
+    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Stability" })).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state before the first monthly run", async () => {
+    setView(snapshot({ trends: { available: false } }));
+    renderRoute("/platform");
+
+    const heading = await screen.findByRole("heading", { name: "Stability" });
+    expect(heading.closest("section")).toHaveTextContent("Published monthly by the collect-maintenance workflow.");
+  });
+
+  it("compares the latest complete year with the first and lists organisations", async () => {
+    setView(snapshot({ trends: trends() }));
+    renderRoute("/platform");
+
+    const commits = await screen.findByRole("group", { name: "Commits in 2025" });
+    expect(commits).toHaveTextContent("150");
+    expect(commits).toHaveTextContent("down 25% since 2024");
+    expect(screen.getByRole("group", { name: "Authors in 2025" })).toHaveTextContent("down 25% since 2024");
+    const lines = screen.getByRole("group", { name: "Python lines" });
+    expect(lines).toHaveTextContent("345,000");
+    expect(lines).toHaveTextContent("up 15% since 2024");
+    expect(screen.getByText(/Jan 2024 to Oct 2026\. Left out: merge commits, 9 bot commits and 6 changes/)).toBeInTheDocument();
+
+    const byYear = screen.getByRole("table", { name: "Platform activity by year" });
+    expect(within(byYear).getByRole("row", { name: /2026 \(to Oct 2026\)/ })).toHaveTextContent("345,000");
+    const organisations = screen.getByRole("table", { name: "Contributor organisations in 2025" });
+    expect(within(organisations).getByRole("row", { name: /axim\.org/ })).toHaveTextContent("90");
+    expect(within(organisations).getByRole("row", { name: /Other domains \(4 domains\)/ })).toBeInTheDocument();
+    expect(within(organisations).getByRole("row", { name: /GitHub private addresses/ })).toBeInTheDocument();
   });
 });

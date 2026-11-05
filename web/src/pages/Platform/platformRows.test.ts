@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { change, changeText, pinRows, pointLabel, seriesBars, seriesChart } from "./platformRows";
+import type { TrendYear } from "../../data/schemas";
+import {
+  barChart,
+  change,
+  changeSince,
+  changeText,
+  monthLabel,
+  organisationName,
+  pinRows,
+  pointLabel,
+  seriesBars,
+  seriesChart,
+  setAside,
+  yearBars,
+  yearLabel,
+} from "./platformRows";
 
 const HISTORY = [
   { date: "2020-01-01", count: 200 },
@@ -34,5 +49,54 @@ describe("platform rows", () => {
       { name: "b", version: null },
     ]);
     expect(pinRows(undefined)).toEqual([]);
+  });
+});
+
+describe("platform trend rows", () => {
+  const year = (overrides: Partial<TrendYear>): TrendYear => ({
+    year: 2024,
+    complete: true,
+    through: "2024-12",
+    commits: 10,
+    authors: 2,
+    python_added: 1,
+    python_deleted: 1,
+    bot_commits: 1,
+    mechanical_commits: 4,
+    python_lines: 100,
+    organisations: [],
+    ...overrides,
+  });
+
+  it("labels the year in progress with its last month", () => {
+    expect(yearLabel(year({}))).toBe("2024");
+    expect(yearLabel(year({ year: 2026, complete: false, through: "2026-10" }))).toBe("2026 (to Oct 2026)");
+    expect(monthLabel("2020-01")).toBe("Jan 2020");
+  });
+
+  it("skips years without a value", () => {
+    const bars = yearBars([year({}), year({ year: 2025, python_lines: null })], (row) => row.python_lines, "lines");
+    expect(bars).toEqual([{ label: "2024", value: 100, tip: "2024: 100 lines" }]);
+    expect(barChart([], "Lines")).toBeNull();
+  });
+
+  it("describes a change only between two known, different values", () => {
+    expect(changeSince(200, 150, 2020)).toBe("down 25% since 2020");
+    expect(changeSince(100, 100, 2020)).toBeNull();
+    expect(changeSince(0, 5, 2020)).toBeNull();
+    expect(changeSince(null, 5, 2020)).toBeNull();
+    expect(changeSince(5, 6, undefined)).toBeNull();
+  });
+
+  it("totals the commits set aside", () => {
+    expect(setAside([year({}), year({ year: 2025 })])).toEqual({ bots: 2, mechanical: 8 });
+  });
+
+  it("names the email buckets", () => {
+    expect(organisationName({ name: "axim.org", kind: "domain", authors: 2, commits: 3 })).toBe("axim.org");
+    expect(organisationName({ name: "other", kind: "other", domains: 1, authors: 1, commits: 1 })).toBe(
+      "Other domains (1 domain)",
+    );
+    expect(organisationName({ name: "personal", kind: "personal", authors: 1, commits: 1 })).toBe("Personal addresses");
   });
 });

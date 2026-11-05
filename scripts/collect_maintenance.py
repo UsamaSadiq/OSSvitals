@@ -7,7 +7,7 @@ import tempfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,12 +19,15 @@ from collectors import (
     github,
     merge,
     modularization,
+    platform_history,
+    platform_trends,
     publish,
     redundant_prs,
     support_windows,
     upgrade_jobs,
     waves,
 )
+from collectors.fleet.errors import public_message
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import DEFAULT_ORG, get_config
 from dashboard.lib.health_settings import enabled_collectors, load_settings
@@ -38,6 +41,7 @@ CATALOG_PATH = "catalog-info.yaml"
 FIX_PRS_FILE = "fix_prs.json"
 SUPPORT_WINDOWS_FILE = "support_windows.json"
 MODULARIZATION_FILE = "modularization.json"
+PLATFORM_TRENDS_FILE = "platform_trends.json"
 TUTOR_DEFAULTS = "tutor/templates/config/defaults.yml"
 OPENEDX_RELEASE_PATTERN = r'OPENEDX_COMMON_VERSION: "([^"]+)"'
 RELEASE_TAG_PATTERN = r"^([a-z]+)\.1$"
@@ -52,8 +56,9 @@ COLLECTORS = (
     "fix_prs",
     "support_windows",
     "modularization",
+    "platform_trends",
 )
-ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization")
+ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization", "platform_trends")
 MERGEABLE = tuple(name for name in COLLECTORS if name not in ORG_WIDE)
 
 Records = list[dict[str, Any]]
@@ -526,6 +531,73 @@ def collect_modularization(out_dir: Path, scope: Scope, target: Target) -> int:
     return 0
 
 
+def _published_metadata(path: Path) -> dict[str, Any]:
+    try:
+        published = merge.published(path)
+    except ValueError:
+        return {}
+    return (published or {}).get("metadata", {})
+
+
+def is_current(published: dict[str, Any], *, through: str, config: dict[str, Any]) -> bool:
+    """The series only grows when a month ends, so a file already through that month from the same code and settings stands."""
+    return (
+        published.get("through") == through
+        and published.get("collector_version") == platform_trends.VERSION
+        and published.get("settings") == config
+    )
+
+
+def _read_history(config: dict[str, Any], months: list[str]) -> tuple[str, list[platform_trends.Commit], dict[str, int | None]]:
+    url, ref = f"https://github.com/{config['repo']}.git", config["ref"]
+    first = date.fromisoformat(f"{months[0]}-01")
+    with tempfile.TemporaryDirectory() as tmp:
+        git_dir = Path(tmp) / "repo.git"
+        platform_history.clone(url, ref, dest=git_dir)
+        history = platform_history.commits(git_dir, ref, since=first, until=platform_trends.month_end(months[-1]), url=url)
+        lines = platform_history.python_lines(git_dir, ref, months, config["python"], url=url)
+        return platform_history.head(git_dir, ref, url=url), history, lines
+
+
+def collect_platform_trends(out_dir: Path, scope: Scope, target: Target) -> int:
+    config = get_config("platform_trends", target.org)
+    if not config:
+        print("Platform trends: not configured for this org; skipped.")
+        return 0
+    generated_at = now_utc()
+    through = platform_trends.previous_month(generated_at.date())
+    path = out_dir / PLATFORM_TRENDS_FILE
+    if is_current(_published_metadata(path), through=through, config=config):
+        print(f"Platform trends: already collected through {through}; kept the published file.")
+        return 0
+    months = platform_trends.months_between(config["since"], through)
+    try:
+        head, history, lines = _read_history(config, months)
+    except Exception as error:  # noqa: BLE001 - any failure keeps the published file so the other collectors still publish
+        print(f"::warning::Platform trends: {public_message(error)}; kept the published file.")
+        return 0
+    rules = {"python": config["python"], "mechanical": config["mechanical"], "bot_pattern": config["bot_pattern"]}
+    by_month, by_year = platform_trends.tallies(history, months, rules)
+    years = platform_trends.year_records(by_year, lines, since=months[0], through=through, organisation_rules=config["organisations"])
+    content = publish.payload(
+        platform_trends.month_records(by_month, lines),
+        generated_at=generated_at,
+        source=platform_trends.SOURCE,
+        repo=config["repo"],
+        ref=config["ref"],
+        head=head,
+        collector_version=platform_trends.VERSION,
+        since=months[0],
+        through=through,
+        settings=config,
+        years=years,
+        summary=platform_trends.summary(years),
+    )
+    publish.write(path, content, org=target.org)
+    print(f"Platform trends: {len(months)} months through {through}, {len(history)} commits read")
+    return 0
+
+
 def select_collectors(requested: list[str] | None, *, merge_run: bool, enabled: list[str]) -> list[str]:
     """The org's enabled collectors (mergeable ones for a --merge run); naming one the org turned off is an error."""
     if requested:
@@ -548,6 +620,7 @@ def main() -> int:
         "fix_prs": collect_fix_prs,
         "support_windows": collect_support_windows,
         "modularization": collect_modularization,
+        "platform_trends": collect_platform_trends,
     }
     target = _target(args.org)
     scope = Scope(repos=args.repo, merge=args.merge)

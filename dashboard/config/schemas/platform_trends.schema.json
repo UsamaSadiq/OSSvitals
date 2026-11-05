@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["repo", "ref", "since", "python", "mechanical", "bot_pattern", "organisations"],
+  "properties": {
+    "repo": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+    "ref": {"type": "string", "pattern": "^[A-Za-z0-9_./-]+$"},
+    "since": {"type": "string", "pattern": "^(20[0-9]{2})-(0[1-9]|1[0-2])$"},
+    "python": {
+      "type": "object",
+      "required": ["extensions"],
+      "properties": {
+        "extensions": {"type": "array", "items": {"type": "string", "pattern": "^[A-Za-z0-9]+$"}, "minItems": 1},
+        "exclude": {"type": "array", "items": {"type": "string", "format": "regex"}}
+      },
+      "additionalProperties": false
+    },
+    "mechanical": {
+      "type": "object",
+      "required": ["max_files"],
+      "properties": {
+        "max_files": {"type": "integer", "minimum": 1},
+        "subject_patterns": {"type": "array", "items": {"type": "string", "format": "regex"}}
+      },
+      "additionalProperties": false
+    },
+    "bot_pattern": {"type": "string", "format": "regex"},
+    "organisations": {
+      "type": "object",
+      "required": ["top", "min_authors"],
+      "properties": {
+        "top": {"type": "integer", "minimum": 1},
+        "min_authors": {"type": "integer", "minimum": 2},
+        "personal_domains": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -4,3 +4,4 @@ collectors:
   catalog: true
   support_windows: true
   modularization: true
+  platform_trends: true

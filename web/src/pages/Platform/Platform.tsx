@@ -5,12 +5,25 @@ import { ErrorState } from "../../components/ErrorState";
 import { KpiTile } from "../../components/KpiTile";
 import { Loading } from "../../components/Loading";
 import { ShareLink } from "../../components/ShareLink";
-import type { Modularization, PlatformView } from "../../data/schemas";
+import type { Modularization, PlatformTrends, PlatformView, TrendOrganisation, TrendYear } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { formatNumber, formatUtcDate } from "../../format";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
-import { change, changeText, pinRows, seriesChart, type PinRow } from "./platformRows";
+import {
+  barChart,
+  change,
+  changeSince,
+  changeText,
+  monthLabel,
+  organisationName,
+  pinRows,
+  seriesChart,
+  setAside,
+  yearBars,
+  yearLabel,
+  type PinRow,
+} from "./platformRows";
 import "./platform.css";
 
 type Block = NonNullable<Modularization["blocks"]>[number];
@@ -24,8 +37,8 @@ function Intro() {
   return (
     <p>
       How the Open edX core, <code>openedx-platform</code>, is changing: which parts have moved out into separately
-      released packages and how much legacy code is left. Every number is read from the platform&rsquo;s public source
-      on GitHub by a daily job.
+      released packages, how much legacy code is left, and how much the code still changes. Every number is read from
+      the platform&rsquo;s public source and git history on GitHub by a scheduled job.
     </p>
   );
 }
@@ -131,8 +144,138 @@ function ModularizationSection({ section }: { section: Modularization }) {
   );
 }
 
+function count(value: number | null | undefined): string {
+  return value == null ? "Unknown" : formatNumber(value);
+}
+
+function numericColumn<Row>(key: string, header: string, pick: (row: Row) => number | null): Column<Row> {
+  return { key, header, numeric: true, cell: (row) => count(pick(row)), sortValue: (row) => pick(row) ?? -1 };
+}
+
+const YEAR_COLUMNS: Column<TrendYear>[] = [
+  { key: "year", header: "Year", cell: (row) => yearLabel(row), sortValue: (row) => row.year },
+  numericColumn("commits", "Commits", (row) => row.commits),
+  numericColumn("authors", "Authors", (row) => row.authors),
+  numericColumn("python_added", "Python lines added", (row) => row.python_added),
+  numericColumn("python_deleted", "Python lines removed", (row) => row.python_deleted),
+  numericColumn("python_lines", "Python lines at the end", (row) => row.python_lines),
+];
+
+const ORGANISATION_COLUMNS: Column<TrendOrganisation>[] = [
+  { key: "name", header: "Email domain", cell: (row) => organisationName(row), sortValue: (row) => row.name },
+  numericColumn("authors", "Authors", (row) => row.authors),
+  numericColumn("commits", "Commits", (row) => row.commits),
+];
+
+function neutral(text: string | null) {
+  return text ? { text, direction: "flat" as const, tone: "neutral" as const } : null;
+}
+
+function TrendTiles({ section }: { section: PlatformTrends }) {
+  const { first, latest, first_year: firstYear, latest_year: latestYear } = section.summary ?? {};
+  const now = section.years?.[section.years.length - 1];
+  return (
+    <div className="pf-summary">
+      <KpiTile
+        label={latestYear ? `Commits in ${latestYear}` : "Commits"}
+        value={count(latest?.commits)}
+        delta={neutral(changeSince(first?.commits, latest?.commits, firstYear))}
+        help="Commits that landed on the main branch in the year, leaving out merge commits, bot commits and mechanical sweeps."
+      />
+      <KpiTile
+        label={latestYear ? `Authors in ${latestYear}` : "Authors"}
+        value={count(latest?.authors)}
+        delta={neutral(changeSince(first?.authors, latest?.authors, firstYear))}
+        help="Distinct author email addresses behind those commits. Someone who used two addresses counts twice."
+      />
+      <KpiTile
+        label="Python lines"
+        value={count(now?.python_lines)}
+        delta={neutral(changeSince(first?.python_lines, now?.python_lines, firstYear))}
+        help="Lines in the platform's Python files at the end of the latest month, leaving out tests and database migrations."
+      />
+    </div>
+  );
+}
+
+function trendsCaption(section: PlatformTrends): string {
+  const { bots, mechanical } = setAside(section.years ?? []);
+  const range = section.since && section.through ? `${monthLabel(section.since)} to ${monthLabel(section.through)}` : "";
+  const sweeps = section.mechanical_max_files
+    ? `changes to more than ${formatNumber(section.mechanical_max_files)} files or lint-only changes`
+    : "mechanical sweeps";
+  return `${range}. Left out: merge commits, ${formatNumber(bots)} bot commits and ${formatNumber(mechanical)} ${sweeps}.`;
+}
+
+function TrendsSection({ section }: { section: PlatformTrends }) {
+  const years = section.years ?? [];
+  const complete = years.filter((year) => year.complete);
+  const latest = complete[complete.length - 1];
+  const commits = barChart(yearBars(complete, (year) => year.commits, "commits"), "Commits");
+  const lines = barChart(yearBars(years, (year) => year.python_lines, "Python lines"), "Lines");
+  return (
+    <section className="pf-section" id="stability" aria-labelledby="pf-stability-heading">
+      <h2 id="pf-stability-heading">Stability</h2>
+      {!section.available ? (
+        <EmptyState kind="info" title="Not collected yet." body="Published monthly by the collect-maintenance workflow." />
+      ) : (
+        <>
+          <p className="caption">
+            {collectedText(section.collected_at)} from the git history of <code>{section.repo}</code> at{" "}
+            <code>{section.ref}</code>, {trendsCaption(section)}
+          </p>
+          <TrendTiles section={section} />
+          {commits && (
+            <>
+              <h3>Commits per year</h3>
+              <ChartFigure chart={commits} />
+            </>
+          )}
+          {lines && (
+            <>
+              <h3>Python lines at the end of each year</h3>
+              <ChartFigure chart={lines} />
+            </>
+          )}
+          <h3>By year</h3>
+          <DataTable
+            caption="Platform activity by year"
+            captionHidden
+            columns={YEAR_COLUMNS}
+            rows={years}
+            rowKey={(row) => String(row.year)}
+            emptyMessage="No years collected."
+          />
+          {latest && (
+            <>
+              <h3>Contributor organisations in {latest.year}</h3>
+              <p className="caption">
+                By author email domain. A domain with a single author is counted under other domains, so no one is
+                named.
+              </p>
+              <DataTable
+                caption={`Contributor organisations in ${latest.year}`}
+                captionHidden
+                columns={ORGANISATION_COLUMNS}
+                rows={latest.organisations}
+                rowKey={(row) => `${row.kind}:${row.name}`}
+                emptyMessage="No authors that year."
+              />
+            </>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 function Sections({ view }: { view: PlatformView }) {
-  return <ModularizationSection section={view.modularization} />;
+  return (
+    <>
+      <ModularizationSection section={view.modularization} />
+      {view.trends && <TrendsSection section={view.trends} />}
+    </>
+  );
 }
 
 function PlatformContent() {

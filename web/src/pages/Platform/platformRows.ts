@@ -1,7 +1,7 @@
 import type { Chart } from "../../components/charts";
 import { tipMark } from "../../components/charts";
 import { formatNumber } from "../../format";
-import type { DatedCount } from "../../data/schemas";
+import type { DatedCount, TrendOrganisation, TrendYear } from "../../data/schemas";
 
 export interface SeriesBar {
   label: string;
@@ -33,16 +33,29 @@ export function change(points: readonly DatedCount[]): Change | null {
   return { from, to, percent: (100 * (to.count - from.count)) / from.count };
 }
 
+function percentText(percent: number, since: string | number): string {
+  return `${percent < 0 ? "down" : "up"} ${Math.round(Math.abs(percent))}% since ${since}`;
+}
+
 export function changeText(delta: Change | null): string | null {
-  if (!delta) return null;
-  const rounded = Math.round(Math.abs(delta.percent));
-  const direction = delta.percent < 0 ? "down" : "up";
-  return `${direction} ${rounded}% since ${delta.from.date.slice(0, 4)}`;
+  return delta ? percentText(delta.percent, delta.from.date.slice(0, 4)) : null;
+}
+
+export function changeSince(
+  from: number | null | undefined,
+  to: number | null | undefined,
+  year: number | undefined,
+): string | null {
+  if (from == null || to == null || year === undefined || from === 0 || from === to) return null;
+  return percentText((100 * (to - from)) / from, year);
 }
 
 export function seriesChart(points: readonly DatedCount[], noun: string, axisLabel: string): Chart | null {
-  if (points.length === 0) return null;
-  const bars = seriesBars(points, noun);
+  return barChart(seriesBars(points, noun), axisLabel);
+}
+
+export function barChart(bars: readonly SeriesBar[], axisLabel: string): Chart | null {
+  if (bars.length === 0) return null;
   const ymax = Math.max(...bars.map((bar) => bar.value));
   return {
     ariaLabel: bars.map((bar) => bar.tip).join(", "),
@@ -62,6 +75,51 @@ export function seriesChart(points: readonly DatedCount[], noun: string, axisLab
       ],
     },
   };
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+export function monthLabel(month: string): string {
+  const [year, number] = month.split("-");
+  return `${MONTHS[Number(number) - 1] ?? number} ${year}`;
+}
+
+export function yearLabel(year: TrendYear): string {
+  return year.complete ? String(year.year) : `${year.year} (to ${monthLabel(year.through)})`;
+}
+
+export function yearBars(
+  years: readonly TrendYear[],
+  pick: (year: TrendYear) => number | null,
+  noun: string,
+): SeriesBar[] {
+  return years.flatMap((year) => {
+    const value = pick(year);
+    if (value === null) return [];
+    const label = yearLabel(year);
+    return [{ label, value, tip: `${label}: ${formatNumber(value)} ${noun}` }];
+  });
+}
+
+export function setAside(years: readonly TrendYear[]): { bots: number; mechanical: number } {
+  return years.reduce(
+    (sum, year) => ({ bots: sum.bots + year.bot_commits, mechanical: sum.mechanical + year.mechanical_commits }),
+    { bots: 0, mechanical: 0 },
+  );
+}
+
+const BUCKET_NAMES: Record<Exclude<TrendOrganisation["kind"], "domain">, string> = {
+  other: "Other domains",
+  noreply: "GitHub private addresses",
+  personal: "Personal addresses",
+  unknown: "Unrecognised addresses",
+};
+
+export function organisationName(row: TrendOrganisation): string {
+  if (row.kind === "domain") return row.name;
+  const name = BUCKET_NAMES[row.kind];
+  if (row.kind !== "other" || !row.domains) return name;
+  return `${name} (${formatNumber(row.domains)} ${row.domains === 1 ? "domain" : "domains"})`;
 }
 
 export interface PinRow {

@@ -28,6 +28,7 @@ def test_openedx_config_validates_against_schemas():
         "campaigns",
         "support_windows",
         "modularization",
+        "platform_trends",
     ]
 
     for name in config_names:
