@@ -1,5 +1,5 @@
 import type { PlatformView } from "../../data/schemas";
-import { formatNumber } from "../../format";
+import { formatCount, formatNumber } from "../../format";
 import { change, changeSince, changeText, releaseLabel } from "./platformRows";
 
 export interface BriefPoint {
@@ -8,22 +8,37 @@ export interface BriefPoint {
   href: string;
 }
 
-function joined(parts: (string | null)[]): string {
-  return `${parts.filter(Boolean).join(". ")}.`;
+type UpgradeRelease = NonNullable<NonNullable<PlatformView["upgrade_cost"]>["releases"]>[number];
+
+function sentences(parts: (string | null)[]): string | null {
+  const kept = parts.filter((part): part is string => Boolean(part));
+  return kept.length ? `${kept.join(". ")}.` : null;
+}
+
+function point(topic: string, href: string, parts: (string | null)[]): BriefPoint | null {
+  const text = sentences(parts);
+  return text ? { topic, href, text } : null;
+}
+
+function listed(items: string[]): string {
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}` : (items[0] ?? "");
+}
+
+function extractedText(extracted: number, blocks: number, destination: string): string {
+  if (extracted === 0) return `None of the ${formatNumber(blocks)} built-in XBlocks has moved out of the platform yet`;
+  const verb = extracted === 1 ? "has" : "have";
+  return `${formatNumber(extracted)} of the ${formatCount(blocks, "built-in XBlock")} ${verb} moved out of the platform into ${destination}`;
 }
 
 function modularizationPoint(view: PlatformView): BriefPoint | null {
   const section = view.modularization;
-  if (!section.available || !section.summary?.blocks) return null;
+  const { extracted, blocks } = section.summary ?? {};
+  if (!section.available || extracted == null || !blocks) return null;
   const legacy = changeText(change(section.legacy_frontend?.history ?? []));
-  return {
-    topic: "Modularization",
-    href: "#modularization",
-    text: joined([
-      `${formatNumber(section.summary.extracted ?? 0)} of ${formatNumber(section.summary.blocks)} built-in XBlocks now ship as a separate package`,
-      legacy ? `Legacy frontend files are ${legacy}` : null,
-    ]),
-  };
+  return point("Modularization", "#modularization", [
+    extractedText(extracted, blocks, section.extracted_package ? section.extracted_package : "separate packages"),
+    legacy ? `Legacy frontend files are ${legacy}` : null,
+  ]);
 }
 
 function stabilityPoint(view: PlatformView): BriefPoint | null {
@@ -33,54 +48,63 @@ function stabilityPoint(view: PlatformView): BriefPoint | null {
   const commits = changeSince(first?.commits, latest.commits, firstYear);
   const now = section.years?.[section.years.length - 1]?.python_lines;
   const lines = changeSince(first?.python_lines, now, firstYear);
-  return {
-    topic: "Stability",
-    href: "#stability",
-    text: joined([
-      `${formatNumber(latest.commits)} commits by ${formatNumber(latest.authors)} authors in ${latestYear}${commits ? `, commits ${commits}` : ""}`,
-      now != null ? `${formatNumber(now)} lines of Python outside tests${lines ? `, ${lines}` : ""}` : null,
-    ]),
-  };
+  return point("Stability", "#stability", [
+    `${formatCount(latest.commits, "commit")} by ${formatCount(latest.authors, "author")} in ${latestYear}${commits ? `, commits ${commits}` : ""}`,
+    now != null ? `${formatCount(now, "line")} of Python outside tests and migrations${lines ? `, ${lines}` : ""}` : null,
+  ]);
 }
 
 function extensionPoint(view: PlatformView): BriefPoint | null {
   const summary = view.extension_points?.available ? view.extension_points.summary : undefined;
-  if (!summary?.filters || !summary.events || !summary.plugin_slots) return null;
+  if (!summary) return null;
+  const counts = [
+    summary.filters?.now != null ? formatCount(summary.filters.now, "filter") : null,
+    summary.events?.now != null ? formatCount(summary.events.now, "event") : null,
+    summary.plugin_slots?.now != null ? formatCount(summary.plugin_slots.now, "frontend plugin slot") : null,
+  ].filter((count): count is string => count !== null);
   const slots = summary.plugin_slots;
-  const slotChange = slots.first ? changeSince(slots.first.count, slots.now, releaseLabel(slots.first.release)) : null;
-  return {
-    topic: "Customising without forking",
-    href: "#extension-points",
-    text: joined([
-      `${formatNumber(summary.filters.now ?? 0)} filters, ${formatNumber(summary.events.now ?? 0)} events and ${formatNumber(slots.now ?? 0)} frontend plugin slots`,
-      slotChange ? `Plugin slots are ${slotChange}` : null,
-    ]),
-  };
+  const growth =
+    slots?.first && slots.now != null && slots.now !== slots.first.count
+      ? `Plugin slots went from ${formatNumber(slots.first.count)} at ${releaseLabel(slots.first.release)} to ${formatNumber(slots.now)}`
+      : null;
+  return point("Extension points", "#extension-points", [
+    counts.length ? `Ways to customise the platform without forking it: ${listed(counts)}` : null,
+    growth,
+  ]);
 }
 
-function latestReleaseText(release: NonNullable<NonNullable<PlatformView["upgrade_cost"]>["releases"]>[number]): string {
-  const breaking =
-    release.breaking_changes != null ? ` and lists ${formatNumber(release.breaking_changes)} breaking changes` : "";
-  return `${releaseLabel(release.release)} drops ${formatNumber(release.deprecations.total)} deprecated features${breaking}`;
+function hasCost(release: UpgradeRelease): boolean {
+  return release.deprecations.total > 0 || (release.breaking_changes ?? 0) > 0;
+}
+
+function releaseCostText(release: UpgradeRelease): string {
+  const name = releaseLabel(release.release);
+  const { total, open } = release.deprecations;
+  const tickets =
+    total > 0
+      ? `${formatCount(total, "deprecation")} ${total === 1 ? "names" : "name"} ${name} as the first release without ${total === 1 ? "it" : "them"}` +
+        (open > 0 ? ` (${formatNumber(open)} still open)` : "")
+      : null;
+  const changes = release.breaking_changes ? formatCount(release.breaking_changes, "breaking change") : null;
+  if (tickets && changes) return `${tickets}, and its release notes list ${changes}`;
+  return tickets ?? `${name}'s release notes list ${changes}`;
 }
 
 function upgradePoint(view: PlatformView): BriefPoint | null {
   const section = view.upgrade_cost;
   if (!section?.available) return null;
-  const latest = [...(section.releases ?? [])].reverse().find((row) => row.date);
+  const latest = [...(section.releases ?? [])].reverse().find((row) => row.date && hasCost(row));
   const days = section.summary?.median_days_between;
   const open = section.summary?.open_deprecations;
-  const parts = [
-    days != null ? `A named release every ${formatNumber(days)} days (median)` : null,
-    latest ? latestReleaseText(latest) : null,
-    open != null ? `${formatNumber(open)} deprecations are still open` : null,
-  ];
-  if (!parts.some(Boolean)) return null;
-  return { topic: "Upgrade cost", href: "#upgrade-cost", text: joined(parts) };
+  return point("Upgrade cost", "#upgrade-cost", [
+    days != null ? `A named release every ${formatCount(days, "day")} (median)` : null,
+    latest ? releaseCostText(latest) : null,
+    open ? `${formatCount(open, "deprecation")} ${open === 1 ? "is" : "are"} still open` : null,
+  ]);
 }
 
 export function briefPoints(view: PlatformView): BriefPoint[] {
   return [modularizationPoint(view), stabilityPoint(view), extensionPoint(view), upgradePoint(view)].filter(
-    (point): point is BriefPoint => point !== null,
+    (entry): entry is BriefPoint => entry !== null,
   );
 }

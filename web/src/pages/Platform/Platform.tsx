@@ -488,7 +488,7 @@ function Brief({ view }: { view: PlatformView }) {
     <section className="pf-section pf-brief" id="brief" aria-labelledby="pf-brief-heading">
       <h2 id="pf-brief-heading">In brief</h2>
       <p className="caption">
-        {collectedText(view.metadata.generated_at)}. Each point links to its section below, where the method and the
+        Built {formatUtcDate(view.metadata.generated_at)}. Each point links to its section below, where the method and the
         sources are given.
       </p>
       <dl className="pf-brief__points">

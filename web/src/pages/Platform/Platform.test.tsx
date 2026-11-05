@@ -326,6 +326,6 @@ describe("Platform brief", () => {
     expect(brief).toHaveAttribute("id", "brief");
     expect(within(brief as HTMLElement).getByRole("link", { name: "Stability" })).toHaveAttribute("href", "#stability");
     expect(within(brief as HTMLElement).getByRole("link", { name: "Upgrade cost" })).toHaveAttribute("href", "#upgrade-cost");
-    expect(brief).toHaveTextContent("1 of 2 built-in XBlocks now ship as a separate package");
+    expect(brief).toHaveTextContent("1 of the 2 built-in XBlocks has moved out of the platform into xblocks-contrib");
   });
 });
