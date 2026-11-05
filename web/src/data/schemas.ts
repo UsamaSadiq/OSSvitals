@@ -521,9 +521,59 @@ const modularizationSchema = z.object({
   blocks: z.array(z.object({ block: z.string(), toggle: z.string(), status: z.enum(BLOCK_STATUSES) })).optional(),
 });
 
+export const ORGANISATION_KINDS = ["domain", "other", "noreply", "personal", "unknown"] as const;
+
+const trendCountsShape = {
+  commits: int,
+  authors: int,
+  python_added: int,
+  python_deleted: int,
+  bot_commits: int,
+  mechanical_commits: int,
+  python_lines: int.nullable(),
+};
+
+const trendTotalsSchema = z.object({ commits: int, authors: int, python_lines: int.nullable() });
+
+const trendsSchema = z.object({
+  available: z.boolean(),
+  ...sectionStamps,
+  repo: z.string().nullable().optional(),
+  ref: z.string().nullable().optional(),
+  head: z.string().nullable().optional(),
+  since: z.string().nullable().optional(),
+  through: z.string().nullable().optional(),
+  mechanical_max_files: int.nullable().optional(),
+  summary: z
+    .object({ first_year: int, latest_year: int, first: trendTotalsSchema, latest: trendTotalsSchema })
+    .partial()
+    .optional(),
+  years: z
+    .array(
+      z.object({
+        year: int,
+        complete: z.boolean(),
+        through: z.string(),
+        ...trendCountsShape,
+        organisations: z.array(
+          z.object({
+            name: z.string(),
+            kind: z.enum(ORGANISATION_KINDS),
+            authors: int,
+            commits: int,
+            domains: int.optional(),
+          }),
+        ),
+      }),
+    )
+    .optional(),
+  months: z.array(z.object({ month: z.string(), ...trendCountsShape })).optional(),
+});
+
 export const platformSchema = view({
   available: z.boolean(),
   modularization: modularizationSchema,
+  trends: trendsSchema.optional(),
 });
 
 const levelSchema = z.enum(["pass", "warn", "fail", "unknown"]);
@@ -632,6 +682,9 @@ export type UpgradesView = View<"upgrades">;
 export type SupportWindowView = View<"support_window">;
 export type PlatformView = View<"platform">;
 export type Modularization = PlatformView["modularization"];
+export type PlatformTrends = NonNullable<PlatformView["trends"]>;
+export type TrendYear = NonNullable<PlatformTrends["years"]>[number];
+export type TrendOrganisation = TrendYear["organisations"][number];
 export type DatedCount = z.infer<typeof datedCountSchema>;
 export type SupportProduct = NonNullable<SupportWindowView["products"]>[number];
 export type SupportCycle = SupportProduct["cycles"][number];

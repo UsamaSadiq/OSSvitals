@@ -42,6 +42,7 @@ def maintenance_keys(
         "fix_prs": [maintenance.FIX_PRS],
         "support_windows": [maintenance.SUPPORT_WINDOWS],
         "modularization": [maintenance.MODULARIZATION],
+        "platform_trends": [maintenance.PLATFORM_TRENDS],
         "waves": [maintenance.wave_file(wave_id) for wave_id in waves_config],
         "campaigns": [maintenance.campaign_file(campaign_id) for campaign_id in campaigns_config or {}],
     }
@@ -223,9 +224,31 @@ def _modularization(payload: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def _trends(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if payload is None:
+        return {"available": False}
+    meta = payload["metadata"]
+    settings = meta.get("settings", {})
+    return {
+        "available": True,
+        **_stamps(payload),
+        "repo": meta.get("repo"),
+        "ref": meta.get("ref"),
+        "head": meta.get("head"),
+        "since": meta.get("since"),
+        "through": meta.get("through"),
+        "mechanical_max_files": settings.get("mechanical", {}).get("max_files"),
+        "summary": meta.get("summary", {}),
+        "years": meta.get("years", []),
+        "months": payload["records"],
+    }
+
+
 def build_platform(ctx: BuildContext) -> dict[str, Any]:
-    modularization = _modularization(ctx.maintenance.get(maintenance.MODULARIZATION))
-    sections = {"modularization": modularization}
+    sections = {
+        "modularization": _modularization(ctx.maintenance.get(maintenance.MODULARIZATION)),
+        "trends": _trends(ctx.maintenance.get(maintenance.PLATFORM_TRENDS)),
+    }
     return envelope(
         ctx,
         PLATFORM_SOURCE,

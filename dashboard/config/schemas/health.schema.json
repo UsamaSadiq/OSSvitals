@@ -35,7 +35,8 @@
         "catalog",
         "fix_prs",
         "support_windows",
-        "modularization"
+        "modularization",
+        "platform_trends"
       ],
       "properties": {
         "upgrade_jobs": {
@@ -60,6 +61,9 @@
           "type": "boolean"
         },
         "modularization": {
+          "type": "boolean"
+        },
+        "platform_trends": {
           "type": "boolean"
         }
       },

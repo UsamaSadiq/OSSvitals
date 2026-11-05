@@ -319,6 +319,7 @@ def test_views_without_maintenance_files_mark_them_unavailable(built, tmp_path):
     assert json.loads((tmp_path / "support_window.json").read_text())["available"] is False
     platform = json.loads((tmp_path / "platform.json").read_text())
     assert platform["available"] is False and platform["modularization"] == {"available": False}
+    assert platform["trends"] == {"available": False}
 
 
 def test_support_window_carries_products_and_drift(built):
@@ -397,3 +398,14 @@ def test_repo_detail_without_fix_prs_file_is_empty(tmp_path, monkeypatch):
 
     assert detail["fix_prs_collected_at"] is None
     assert all(entry["fix_prs"] == {} for entry in detail["repos"].values())
+
+
+def test_platform_carries_stability_trends(built):
+    _, files = built
+    trends = files["platform.json"]["trends"]
+    assert trends["available"] is True
+    assert trends["months"][0]["month"] == trends["since"] and trends["months"][-1]["month"] == trends["through"]
+    assert trends["mechanical_max_files"] == 500
+    complete = [year for year in trends["years"] if year["complete"]]
+    assert trends["summary"]["latest_year"] == complete[-1]["year"]
+    assert all(row["authors"] >= 2 for year in trends["years"] for row in year["organisations"] if row["kind"] == "domain")
