@@ -621,17 +621,25 @@ def _package_count(settings: dict[str, Any], version: str | None) -> dict[str, A
     paths = github.blob_paths(settings["repo"], ref)
     if paths is None:
         return extension_points.package_record(version, None)
-    texts = [github.raw_text(settings["repo"], ref, path) or "" for path in extension_points.matching_paths(paths, settings["files"])]
+    texts = [_listed_file(settings["repo"], ref, path) for path in extension_points.matching_paths(paths, settings["files"])]
     return extension_points.package_record(version, extension_points.declaration_count(texts, settings["declaration"]))
 
 
-def _slot_counts(frontend_refs: dict[str, str], slots_roots: list[str]) -> dict[str, int]:
+def _listed_file(repo: str, ref: str, path: str) -> str:
+    """A file the tag's tree lists; missing on the raw host means a bad read, which must not be counted as empty."""
+    text = github.raw_text(repo, ref, path)
+    if text is None:
+        raise RuntimeError(f"{repo}@{ref} lists {path} but the raw host has no such file")
+    return text
+
+
+def _slot_counts(frontend_refs: dict[str, str], frontend: dict[str, Any]) -> dict[str, int]:
     """Plugin slots per frontend repo at its ref; a repo without that ref is left out."""
     counts = {}
     for repo, ref in frontend_refs.items():
         paths = github.blob_paths(repo, ref)
         if paths is not None:
-            counts[repo] = len(extension_points.slot_names(paths, slots_roots))
+            counts[repo] = len(extension_points.slot_folders(paths, frontend["slots_roots"], frontend["slot_name"]))
     return counts
 
 
@@ -644,7 +652,7 @@ def _extension_row(config: dict[str, Any], release: str, ref: str, frontend_refs
         "ref": ref,
         "date": day,
         **{name: _package_count(settings, pins.get(settings["package"])) for name, settings in packages.items()},
-        "plugin_slots": extension_points.slots_record(_slot_counts(frontend_refs, config["frontend"]["slots_roots"])),
+        "plugin_slots": extension_points.slots_record(_slot_counts(frontend_refs, config["frontend"])),
     }
 
 
@@ -653,21 +661,33 @@ def _named_releases(config: dict[str, Any]) -> list[tuple[str, ReleaseTag]]:
     ordered = sorted(found.items(), key=lambda item: item[1].date)
     names = [name for name, _ in ordered]
     first = config["releases"]["first"]
-    return ordered[names.index(first):] if first in names else ordered
+    if first not in names:
+        raise RuntimeError(f"first release {first!r} has no readable .1 tag")
+    return ordered[names.index(first):]
+
+
+def _frontend_repos(frontend: dict[str, Any]) -> list[dict[str, Any]]:
+    """Matching repos with content; an empty repo has no trees, and GitHub answers 409 for them."""
+    return [
+        repo
+        for repo in github.org_repos(frontend["org"], include_archived=True)
+        if re.search(frontend["repos"], repo["name"]) and repo.get("size") and repo.get("default_branch")
+    ]
 
 
 def _extension_rows(config: dict[str, Any], published: dict[str, Any], today: str) -> Records:
-    frontend = config["frontend"]
-    repos = [repo for repo in github.org_repos(frontend["org"], include_archived=True) if re.search(frontend["repos"], repo["name"])]
+    repos = _frontend_repos(config["frontend"])
+    releases = _named_releases(config)
+    newest = releases[-1][0] if releases else None
     kept = {
         row["release"]: row
         for row in (published.get("records") or [])
-        if extension_points.is_reusable(row, published.get("metadata", {}), config)
+        if extension_points.is_reusable(row, published.get("metadata", {}), config, newest=newest)
     }
     named = [
         kept.get(name)
         or _extension_row(config, name, release.tag, {repo["full_name"]: release.tag for repo in repos}, release.date.date().isoformat())
-        for name, release in _named_releases(config)
+        for name, release in releases
     ]
     live = {repo["full_name"]: repo["default_branch"] for repo in repos if not repo.get("archived")}
     return [*named, _extension_row(config, extension_points.CURRENT, config["platform"]["ref"], live, today)]

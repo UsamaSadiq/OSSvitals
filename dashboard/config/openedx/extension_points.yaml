@@ -27,10 +27,13 @@ packages:
     tag: "v{version}"
     files: '(^|/)openedx_events/(.+/)?signals\.py$'
     declaration: '\bOpenEdxPublicSignal\('
-# Frontend apps are read at the same release tag; each folder under a slots root is one plugin slot. Apps on
-# frontend-plugin-framework keep slots in src/plugin-slots, apps moved to frontend-base in src/slots.
+# Frontend apps are read at the same release tag. Apps on frontend-plugin-framework keep slots in
+# src/plugin-slots, apps moved to frontend-base in src/slots; a slot is a folder at any depth under either root
+# whose name matches slot_name, since some apps group slots (CourseExitPluginSlots/) or nest one in another.
 # Component repos (header, footer) are left out: they have no release tags, so they could only be counted now.
+# Only repos still in the org count: retired apps moved to openedx-unsupported drop out of every release.
 frontend:
   org: openedx
   repos: '^frontend-app-'
   slots_roots: [src/plugin-slots, src/slots]
+  slot_name: 'Slot$'

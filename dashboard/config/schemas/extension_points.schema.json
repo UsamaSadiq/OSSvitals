@@ -33,11 +33,12 @@
     },
     "frontend": {
       "type": "object",
-      "required": ["org", "repos", "slots_roots"],
+      "required": ["org", "repos", "slots_roots", "slot_name"],
       "properties": {
         "org": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+$"},
         "repos": {"type": "string", "format": "regex"},
-        "slots_roots": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+        "slots_roots": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "slot_name": {"type": "string", "format": "regex"}
       },
       "additionalProperties": false
     }
