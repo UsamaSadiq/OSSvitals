@@ -540,7 +540,8 @@ function BriefCard({ point }: { point: BriefPoint }) {
       )}
       <p className="pf-brief__text">{point.text}</p>
       <a className="pf-brief__more" href={point.href}>
-        Details<span className="visually-hidden"> on {point.topic.toLowerCase()}</span>
+        Details{" "}
+        <span className="visually-hidden">on {point.topic.toLowerCase()}</span>
       </a>
     </li>
   );

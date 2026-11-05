@@ -108,21 +108,25 @@ describe("platform brief", () => {
         topic: "Modularization",
         href: "#modularization",
         text: "8 of the 8 built-in XBlocks have moved out of the platform into xblocks-contrib. Legacy frontend files are down 20% since 2020.",
+        headline: { figure: "8 of 8", label: "built-in XBlocks moved out", verdict: "good" },
       },
       {
         topic: "Stability",
         href: "#stability",
         text: "1,097 commits by 183 authors in 2025, commits down 58% since 2020. 356,721 lines of Python outside tests and migrations, up 23% since 2020.",
+        headline: { figure: "1,097", label: "commits in 2025", verdict: "good" },
       },
       {
         topic: "Extension points",
         href: "#extension-points",
         text: "Ways to customise the platform without forking it: 43 filters, 75 events and 99 frontend plugin slots. Plugin slots went from 10 at Redwood to 99.",
+        headline: { figure: "99", label: "frontend plugin slots", verdict: "good" },
       },
       {
         topic: "Upgrade cost",
         href: "#upgrade-cost",
         text: "A named release every 186 days (median). 7 deprecations name Verawood as the first release without them (4 still open), and its release notes list 4 breaking changes. 18 deprecations are still open.",
+        headline: { figure: "186 days", label: "between releases (median)", verdict: "watch" },
       },
     ]);
   });
@@ -178,5 +182,33 @@ describe("platform brief", () => {
   it("skips an upgrade point with nothing to say", () => {
     const points = briefPoints(view({ upgrade_cost: { available: true, summary: {}, releases: [] } }));
     expect(points.map((entry) => entry.topic)).not.toContain("Upgrade cost");
+  });
+});
+
+describe("platform brief verdicts", () => {
+  const verdictOf = (overrides: Partial<PlatformView>, topic: string) =>
+    briefPoints(view(overrides)).find((entry) => entry.topic === topic)?.headline?.verdict;
+
+  it("reads extraction progress", () => {
+    expect(verdictOf({ modularization: { available: true, summary: { blocks: 8, extracted: 5 } } }, "Modularization")).toBe("watch");
+    expect(verdictOf({ modularization: { available: true, summary: { blocks: 8, extracted: 0 } } }, "Modularization")).toBe("concern");
+  });
+
+  it("watches rising commits, shrinking extension points and open deprecations", () => {
+    const rising = {
+      available: true,
+      summary: {
+        first_year: 2020,
+        latest_year: 2025,
+        first: { commits: 100, authors: 10, python_lines: 1 },
+        latest: { commits: 150, authors: 10, python_lines: 1 },
+      },
+      years: [],
+    };
+    expect(verdictOf({ trends: rising }, "Stability")).toBe("watch");
+    const shrinking = { available: true, summary: { plugin_slots: { first: { release: "teak", count: 50 }, now: 40 } } };
+    expect(verdictOf({ extension_points: shrinking }, "Extension points")).toBe("watch");
+    expect(upgradeText([], 0)).toBe("A named release every 186 days (median).");
+    expect(verdictOf({ upgrade_cost: upgrade([], 0) }, "Upgrade cost")).toBe("good");
   });
 });

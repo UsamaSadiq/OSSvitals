@@ -156,7 +156,7 @@ describe("Platform stability section", () => {
   it("is absent when the view has no trends", async () => {
     renderRoute("/platform");
 
-    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Modularization" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Stability" })).not.toBeInTheDocument();
   });
 
@@ -226,7 +226,7 @@ describe("Platform extension points section", () => {
   it("is absent when the view has no extension points", async () => {
     renderRoute("/platform");
 
-    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Modularization" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Extension points" })).not.toBeInTheDocument();
   });
 
@@ -289,7 +289,7 @@ describe("Platform upgrade cost section", () => {
   it("is absent when the view has no upgrade cost", async () => {
     renderRoute("/platform");
 
-    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Modularization" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Upgrade cost" })).not.toBeInTheDocument();
   });
 
@@ -324,8 +324,20 @@ describe("Platform brief", () => {
 
     const brief = (await screen.findByRole("heading", { name: "In brief" })).closest("section");
     expect(brief).toHaveAttribute("id", "brief");
-    expect(within(brief as HTMLElement).getByRole("link", { name: "Stability" })).toHaveAttribute("href", "#stability");
-    expect(within(brief as HTMLElement).getByRole("link", { name: "Upgrade cost" })).toHaveAttribute("href", "#upgrade-cost");
+    const cards = within(brief as HTMLElement);
+    expect(cards.getByRole("link", { name: "Details on stability" })).toHaveAttribute("href", "#stability");
+    expect(cards.getByRole("link", { name: "Details on upgrade cost" })).toHaveAttribute("href", "#upgrade-cost");
     expect(brief).toHaveTextContent("1 of the 2 built-in XBlocks has moved out of the platform into xblocks-contrib");
+    const modularization = cards.getByRole("heading", { level: 3, name: "Modularization" }).closest("li") as HTMLElement;
+    expect(modularization).toHaveTextContent("1 of 2 built-in XBlocks moved out");
+    expect(within(modularization).getByText("Watch")).toHaveClass("badge--warn");
+  });
+
+  it("links to each section from a nav under the title", async () => {
+    setView(snapshot({ trends: trends() }));
+    renderRoute("/platform");
+
+    const nav = await screen.findByRole("navigation", { name: "Sections on this page" });
+    expect(within(nav).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["#modularization", "#stability"]);
   });
 });
