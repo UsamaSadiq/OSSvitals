@@ -217,7 +217,6 @@
   gap: 0.25rem;
   overflow-x: auto;
   scrollbar-width: thin;
-  scroll-snap-type: x proximity;
   border-bottom: 1px solid var(--border);
 }
 
@@ -225,7 +224,6 @@
   font: inherit;
   flex: none;
   white-space: nowrap;
-  scroll-snap-align: start;
   color: var(--muted);
   background: transparent;
   border: 0;
