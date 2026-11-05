@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { httpUrl, optionalHttpUrl } from "./httpUrl";
+import { httpUrl, optionalHttpUrl } from "./httpUrl.ts";
 
 // Zod's eval feature probe trips the CSP (script-src 'self') even though it catches the error.
 z.config({ jitless: true });

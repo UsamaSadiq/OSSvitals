@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { httpUrl, optionalHttpUrl } from "../../data/httpUrl";
+import { httpUrl, optionalHttpUrl } from "../../data/httpUrl.ts";
 
 const nullableString = z.string().nullable();
 const optionalString = z.string().nullish();
