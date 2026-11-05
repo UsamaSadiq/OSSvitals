@@ -87,6 +87,7 @@ def test_a_tenant_on_the_defaults_publishes_no_page_for_an_ecosystem_collector()
     pages = published_pages(build_settings(_defaults(), {}))
     assert "/components" not in pages
     assert "/support_window" not in pages
+    assert "/platform" not in pages
     assert "/maintenance" in pages
 
 

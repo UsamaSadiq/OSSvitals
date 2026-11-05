@@ -18,6 +18,7 @@ export const PORTED_PAGES: Record<string, PageComponent> = {
   "/components": lazyPage(() => import("./Components/Components"), (m) => m.Components),
   "/maintenance": lazyPage(() => import("./Upgrades/Upgrades"), (m) => m.Upgrades),
   "/support_window": lazyPage(() => import("./SupportWindow/SupportWindow"), (m) => m.SupportWindow),
+  "/platform": lazyPage(() => import("./Platform/Platform"), (m) => m.Platform),
   "/ownership_views": lazyPage(() => import("./Owners/Owners"), (m) => m.Owners),
   "/repo_detail": lazyPage(() => import("./RepoDetail/RepoDetail"), (m) => m.RepoDetail),
 };

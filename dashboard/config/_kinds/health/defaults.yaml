@@ -13,6 +13,7 @@ pages:
   - /ownership_views
   - /maintenance
   - /support_window
+  - /platform
   - /components
   - /glossary
   - /scoring
@@ -32,3 +33,4 @@ collectors:
 page_collectors:
   /components: catalog
   /support_window: support_windows
+  /platform: modularization

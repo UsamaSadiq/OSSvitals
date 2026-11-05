@@ -498,6 +498,34 @@ export const supportWindowSchema = view({
   products: z.array(supportProductSchema).optional(),
 });
 
+export const BLOCK_STATUSES = ["extracted", "built_in"] as const;
+
+const sectionStamps = {
+  collected_at: isoString.nullable().optional(),
+  refreshed_at: isoString.nullable().optional(),
+};
+
+const datedCountSchema = z.object({ date: isoString, count: int });
+
+const modularizationSchema = z.object({
+  available: z.boolean(),
+  ...sectionStamps,
+  repo: z.string().nullable().optional(),
+  ref: z.string().nullable().optional(),
+  toggles_url: z.string().nullable().optional(),
+  extracted_package: z.string().nullable().optional(),
+  pins: z.record(z.string(), z.string().nullable()).optional(),
+  pins_url: z.string().nullable().optional(),
+  legacy_frontend: z.looseObject({ history: z.array(datedCountSchema).optional() }).optional(),
+  summary: z.object({ blocks: int, extracted: int, percent_extracted: z.number() }).partial().optional(),
+  blocks: z.array(z.object({ block: z.string(), toggle: z.string(), status: z.enum(BLOCK_STATUSES) })).optional(),
+});
+
+export const platformSchema = view({
+  available: z.boolean(),
+  modularization: modularizationSchema,
+});
+
 const levelSchema = z.enum(["pass", "warn", "fail", "unknown"]);
 
 const subscoreSchema = z.object({ value: nullableNumber, help: z.string() });
@@ -573,6 +601,7 @@ export const VIEW_SCHEMAS = {
   components: componentsSchema,
   upgrades: upgradesSchema,
   support_window: supportWindowSchema,
+  platform: platformSchema,
   repo_detail: repoDetailSchema,
 } as const;
 
@@ -601,6 +630,9 @@ export type RepoChecksView = View<"repo_checks">;
 export type ComponentsView = View<"components">;
 export type UpgradesView = View<"upgrades">;
 export type SupportWindowView = View<"support_window">;
+export type PlatformView = View<"platform">;
+export type Modularization = PlatformView["modularization"];
+export type DatedCount = z.infer<typeof datedCountSchema>;
 export type SupportProduct = NonNullable<SupportWindowView["products"]>[number];
 export type SupportCycle = SupportProduct["cycles"][number];
 export type SupportStatus = SupportProduct["status"];

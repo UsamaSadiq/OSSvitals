@@ -29,6 +29,7 @@ describe("Nav", () => {
       "Owners",
       "Upgrades",
       "Support Window",
+      "Platform",
       "Components",
       "Checks Catalog",
       "How Scoring Works",

@@ -23,6 +23,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { path: "/ownership_views", title: "Owners", maintainerOnly: true },
       { path: "/maintenance", title: "Upgrades" },
       { path: "/support_window", title: "Support Window" },
+      { path: "/platform", title: "Platform" },
     ],
   },
   {
