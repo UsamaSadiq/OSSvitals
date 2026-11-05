@@ -3,7 +3,6 @@ import { DownloadButton } from "../../components/DownloadButton";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
-import { ShareLink } from "../../components/ShareLink";
 import type { AtRiskView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
@@ -106,7 +105,6 @@ function AtRiskContent() {
   return (
     <>
       <AtRiskSections atRisk={atRisk.data} />
-      <ShareLink />
     </>
   );
 }

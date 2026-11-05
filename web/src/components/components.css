@@ -179,14 +179,14 @@
 .kpi-tile__help summary {
   cursor: pointer;
   list-style: none;
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 1px solid var(--border);
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid var(--border-strong);
   border-radius: 50%;
   color: var(--muted);
   font-size: 0.75rem;
   text-align: center;
-  line-height: 1.15rem;
+  line-height: 1.4rem;
 }
 
 .kpi-tile__help summary::-webkit-details-marker {
@@ -213,19 +213,31 @@
 
 .tabs__list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
   border-bottom: 1px solid var(--border);
 }
 
 .tabs__tab {
   font: inherit;
+  flex: none;
+  white-space: nowrap;
   color: var(--muted);
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
   padding: 0.5rem 0.75rem;
   cursor: pointer;
+}
+
+.tabs__tab:focus-visible {
+  outline-offset: -3px;
+}
+
+.nav__link:focus-visible {
+  outline-offset: -3px;
 }
 
 .tabs__tab[aria-selected="true"] {
@@ -322,7 +334,8 @@
   vertical-align: middle;
 }
 
-.data-table tbody tr:last-child td {
+.data-table tbody tr:last-child td,
+.data-table tbody tr:last-child th {
   border-bottom: 0;
 }
 

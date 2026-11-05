@@ -1,7 +1,6 @@
 import { GradePill } from "../../components/GradePill";
 import { KpiTile } from "../../components/KpiTile";
 import { RepoName } from "../../components/RepoName";
-import { ShareLink } from "../../components/ShareLink";
 import { toFixedHalfEven } from "../../format";
 import { WatchButton } from "../../watchlist/WatchButton";
 import { githubUrl } from "../../components/githubUrl";
@@ -50,7 +49,6 @@ export function RepoHeader({ repo, record, detail }: { repo: string; record: Rep
         <KpiTile label="Structural" value={subscoreText(structural)} help={structural.help} />
         <KpiTile label="Activity" value={subscoreText(activity)} help={activity.help} />
       </div>
-      <ShareLink label="Copy link to this view" />
     </>
   );
 }

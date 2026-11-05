@@ -80,12 +80,16 @@ describe("cellClass", () => {
 
 describe("DataTable width fitting", () => {
   let widths = { scroll: 0, client: 0 };
+  let observed: Element[] = [];
 
   beforeEach(() => {
+    observed = [];
     vi.stubGlobal(
       "ResizeObserver",
       class {
-        observe() {}
+        observe(target: Element) {
+          observed.push(target);
+        }
         disconnect() {}
       },
     );
@@ -104,6 +108,7 @@ describe("DataTable width fitting", () => {
 
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Fits" }).parentElement).toHaveClass("data-table__scroll--fits");
+    expect(observed).toContain(screen.getByRole("table", { name: "Fits" }));
   });
 
   it("keeps a focusable scroll region when the table is wider than its box", () => {

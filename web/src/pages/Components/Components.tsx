@@ -4,7 +4,6 @@ import { ErrorState } from "../../components/ErrorState";
 import { KpiTile } from "../../components/KpiTile";
 import { Loading } from "../../components/Loading";
 import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
-import { ShareLink } from "../../components/ShareLink";
 import type { ComponentsView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { formatNumber, refreshedNote } from "../../format";
@@ -36,7 +35,7 @@ function Intro() {
   const { catalog } = useSiteMeta();
   const reader = catalog.name ?? "a service catalog";
   return (
-    <p>
+    <p className="page-lede">
       What each repository declares in its <code>catalog-info.yaml</code>: the same files{" "}
       {catalog.browseUrl ? <a href={catalog.browseUrl}>{reader}</a> : reader} reads, joined here with health grades,
       and checked for entries that are missing or half-filled.
@@ -152,7 +151,6 @@ function ComponentsContent() {
   return (
     <>
       <CatalogSnapshot view={components.data} />
-      <ShareLink />
     </>
   );
 }
@@ -162,8 +160,8 @@ export function Components() {
   return (
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Components</h1>
-      <SiteFreshnessBanner />
       <Intro />
+      <SiteFreshnessBanner />
       <ComponentsContent />
     </section>
   );

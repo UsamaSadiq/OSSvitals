@@ -267,7 +267,6 @@ describe("Checks Catalog page", () => {
     expect(protection).toHaveTextContent("How: Needs admin scope.");
     expect(protection).not.toHaveTextContent("Scorecard");
     expect(within(section).queryByText("Retired idea")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("hides the candidates section when there are none", async () => {
@@ -289,7 +288,6 @@ describe("Checks Catalog page", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Suggested candidate checks" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Up for review" })).not.toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Checks collected" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("names the file when the checks data fails to load", async () => {

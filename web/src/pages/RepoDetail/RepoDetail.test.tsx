@@ -315,7 +315,6 @@ describe("Repo Detail page", () => {
     const activity = screen.getByRole("group", { name: "Activity" });
     expect(within(activity).getByText("—")).toBeInTheDocument();
     expect(within(activity).getByText(/Withheld: only 30%/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("renders the metric bar chart summary and caption", async () => {

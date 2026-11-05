@@ -92,7 +92,6 @@ describe("At Risk page", () => {
     expect(state.closest(".empty-state")).toHaveTextContent("Enable stewardship_risk in attention_rules.yaml.");
     expect(screen.getByText("stewardship_risk", { selector: "code" })).toBeInTheDocument();
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("explains the baseline and the metrics left out of the score change", async () => {
@@ -154,7 +153,6 @@ describe("At Risk page", () => {
     expect(within(table).getByText("+3.5")).toBeInTheDocument();
     expect(within(table).getByText("46.8")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download At-Risk List" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("shows the lifecycle caption instead of the toggle when lifecycle data is missing", async () => {

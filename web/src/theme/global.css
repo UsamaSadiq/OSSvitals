@@ -132,7 +132,7 @@ h3 {
   font: inherit;
   color: var(--on-primary);
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--on-primary) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--on-primary) 55%, transparent);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.75rem;
   cursor: pointer;
@@ -164,7 +164,7 @@ h3 {
   gap: 0.5rem;
   height: 2.25rem;
   padding: 0 0.5rem 0 0.7rem;
-  border: 1px solid color-mix(in srgb, var(--on-primary) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--on-primary) 55%, transparent);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--on-primary) 6%, transparent);
   color: var(--on-primary);
@@ -614,6 +614,23 @@ h3 {
   }
 }
 
+.page-lede {
+  max-width: 72ch;
+  margin: 0 0 var(--space-block);
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+@media (min-width: 900px) {
+  .sidebar > nav {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .skeleton {
     animation: none;
@@ -627,4 +644,17 @@ h3 {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+.route-error {
+  max-width: 48rem;
+  margin: 3rem auto;
+  padding: 0 1.25rem;
+}
+
+.route-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
 }

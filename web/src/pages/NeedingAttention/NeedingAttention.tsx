@@ -6,7 +6,6 @@ import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { Loading } from "../../components/Loading";
 import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
 import { RepoLink } from "../../components/RepoName";
-import { ShareLink } from "../../components/ShareLink";
 import { useView } from "../../data/useView";
 import { formatCount, formatScore } from "../../format";
 import { usePageTitle } from "../../layout/pageTitle";
@@ -74,7 +73,6 @@ function AttentionList({ rows }: { rows: readonly AttentionRow[] }) {
         rows={rows}
         rowKey={(row) => row.repo_name}
       />
-      <ShareLink label="Copy link to this view" />
       <DownloadButton
         label="Download Attention List"
         filename="needing-attention.csv"

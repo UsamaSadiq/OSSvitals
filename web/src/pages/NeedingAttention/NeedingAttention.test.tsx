@@ -59,7 +59,6 @@ describe("Needing Attention page", () => {
     expect(within(firstRow).getByRole("img", { name: "Grade D" })).toBeInTheDocument();
     expect(within(firstRow).getByText("Score below 40")).toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download Attention List" })).toBeInTheDocument();
   });
 

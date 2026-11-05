@@ -3,7 +3,6 @@ import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { KpiTile } from "../../components/KpiTile";
 import { Loading } from "../../components/Loading";
-import { ShareLink } from "../../components/ShareLink";
 import { Tabs, type TabItem } from "../../components/Tabs";
 import type { OwnersView } from "../../data/schemas";
 import { useView } from "../../data/useView";
@@ -90,7 +89,6 @@ function OwnersContent() {
     <>
       <Coverage coverage={owners.data.coverage} />
       <Tabs label="Ownership views" tabs={ownerTabs(owners.data)} />
-      <ShareLink label="Copy link to this view" />
     </>
   );
 }

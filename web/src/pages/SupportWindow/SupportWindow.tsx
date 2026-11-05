@@ -3,7 +3,6 @@ import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { KpiTile } from "../../components/KpiTile";
 import { Loading } from "../../components/Loading";
-import { ShareLink } from "../../components/ShareLink";
 import type { SupportProduct, SupportWindowView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { formatNumber, formatUtcDate } from "../../format";
@@ -27,7 +26,7 @@ const TILE_STATUSES = STATUS_ORDER.filter((status) => status !== "unknown");
 
 function Intro() {
   return (
-    <p>
+    <p className="page-lede">
       The OEP-10 support calendar, kept current from endoflife.date. <strong>In use</strong> is what the latest Tutor
       release ships; <strong>declared</strong> is the <code>CURRENT</code> list in repo-tools{" "}
       <code>barcalendar.py</code>. When they disagree, the calendar needs a pull request.
@@ -146,7 +145,6 @@ function SupportWindowContent() {
   return (
     <>
       <Snapshot view={support.data} />
-      <ShareLink />
     </>
   );
 }
@@ -156,8 +154,8 @@ export function SupportWindow() {
   return (
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Support Window</h1>
-      <SiteFreshnessBanner />
       <Intro />
+      <SiteFreshnessBanner />
       <SupportWindowContent />
     </section>
   );

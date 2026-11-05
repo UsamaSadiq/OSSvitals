@@ -151,7 +151,6 @@ describe("Upgrades page", () => {
       "Wave: Python packaging on pyproject.toml + uv",
       "Redundant PRs",
     ]);
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("shows the upgrade-job caption, tiles and explanation", async () => {

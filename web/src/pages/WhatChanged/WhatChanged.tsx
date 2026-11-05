@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { EmptyState, type EmptyStateKind } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
-import { ShareLink } from "../../components/ShareLink";
 import type { WhatChangedView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
@@ -92,7 +91,6 @@ export function WhatChanged() {
       <h1 id="page-title">What Changed</h1>
       <SiteFreshnessBanner />
       <WhatChangedContent />
-      <ShareLink />
     </section>
   );
 }

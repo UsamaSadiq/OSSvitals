@@ -146,7 +146,6 @@ describe("How Scoring Works page", () => {
       "Repositories that would change letter grade",
       "Independence",
     ]);
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("renders the intro with the version and source links", async () => {

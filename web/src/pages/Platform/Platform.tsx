@@ -4,7 +4,6 @@ import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { KpiTile } from "../../components/KpiTile";
 import { Loading } from "../../components/Loading";
-import { ShareLink } from "../../components/ShareLink";
 import type {
   ExtensionPoints,
   ExtensionRelease,
@@ -49,7 +48,7 @@ const BLOCK_STATUS_LABELS: Record<Block["status"], string> = {
 
 function Intro() {
   return (
-    <p>
+    <p className="page-lede">
       How the Open edX core, <code>openedx-platform</code>, is changing: which parts have moved out into separately
       released packages, how much legacy code is left, and how much the code still changes. Every number is read from
       the platform&rsquo;s public source and git history on GitHub by a scheduled job.
@@ -513,7 +512,6 @@ function PlatformContent() {
     <>
       <Brief view={platform.data} />
       <Sections view={platform.data} />
-      <ShareLink />
     </>
   );
 }
@@ -523,8 +521,8 @@ export function Platform() {
   return (
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Platform</h1>
-      <SiteFreshnessBanner />
       <Intro />
+      <SiteFreshnessBanner />
       <PlatformContent />
     </section>
   );
