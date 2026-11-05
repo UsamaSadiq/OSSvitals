@@ -70,8 +70,8 @@ export function Upgrades() {
   return (
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Upgrades</h1>
-      <SiteFreshnessBanner />
       <p className="page-lede">{INTRO}</p>
+      <SiteFreshnessBanner />
       <UpgradesContent />
     </section>
   );

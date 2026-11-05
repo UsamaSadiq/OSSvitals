@@ -4,11 +4,12 @@ import { toSiteMeta } from "./data/siteMeta";
 import { currentOrg } from "./data/org";
 import { useView, type ViewState } from "./data/useView";
 import { DEFAULT_SITE_META, SiteMetaProvider, type SiteMeta } from "./layout/siteMeta";
+import { RouteError } from "./layout/RouteError";
 import { TenantProvider } from "./tenants/context";
 import { tenantFor } from "./tenants/registry";
 
 const tenant = tenantFor(currentOrg());
-const router = createBrowserRouter(tenant.routes);
+const router = createBrowserRouter(tenant.routes.map((route) => ({ errorElement: <RouteError />, ...route })));
 
 function siteMetaFor(meta: ViewState<"meta">): SiteMeta {
   if (meta.status === "ready") return toSiteMeta(meta.data);

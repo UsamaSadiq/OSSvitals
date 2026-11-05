@@ -31,12 +31,12 @@ export function useCopyCurrentUrl(): { url: string; state: CopyState; copy: () =
   return { url, state, copy };
 }
 
-export function ShareLink({ label = "Copy link to this view" }: { label?: string }) {
+export function ShareLink() {
   const { url, state, copy } = useCopyCurrentUrl();
   return (
     <div className="share-link">
       <button type="button" className="button-link" onClick={copy}>
-        {label}
+        Copy link to this view
       </button>
       <span className="caption" role="status">
         {COPY_STATUS_TEXT[state]}

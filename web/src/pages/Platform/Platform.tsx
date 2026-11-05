@@ -521,8 +521,8 @@ export function Platform() {
   return (
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Platform</h1>
-      <SiteFreshnessBanner />
       <Intro />
+      <SiteFreshnessBanner />
       <PlatformContent />
     </section>
   );

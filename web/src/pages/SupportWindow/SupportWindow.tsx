@@ -154,8 +154,8 @@ export function SupportWindow() {
   return (
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Support Window</h1>
-      <SiteFreshnessBanner />
       <Intro />
+      <SiteFreshnessBanner />
       <SupportWindowContent />
     </section>
   );

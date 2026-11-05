@@ -623,10 +623,9 @@ h3 {
 }
 
 @media (min-width: 900px) {
-  .sidebar {
+  .sidebar > nav {
     position: sticky;
     top: 0;
-    align-self: start;
     max-height: 100vh;
     overflow-y: auto;
   }
@@ -645,4 +644,10 @@ h3 {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+.route-error {
+  max-width: 48rem;
+  margin: 3rem auto;
+  padding: 0 1.25rem;
 }

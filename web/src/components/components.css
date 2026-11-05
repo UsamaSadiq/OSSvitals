@@ -216,7 +216,7 @@
   flex-wrap: nowrap;
   gap: 0.25rem;
   overflow-x: auto;
-  scrollbar-width: none;
+  scrollbar-width: thin;
   scroll-snap-type: x proximity;
   border-bottom: 1px solid var(--border);
 }
@@ -232,6 +232,10 @@
   border-bottom: 2px solid transparent;
   padding: 0.5rem 0.75rem;
   cursor: pointer;
+}
+
+.tabs__tab:focus-visible {
+  outline-offset: -3px;
 }
 
 .tabs__tab[aria-selected="true"] {

@@ -160,8 +160,8 @@ export function Components() {
   return (
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Components</h1>
-      <SiteFreshnessBanner />
       <Intro />
+      <SiteFreshnessBanner />
       <ComponentsContent />
     </section>
   );
