@@ -335,8 +335,7 @@ function ExtensionPointsSection({ section }: { section: ExtensionPoints }) {
             <code>{section.packages?.filters ?? "openedx-filters"}</code> and{" "}
             <code>{section.packages?.events ?? "openedx-events"}</code> versions the platform pins. Plugin slots are
             folders named <code>…Slot</code>, at any depth, under {roots.length > 0 ? roots : "the slot folders"} in each{" "}
-            <code>frontend-app-*</code>
-            repository at the same tag.
+            <code>frontend-app-*</code> repository at the same tag.
           </p>
           <div className="pf-summary">
             <ExtensionTile
