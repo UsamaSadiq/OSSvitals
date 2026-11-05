@@ -9,6 +9,7 @@ import { useParamUpdater, type ParamChanges } from "../../components/queryParams
 import { ShareLink } from "../../components/ShareLink";
 import type { FailingChecksView } from "../../data/schemas";
 import { useView } from "../../data/useView";
+import { formatNumber } from "../../format";
 import { toCsv } from "../../format/csv";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
@@ -120,20 +121,18 @@ function Explorer({ rows, failing }: { rows: readonly RepoRow[]; failing: Failin
   return (
     <>
       <RepoFacets filters={filters} options={options} onChange={changeFilters} />
+      <p className="visually-hidden" role="status">
+        {resultsLine(shown.length, rows.length)}
+      </p>
       {shown.length === 0 ? (
-        <>
-          <p className="repos-count" role="status">
-            {resultsLine(shown.length, rows.length)}
-          </p>
-          <NoMatches onClear={clear} />
-        </>
+        <NoMatches onClear={clear} />
       ) : (
         <ResultsTable
           rows={shown}
           sort={sort}
           page={Number(params.get(PARAMS.page) ?? "1")}
           onChange={update}
-          count={<span role="status">{resultsLine(shown.length, rows.length)}</span>}
+          count={`${formatNumber(shown.length)} of ${formatNumber(rows.length)}`}
           actions={
             <>
               {hasActiveFilters(filters) && (

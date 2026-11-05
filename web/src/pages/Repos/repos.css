@@ -79,13 +79,6 @@
   fill: currentColor;
 }
 
-.repos-count {
-  margin: 0;
-  margin-right: auto;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
 .repos-clear {
   padding: 0;
   border: 0;
@@ -107,7 +100,7 @@
 @media (max-width: 599px) {
   .repos .data-table td:nth-child(2) {
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   .repos .repo-name__org {

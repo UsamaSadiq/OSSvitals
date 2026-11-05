@@ -55,6 +55,7 @@ function RepoTable({ title }: { title: string }) {
   return (
     <DataTable
       caption={title}
+      captionHidden
       columns={COLUMNS}
       rows={repos.data.records}
       rowKey={(row) => row.repo_name}

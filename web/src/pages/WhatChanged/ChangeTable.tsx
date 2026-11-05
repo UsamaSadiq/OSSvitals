@@ -17,5 +17,5 @@ const COLUMNS: Column<ChangeRow>[] = [
 const rowKey = (row: ChangeRow) => `${row.repo_name}\u0000${row.check}`;
 
 export function ChangeTable({ caption, rows }: { caption: string; rows: readonly ChangeRow[] }) {
-  return <DataTable caption={caption} columns={COLUMNS} rows={rows} rowKey={rowKey} />;
+  return <DataTable caption={caption} captionHidden columns={COLUMNS} rows={rows} rowKey={rowKey} />;
 }

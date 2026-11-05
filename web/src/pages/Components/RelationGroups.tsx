@@ -14,26 +14,28 @@ function relationCountText(count: number): string {
 function RelationTable({ group }: { group: RelationGroup }) {
   const caption = `Relations declared by ${group.repo}`;
   return (
-    <div className="table-scroll data-table__scroll" role="region" aria-label={`${caption}, scrollable`} tabIndex={0}>
-      <table className="data-table">
-        <caption className="visually-hidden">{caption}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Relation</th>
-            <th scope="col">Target</th>
-            <th scope="col">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {group.relations.map((relation) => (
-            <tr key={`${relation.relation}|${relation.target}`}>
-              <td>{relation.relation}</td>
-              <td>{relation.target}</td>
-              <td>{relation.status}</td>
+    <div className="table-card">
+      <div className="table-scroll data-table__scroll" role="region" aria-label={`${caption}, scrollable`} tabIndex={0}>
+        <table className="data-table">
+          <caption className="visually-hidden">{caption}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Relation</th>
+              <th scope="col">Target</th>
+              <th scope="col">Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {group.relations.map((relation) => (
+              <tr key={`${relation.relation}|${relation.target}`}>
+                <td>{relation.relation}</td>
+                <td>{relation.target}</td>
+                <td>{relation.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

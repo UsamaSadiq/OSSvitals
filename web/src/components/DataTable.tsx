@@ -1,5 +1,5 @@
 import "./components.css";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { EmptyState } from "./EmptyState";
 import { sortRows, type Comparator, type SortDirection, type SortValue } from "./sortRows";
 
@@ -14,8 +14,6 @@ export interface Column<Row> {
   wrap?: boolean;
   /** Secondary columns are hidden on narrow screens. */
   priority?: "primary" | "secondary";
-  /** Pinned to the left edge while the table scrolls sideways. */
-  sticky?: boolean;
 }
 
 export interface SortState {
@@ -31,8 +29,6 @@ interface DataTableProps<Row> {
   description?: ReactNode;
   count?: ReactNode;
   actions?: ReactNode;
-  density?: "comfortable" | "compact";
-  striped?: boolean;
   columns: Column<Row>[];
   rows: readonly Row[];
   rowKey: (row: Row) => string;
@@ -75,18 +71,22 @@ function sortedRows<Row>(
  * Whether the table fits its box without scrolling sideways. A table that fits needs no scroll container, so its
  * header can stick to the page instead of to the box; a table with ``maxHeight`` always scrolls in its own box.
  */
-function useFits(ref: React.RefObject<HTMLDivElement | null>, scrollsOwnBox: boolean): boolean {
+function useFits(scrollsOwnBox: boolean): [(node: HTMLDivElement | null) => void, boolean] {
+  const [node, setNode] = useState<HTMLDivElement | null>(null);
   const [fits, setFits] = useState(false);
-  useEffect(() => {
-    const element = ref.current;
-    if (scrollsOwnBox || !element || typeof ResizeObserver === "undefined") return;
-    const measure = () => setFits(element.scrollWidth <= element.clientWidth);
+  useLayoutEffect(() => {
+    if (scrollsOwnBox || !node || typeof ResizeObserver === "undefined") {
+      setFits(false);
+      return;
+    }
+    const measure = () => setFits(node.scrollWidth <= node.clientWidth);
     const observer = new ResizeObserver(measure);
-    observer.observe(element);
+    observer.observe(node);
+    if (node.firstElementChild) observer.observe(node.firstElementChild);
     measure();
     return () => observer.disconnect();
-  }, [ref, scrollsOwnBox]);
-  return !scrollsOwnBox && fits;
+  }, [node, scrollsOwnBox]);
+  return [setNode, !scrollsOwnBox && fits];
 }
 
 export function cellClass<Row>(column: Column<Row>): string | undefined {
@@ -97,7 +97,6 @@ export function cellClass<Row>(column: Column<Row>): string | undefined {
     align === "end" && !column.numeric ? "data-table__end" : null,
     column.wrap ? "data-table__wrap" : null,
     column.priority === "secondary" ? "data-table__col--secondary" : null,
-    column.sticky ? "data-table__sticky" : null,
   ].filter(Boolean);
   return classes.length ? classes.join(" ") : undefined;
 }
@@ -167,8 +166,6 @@ export function DataTable<Row>({
   description,
   count,
   actions,
-  density = "comfortable",
-  striped = false,
   columns,
   rows,
   rowKey,
@@ -180,17 +177,15 @@ export function DataTable<Row>({
   onSortChange,
 }: DataTableProps<Row>) {
   const titleId = useId();
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useSort(initialSort, controlledSort, onSortChange);
   const visibleRows = useMemo(() => sortedRows(rows, columns, sort, tieBreak), [rows, columns, sort, tieBreak]);
-  const fits = useFits(scrollRef, Boolean(maxHeight));
+  const [scrollRef, fits] = useFits(Boolean(maxHeight));
   const titled = !captionHidden;
-  const cardClass = ["table-card", density === "compact" ? "table-card--compact" : null].filter(Boolean).join(" ");
   const regionLabel = { "aria-label": `${caption}, scrollable` };
   const tableLabel = titled ? { "aria-labelledby": titleId } : {};
 
   return (
-    <div className={cardClass}>
+    <div className="table-card">
       {titled && (
         <TitleBar
           id={titleId}
@@ -214,7 +209,7 @@ export function DataTable<Row>({
           tabIndex={fits ? undefined : 0}
           style={maxHeight ? { maxHeight } : undefined}
         >
-          <table className={`data-table${striped ? " data-table--striped" : ""}`} {...tableLabel}>
+          <table className="data-table" {...tableLabel}>
             {captionHidden && <caption className="visually-hidden">{caption}</caption>}
             <thead>
               <tr>

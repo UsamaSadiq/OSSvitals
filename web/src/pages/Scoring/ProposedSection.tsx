@@ -21,7 +21,7 @@ type Migration = Proposed["migration"];
 const SWAP_COLUMNS: Column<SwapRow>[] = [
   { key: "metric", header: "Metric", cell: (row) => row.metric, sortValue: (row) => row.metric },
   { key: "replaces", header: "Replaces", cell: (row) => row.replaces, sortValue: (row) => row.replaces },
-  { key: "rule", header: "Proposed rule", cell: (row) => <CodeText text={row.rule} /> },
+  { key: "rule", header: "Proposed rule", wrap: true, cell: (row) => <CodeText text={row.rule} /> },
   {
     key: "measured",
     header: "Measured",
@@ -84,39 +84,41 @@ function MigrationGrid({ migration }: { migration: Migration }) {
   const rows = Object.entries(migration);
   const proposedGrades = Object.keys(rows[0]?.[1] ?? {});
   return (
-    <div className="table-scroll data-table__scroll" role="region" aria-label="How grades would move" tabIndex={0}>
-      <table className="data-table scoring-migration">
-        <caption className="visually-hidden">How grades would move</caption>
-        <thead>
-          <tr>
-            <th scope="col" rowSpan={2}>
-              Current grade
-            </th>
-            <th scope="colgroup" colSpan={proposedGrades.length}>
-              Proposed grade
-            </th>
-          </tr>
-          <tr>
-            {proposedGrades.map((grade) => (
-              <th key={grade} scope="col" className="data-table__numeric">
-                {grade}
+    <div className="table-card">
+      <div className="table-scroll data-table__scroll" role="region" aria-label="How grades would move" tabIndex={0}>
+        <table className="data-table scoring-migration">
+          <caption className="visually-hidden">How grades would move</caption>
+          <thead>
+            <tr>
+              <th scope="col" rowSpan={2}>
+                Current grade
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([current, counts]) => (
-            <tr key={current}>
-              <th scope="row">{current}</th>
+              <th scope="colgroup" colSpan={proposedGrades.length}>
+                Proposed grade
+              </th>
+            </tr>
+            <tr>
               {proposedGrades.map((grade) => (
-                <td key={grade} className="data-table__numeric">
-                  {counts[grade] ?? 0}
-                </td>
+                <th key={grade} scope="col" className="data-table__numeric">
+                  {grade}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map(([current, counts]) => (
+              <tr key={current}>
+                <th scope="row">{current}</th>
+                {proposedGrades.map((grade) => (
+                  <td key={grade} className="data-table__numeric">
+                    {counts[grade] ?? 0}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cellClass, DataTable, type Column } from "./DataTable";
 
 interface Row {
@@ -69,13 +69,55 @@ describe("DataTable", () => {
 describe("cellClass", () => {
   const base = { key: "k", header: "K", cell: () => null };
 
-  it("combines alignment, wrapping, priority and pinning", () => {
+  it("combines alignment, wrapping and priority", () => {
     expect(cellClass(base)).toBeUndefined();
     expect(cellClass({ ...base, numeric: true })).toBe("data-table__numeric");
     expect(cellClass({ ...base, align: "center" })).toBe("data-table__center");
     expect(cellClass({ ...base, align: "end" })).toBe("data-table__end");
-    expect(cellClass({ ...base, wrap: true, priority: "secondary", sticky: true })).toBe(
-      "data-table__wrap data-table__col--secondary data-table__sticky",
+    expect(cellClass({ ...base, wrap: true, priority: "secondary" })).toBe("data-table__wrap data-table__col--secondary");
+  });
+});
+
+describe("DataTable width fitting", () => {
+  let widths = { scroll: 0, client: 0 };
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
     );
+    vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(() => widths.scroll);
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(() => widths.client);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("drops the scroll box when the table fits, so the header sticks to the page", () => {
+    widths = { scroll: 600, client: 800 };
+    render(<DataTable caption="Fits" columns={COLUMNS} rows={ROWS} rowKey={(row) => row.name} />);
+
+    expect(screen.queryByRole("region")).not.toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Fits" }).parentElement).toHaveClass("data-table__scroll--fits");
+  });
+
+  it("keeps a focusable scroll region when the table is wider than its box", () => {
+    widths = { scroll: 1200, client: 800 };
+    render(<DataTable caption="Wide" columns={COLUMNS} rows={ROWS} rowKey={(row) => row.name} />);
+
+    expect(screen.getByRole("region", { name: "Wide, scrollable" })).toHaveAttribute("tabindex", "0");
+  });
+
+  it("measures the box that appears when an empty table gets rows", () => {
+    widths = { scroll: 600, client: 800 };
+    const { rerender } = render(<DataTable caption="Later" columns={COLUMNS} rows={[]} rowKey={(row) => row.name} />);
+    rerender(<DataTable caption="Later" columns={COLUMNS} rows={ROWS} rowKey={(row) => row.name} />);
+
+    expect(screen.getByRole("table", { name: "Later" }).parentElement).toHaveClass("data-table__scroll--fits");
   });
 });

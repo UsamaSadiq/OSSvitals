@@ -135,6 +135,7 @@ export function OwnerSummaryTable({ rows }: { rows: readonly OwnerRecord[] }) {
   return (
     <DataTable
       caption="Owners"
+      headingLevel={2}
       count={formatCount(rows.length, "owner")}
       columns={OWNER_COLUMNS}
       rows={rows}
@@ -162,6 +163,7 @@ export function GroupTable({ group, rows }: { group: GroupName; rows: readonly G
   return (
     <DataTable
       caption={`Repositories by ${group}`}
+      headingLevel={2}
       columns={GROUP_COLUMNS[group]}
       rows={rows}
       rowKey={(row) => groupLabel(row, group)}
@@ -174,6 +176,7 @@ export function HandleReposTable({ rows }: { rows: readonly HandleRepo[] }) {
   return (
     <DataTable
       caption="Repositories matching the handle"
+      headingLevel={2}
       columns={HANDLE_COLUMNS}
       rows={rows}
       rowKey={(row) => row.repo_name}

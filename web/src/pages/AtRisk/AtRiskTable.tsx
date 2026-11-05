@@ -86,6 +86,7 @@ export function AtRiskTable({ rows }: { rows: readonly AtRiskRow[] }) {
   return (
     <DataTable
       caption="Repositories at risk"
+      headingLevel={2}
       count={formatCount(rows.length, "repository", "repositories")}
       columns={columns}
       rows={rows}

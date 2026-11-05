@@ -32,6 +32,7 @@ function RedundantTable({ records }: { records: readonly RedundantRow[] }) {
   return (
     <DataTable
       caption="Redundant bot PRs"
+      headingLevel={2}
       count={formatCount(records.length, "PR")}
       columns={COLUMNS}
       rows={records}
