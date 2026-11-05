@@ -43,7 +43,11 @@ function Totals({ records }: { records: ChecksView["records"] }) {
     <div className="checks-catalog__kpis">
       <KpiTile label="Checks collected" value={records.length} />
       <KpiTile label="Feeding the score" value={countScored(records)} />
-      <KpiTile label="Missing descriptions" value={countMissingDescriptions(records)} />
+      <KpiTile
+        label="Missing descriptions"
+        value={countMissingDescriptions(records)}
+        tone={countMissingDescriptions(records) > 0 ? "warn" : undefined}
+      />
     </div>
   );
 }

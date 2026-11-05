@@ -157,12 +157,6 @@ details[open] > .finding-card__summary .finding-card__hint::after {
   padding: 0 0 0.75rem;
 }
 
-.components-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 1rem;
-}
-
 .components-filters .query-select {
   flex: 1 1 12rem;
 }

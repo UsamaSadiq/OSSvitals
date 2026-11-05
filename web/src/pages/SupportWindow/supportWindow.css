@@ -13,30 +13,6 @@
   margin: 1rem 0;
 }
 
-.sw-chip {
-  --tone: var(--muted);
-  display: inline-block;
-  padding: 0.1rem 0.5rem;
-  border: 1px solid var(--tone);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: var(--fs-small);
-  white-space: nowrap;
-}
-
-.sw-chip--drift,
-.sw-chip--eol {
-  --tone: var(--fail);
-}
-
-.sw-chip--eol_soon {
-  --tone: var(--warn);
-}
-
-.sw-chip--ok {
-  --tone: var(--success);
-}
-
 .sw-timeline {
   overflow-x: auto;
 }

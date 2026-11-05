@@ -9,6 +9,7 @@ interface KpiTileProps {
   value: ReactNode;
   delta?: KpiDelta | null;
   help?: string;
+  tone?: KpiTone;
 }
 
 function DeltaBadge({ delta }: { delta: KpiDelta }) {
@@ -30,10 +31,13 @@ function HelpDisclosure({ label, help }: { label: string; help: string }) {
   );
 }
 
-export function KpiTile({ label, value, delta, help }: KpiTileProps) {
+export type KpiTone = "good" | "warn" | "fail";
+
+/** Toned tiles stand out by an edge and the value colour; the label still says what the number means. */
+export function KpiTile({ label, value, delta, help, tone }: KpiTileProps) {
   const labelId = useId();
   return (
-    <div className="kpi-tile" role="group" aria-labelledby={labelId}>
+    <div className={tone ? `kpi-tile kpi-tile--${tone}` : "kpi-tile"} role="group" aria-labelledby={labelId}>
       <div className="kpi-tile__header">
         <p className="kpi-tile__label" id={labelId}>
           {label}
