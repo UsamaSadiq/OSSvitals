@@ -70,7 +70,6 @@ export function FindingReposTable({ label, repos }: { label: string; repos: read
   return (
     <DataTable
       caption={`Repositories with ${label}`}
-      captionHidden
       columns={FINDING_COLUMNS}
       rows={repos}
       rowKey={(row) => row.repo_name}
@@ -84,7 +83,6 @@ export function ComponentsTable({ rows }: { rows: readonly ComponentRow[] }) {
   return (
     <DataTable
       caption="Declared components"
-      captionHidden
       columns={columns}
       rows={rows}
       rowKey={(row) => row.repo_name}

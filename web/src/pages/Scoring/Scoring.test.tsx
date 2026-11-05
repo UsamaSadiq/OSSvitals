@@ -141,7 +141,9 @@ describe("How Scoring Works page", () => {
       "How a score is built",
       "Known limitations",
       "Proposed changes",
+      "Proposed metric swaps",
       "How grades would move",
+      "Repositories that would change letter grade",
       "Independence",
     ]);
     expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
@@ -228,7 +230,7 @@ describe("How Scoring Works page", () => {
     expect(within(rowA).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["39", "18", "0", "0", "0"]);
     expect(screen.getByText(/^Rows are today's grades, columns the proposed ones/)).toBeInTheDocument();
 
-    expect(screen.getByText("2 repositories would change letter grade:")).toBeInTheDocument();
+    expect(screen.getByText("2 repositories")).toBeInTheDocument();
     const changes = screen.getByRole("table", { name: "Repositories that would change letter grade" });
     expect(within(changes).getByRole("link", { name: "openedx/modular-learning" })).toHaveAttribute(
       "href",

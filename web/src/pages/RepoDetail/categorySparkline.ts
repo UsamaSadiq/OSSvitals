@@ -75,7 +75,7 @@ export function categorySparkline(category: string, points: readonly RatePoint[]
         y: { axis: null, domain: [0, 100] },
       },
       marks: [
-        { type: "lineY", data: points, options: { x: "date", y: "value", stroke: "var(--accent)", strokeWidth: 2 } },
+        { type: "lineY", data: points, options: { x: "date", y: "value", stroke: "var(--chart-bar)", strokeWidth: 2 } },
         tipMark(points, "x", { x: "date", y: "value", title: "tip", maxRadius: SPARKLINE_POINTER_RADIUS }),
       ],
     },

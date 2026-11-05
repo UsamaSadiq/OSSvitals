@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { DataTable, type SortState } from "../../components/DataTable";
 import { DownloadButton } from "../../components/DownloadButton";
@@ -71,11 +71,15 @@ function ResultsTable({
   sort,
   page,
   onChange,
+  count: countLine,
+  actions,
 }: {
   rows: readonly RepoRow[];
   sort: SortState | undefined;
   page: number;
   onChange: (changes: ParamChanges) => void;
+  count: ReactNode;
+  actions: ReactNode;
 }) {
   const count = pageCount(rows.length, PAGE_SIZE);
   const current = clampPage(page, count);
@@ -83,7 +87,9 @@ function ResultsTable({
     <>
       <DataTable
         caption="Repositories"
-        captionHidden
+        headingLevel={2}
+        count={countLine}
+        actions={actions}
         columns={REPO_COLUMNS}
         rows={pageSlice(rows, current, PAGE_SIZE)}
         rowKey={(row) => row.repo_name}
@@ -114,28 +120,36 @@ function Explorer({ rows, failing }: { rows: readonly RepoRow[]; failing: Failin
   return (
     <>
       <RepoFacets filters={filters} options={options} onChange={changeFilters} />
-      <div className="repos-results-bar">
-        <p className="repos-count" role="status">
-          {resultsLine(shown.length, rows.length)}
-        </p>
-        {hasActiveFilters(filters) && shown.length > 0 && (
-          <button type="button" className="repos-clear" onClick={clear}>
-            Clear filters
-          </button>
-        )}
-        {shown.length > 0 && (
-          <DownloadButton
-            label="Download CSV"
-            filename="repositories.csv"
-            mimeType="text/csv"
-            content={() => toCsv(CSV_COLUMNS, shown)}
-          />
-        )}
-      </div>
       {shown.length === 0 ? (
-        <NoMatches onClear={clear} />
+        <>
+          <p className="repos-count" role="status">
+            {resultsLine(shown.length, rows.length)}
+          </p>
+          <NoMatches onClear={clear} />
+        </>
       ) : (
-        <ResultsTable rows={shown} sort={sort} page={Number(params.get(PARAMS.page) ?? "1")} onChange={update} />
+        <ResultsTable
+          rows={shown}
+          sort={sort}
+          page={Number(params.get(PARAMS.page) ?? "1")}
+          onChange={update}
+          count={<span role="status">{resultsLine(shown.length, rows.length)}</span>}
+          actions={
+            <>
+              {hasActiveFilters(filters) && (
+                <button type="button" className="repos-clear" onClick={clear}>
+                  Clear filters
+                </button>
+              )}
+              <DownloadButton
+                label="Download CSV"
+                filename="repositories.csv"
+                mimeType="text/csv"
+                content={() => toCsv(CSV_COLUMNS, shown)}
+              />
+            </>
+          }
+        />
       )}
     </>
   );

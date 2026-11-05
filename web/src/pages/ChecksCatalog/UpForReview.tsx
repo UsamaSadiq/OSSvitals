@@ -1,7 +1,7 @@
 import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import type { ChecksView } from "../../data/schemas";
-import { formatNumber } from "../../format";
+import { formatCount, formatNumber } from "../../format";
 import {
   formatPct,
   formatThreshold,
@@ -46,20 +46,26 @@ function Intro({ checks }: { checks: ChecksView }) {
 function SaturatedTable({ rows }: { rows: SaturatedRow[] }) {
   if (rows.length === 0) return null;
   return (
-    <>
-      <h3>Saturated ({rows.length})</h3>
-      <DataTable caption="Saturated checks" captionHidden columns={SATURATED_COLUMNS} rows={rows} rowKey={(row) => row.check} />
-    </>
+    <DataTable
+      caption="Saturated checks"
+      count={formatCount(rows.length, "check")}
+      columns={SATURATED_COLUMNS}
+      rows={rows}
+      rowKey={(row) => row.check}
+    />
   );
 }
 
 function SparseTable({ rows }: { rows: SparseRow[] }) {
   if (rows.length === 0) return null;
   return (
-    <>
-      <h3>Sparse ({rows.length})</h3>
-      <DataTable caption="Sparse checks" captionHidden columns={SPARSE_COLUMNS} rows={rows} rowKey={(row) => row.check} />
-    </>
+    <DataTable
+      caption="Sparse checks"
+      count={formatCount(rows.length, "check")}
+      columns={SPARSE_COLUMNS}
+      rows={rows}
+      rowKey={(row) => row.check}
+    />
   );
 }
 

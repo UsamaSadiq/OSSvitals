@@ -3,6 +3,7 @@ import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { RepoLink } from "../../components/RepoName";
+import { formatCount } from "../../format";
 import { useSiteMeta } from "../../layout/siteMeta";
 import { CodeText } from "../../components/CodeText";
 import {
@@ -126,10 +127,9 @@ function GradeChanges({ changes }: { changes: readonly ChangeRow[] }) {
   }
   return (
     <>
-      <p>{changes.length} repositories would change letter grade:</p>
       <DataTable
         caption="Repositories that would change letter grade"
-        captionHidden
+        count={formatCount(changes.length, "repository", "repositories")}
         columns={CHANGE_COLUMNS}
         rows={changes}
         rowKey={(row) => row.repo_name}
@@ -150,7 +150,6 @@ export function ProposedSection({ proposed }: { proposed: Proposed }) {
       </p>
       <DataTable
         caption="Proposed metric swaps"
-        captionHidden
         columns={SWAP_COLUMNS}
         rows={proposed.swaps}
         rowKey={(row) => row.metric}

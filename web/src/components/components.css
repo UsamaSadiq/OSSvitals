@@ -238,46 +238,129 @@
   padding-top: 0.75rem;
 }
 
-.data-table__scroll {
-  overflow: auto;
+.table-card {
+  margin-block: 0 var(--space-block);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-alt);
   box-shadow: var(--shadow-card);
+  overflow: clip;
+}
+
+.table-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-card__title {
+  margin: 0;
+  font-size: var(--fs-h3);
+  font-weight: 650;
+}
+
+.table-card__count {
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.table-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.table-card__desc {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.table-card__empty {
+  padding: 1rem;
+}
+
+.data-table__scroll {
+  overflow: auto;
+  background:
+    linear-gradient(to right, var(--surface-alt) 30%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--surface-alt) 30%, transparent) right / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.3), transparent) left / 0.75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.3), transparent) right / 0.75rem 100% no-repeat scroll,
+    var(--surface-alt);
+}
+
+.data-table__scroll--fits {
+  overflow: visible;
 }
 
 .data-table {
+  --cell-py: 0.55rem;
+  --cell-px: 0.75rem;
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-table);
+}
+
+.table-card--compact .data-table {
+  --cell-py: 0.35rem;
 }
 
 .data-table th,
 .data-table td {
-  padding: 0.55rem 0.75rem;
+  padding: var(--cell-py) var(--cell-px);
   text-align: left;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .data-table tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.data-table tbody tr:hover {
-  background: var(--row-hover);
+.data-table .data-table__wrap {
+  white-space: normal;
+  min-width: 14rem;
+  max-width: 44ch;
+}
+
+.data-table .data-table__center {
+  text-align: center;
+}
+
+.data-table .data-table__end {
+  text-align: right;
 }
 
 .data-table thead th {
   position: sticky;
   top: 0;
-  z-index: 1;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.75rem;
+  z-index: 2;
+  padding-block: 0.6rem;
+  background: var(--table-head-bg);
+  color: var(--table-head-text);
+  font-size: 0.8125rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
+  border-bottom: 2px solid var(--border-strong);
+  vertical-align: bottom;
+}
+
+.data-table--striped tbody tr:nth-child(even) {
+  background: var(--row-stripe);
+}
+
+.data-table tbody tr:hover {
+  background: var(--row-hover);
 }
 
 .data-table a {
@@ -295,6 +378,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+.data-table .data-table__numeric a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 0.15em;
+}
+
 .data-table__sort {
   font: inherit;
   font-weight: inherit;
@@ -304,10 +393,15 @@
   background: transparent;
   border: 0;
   padding: 0;
+  min-height: 1.5rem;
   cursor: pointer;
   display: inline-flex;
   gap: 0.3rem;
   align-items: center;
+}
+
+.data-table__numeric .data-table__sort {
+  flex-direction: row-reverse;
 }
 
 .data-table__sort:hover {
@@ -317,6 +411,37 @@
 .data-table__sort-icon {
   color: var(--muted);
   font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.data-table th[aria-sort="ascending"] .data-table__sort-icon,
+.data-table th[aria-sort="descending"] .data-table__sort-icon {
+  color: var(--primary);
+  opacity: 1;
+}
+
+.data-table .data-table__sticky {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface-alt);
+  box-shadow: 1px 0 0 var(--border);
+}
+
+.data-table thead .data-table__sticky {
+  z-index: 3;
+  background: var(--table-head-bg);
+}
+
+@media (max-width: 599px) {
+  .data-table .data-table__col--secondary {
+    display: none;
+  }
+
+  .table-card__actions {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
 }
 
 .repo-pills {
@@ -435,7 +560,7 @@ button.button-link {
 
 .query-select select {
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);

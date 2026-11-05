@@ -14,9 +14,14 @@
   --text: #f1f5f9;
   --muted: #94a3b8;
   --page: #0f172a;
-  --surface: #1e293b;
+  --surface: #172033;
   --surface-alt: #1e293b;
   --border: #334155;
+  --border-strong: #64748b;
+  --table-head-bg: #263247;
+  --table-head-text: #cbd5e1;
+  --row-stripe: color-mix(in srgb, var(--text) 3%, transparent);
+  --chart-bar: #2dd4bf;
 
   --on-primary: #ffffff;
   --sidebar-from: #0a3642;
@@ -33,9 +38,9 @@
   --delta-text: #4ade80;
 
   --grade-a: #4ade80;
-  --grade-b: #34d399;
-  --grade-c: #fbbf24;
-  --grade-d: #fb923c;
+  --grade-b: #a3e635;
+  --grade-c: #fde047;
+  --grade-d: #f97316;
   --grade-f: #f87171;
 
   --grade-a-text: #0f172a;
@@ -57,9 +62,12 @@
   --row-hover: color-mix(in srgb, var(--primary) 8%, transparent);
 
   --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --fs-h1: 1.9rem;
-  --fs-h2: 1.35rem;
-  --fs-h3: 1.05rem;
+  --fs-h1: 2rem;
+  --fs-h2: 1.375rem;
+  --fs-h3: 1.125rem;
+  --fs-table: 0.875rem;
+  --space-section: 2.5rem;
+  --space-block: 1.25rem;
   --fs-small: 0.875rem;
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -83,7 +91,12 @@
   --page: #f1f5f9;
   --surface: #f8fafc;
   --surface-alt: #ffffff;
-  --border: #e2e8f0;
+  --border: #d6dee8;
+  --border-strong: #7c8ba1;
+  --table-head-bg: #e9eef4;
+  --table-head-text: #334155;
+  --row-stripe: #f6f8fb;
+  --chart-bar: #0f766e;
 
   --on-primary: #ffffff;
   --sidebar-from: #0f4c5c;
@@ -100,8 +113,8 @@
   --delta-text: #15803d;
 
   --grade-a: #15803d;
-  --grade-b: #16a34a;
-  --grade-c: #d97706;
+  --grade-b: #65a30d;
+  --grade-c: #ca8a04;
   --grade-d: #ea580c;
   --grade-f: #b91c1c;
 

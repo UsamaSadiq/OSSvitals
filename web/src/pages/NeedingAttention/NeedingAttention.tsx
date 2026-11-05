@@ -8,7 +8,7 @@ import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
 import { RepoLink } from "../../components/RepoName";
 import { ShareLink } from "../../components/ShareLink";
 import { useView } from "../../data/useView";
-import { formatScore } from "../../format";
+import { formatCount, formatScore } from "../../format";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import { ALL_TIERS, attentionCsv, rowsForTier, TIER_OPTIONS, type AttentionRow } from "./attentionRows";
@@ -68,7 +68,8 @@ function AttentionList({ rows }: { rows: readonly AttentionRow[] }) {
     <>
       <DataTable
         caption="Repos needing attention"
-        captionHidden
+        headingLevel={2}
+        count={formatCount(rows.length, "repository", "repositories")}
         columns={COLUMNS}
         rows={rows}
         rowKey={(row) => row.repo_name}

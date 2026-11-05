@@ -10,7 +10,7 @@ import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
 import { RepoLink } from "../../components/RepoName";
 import { ShareLink } from "../../components/ShareLink";
 import { useView } from "../../data/useView";
-import { formatScore } from "../../format";
+import { formatCount, formatScore } from "../../format";
 import { usePageTitle } from "../../layout/pageTitle";
 import { SiteFreshnessBanner } from "../../layout/SiteFreshnessBanner";
 import {
@@ -85,7 +85,7 @@ function RepoTable({ rows }: { rows: readonly RepoRow[] }) {
   return (
     <DataTable
       caption="Repositories by failing check"
-      captionHidden
+      count={formatCount(rows.length, "repository", "repositories")}
       columns={COLUMNS}
       rows={rows}
       rowKey={(row) => row.repo_name}

@@ -38,6 +38,7 @@ export const REPO_COLUMNS: Column<RepoRow>[] = [
   {
     key: "grade",
     header: "Grade",
+    align: "center",
     cell: (row) => <GradePill grade={row.score_letter} />,
     sortValue: (row) => GRADE_ORDER.indexOf(row.score_letter),
   },
@@ -51,6 +52,7 @@ export const REPO_COLUMNS: Column<RepoRow>[] = [
   {
     key: "structural",
     header: "Structural",
+    priority: "secondary",
     cell: (row) => scoreText(row.score_structural),
     sortValue: (row) => scoreSortValue(row.score_structural),
     numeric: true,
@@ -58,6 +60,7 @@ export const REPO_COLUMNS: Column<RepoRow>[] = [
   {
     key: "activity",
     header: "Activity",
+    priority: "secondary",
     cell: (row) => scoreText(row.score_activity),
     sortValue: (row) => scoreSortValue(row.score_activity),
     numeric: true,
@@ -65,12 +68,14 @@ export const REPO_COLUMNS: Column<RepoRow>[] = [
   {
     key: "tier",
     header: "Tier",
+    priority: "secondary",
     cell: (row) => row.repo_tier ?? NO_VALUE,
     sortValue: (row) => row.repo_tier ?? "",
   },
   {
     key: "last_push",
     header: "Last push",
+    priority: "secondary",
     cell: (row) => lastPushDate(row) ?? NO_VALUE,
     sortValue: (row) => lastPushDate(row) ?? "",
   },

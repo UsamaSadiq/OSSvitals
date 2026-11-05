@@ -89,7 +89,7 @@ export function barChart(bars: readonly SeriesBar[], axisLabel: string): Chart |
         y: { label: axisLabel, domain: [0, ymax * 1.15 || 1], grid: true },
       },
       marks: [
-        { type: "barY", data: bars, options: { x: "label", y: "value", fill: "var(--accent)" } },
+        { type: "barY", data: bars, options: { x: "label", y: "value", fill: "var(--chart-bar)" } },
         tipMark(bars, "x", { x: "label", y: "value", title: "tip" }),
       ],
     },

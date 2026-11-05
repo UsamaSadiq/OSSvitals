@@ -40,7 +40,7 @@
 .repos-facet input[type="search"] {
   width: 100%;
   padding: 0.45rem 0.7rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--page);
   color: var(--text);
@@ -79,14 +79,6 @@
   fill: currentColor;
 }
 
-.repos-results-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-  margin-block: 0.75rem;
-}
-
 .repos-count {
   margin: 0;
   margin-right: auto;
@@ -110,4 +102,15 @@
 .repos .data-table th:first-child {
   width: 2.5rem;
   padding-right: 0;
+}
+
+@media (max-width: 599px) {
+  .repos .data-table td:nth-child(2) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .repos .repo-name__org {
+    display: none;
+  }
 }

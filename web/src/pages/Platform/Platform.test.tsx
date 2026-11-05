@@ -95,7 +95,7 @@ describe("Platform page", () => {
     const blocks = await screen.findByRole("table", { name: "Core XBlocks" });
     expect(within(blocks).getByRole("row", { name: /Video/ })).toHaveTextContent("Still built in");
     expect(within(blocks).getByRole("row", { name: /Word Cloud/ })).toHaveTextContent("USE_EXTRACTED_WORD_CLOUD_BLOCK");
-    const pins = screen.getByRole("table", { name: "Extracted packages" });
+    const pins = screen.getByRole("table", { name: "Extracted packages the platform pins" });
     expect(within(pins).getByRole("row", { name: /openedx-events/ })).toHaveTextContent("Not pinned");
   });
 });
