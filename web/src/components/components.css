@@ -238,6 +238,10 @@
   outline-offset: -3px;
 }
 
+.nav__link:focus-visible {
+  outline-offset: -3px;
+}
+
 .tabs__tab[aria-selected="true"] {
   color: var(--text);
   border-bottom-color: var(--primary);

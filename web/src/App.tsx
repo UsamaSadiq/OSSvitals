@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from "react";
-import { createBrowserRouter, RouterProvider } from "react-router";
+import { createBrowserRouter, RouterProvider, type RouteObject } from "react-router";
 import { toSiteMeta } from "./data/siteMeta";
 import { currentOrg } from "./data/org";
 import { useView, type ViewState } from "./data/useView";
@@ -9,7 +9,13 @@ import { TenantProvider } from "./tenants/context";
 import { tenantFor } from "./tenants/registry";
 
 const tenant = tenantFor(currentOrg());
-const router = createBrowserRouter(tenant.routes.map((route) => ({ errorElement: <RouteError />, ...route })));
+/** An error in a page renders inside the shell, so the header and navigation stay; the root one covers the shell itself. */
+function withErrorPages(route: RouteObject): RouteObject {
+  const pages = route.children ? { children: [{ errorElement: <RouteError />, children: route.children }] } : {};
+  return { errorElement: <RouteError />, ...route, ...pages } as RouteObject;
+}
+
+const router = createBrowserRouter(tenant.routes.map(withErrorPages));
 
 function siteMetaFor(meta: ViewState<"meta">): SiteMeta {
   if (meta.status === "ready") return toSiteMeta(meta.data);

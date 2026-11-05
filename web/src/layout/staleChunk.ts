@@ -1,5 +1,12 @@
 const RELOADED_KEY = "ossvitals:reloaded-for";
 
+let reloadPending = false;
+
+/** True once a reload for a new build has started, so the page in between explains it instead of showing an error. */
+export function isReloadPending(): boolean {
+  return reloadPending;
+}
+
 const STALE_CHUNK_MESSAGES = [
   "Failed to fetch dynamically imported module",
   "error loading dynamically imported module",
@@ -29,6 +36,7 @@ export function reloadOnce(storage: Storage | undefined, target: ReloadTarget): 
   } catch {
     return false;
   }
+  reloadPending = true;
   target.reload();
   return true;
 }

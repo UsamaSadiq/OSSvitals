@@ -3,6 +3,11 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RouteError } from "./RouteError";
 
+vi.mock("./staleChunk", async (original) => ({
+  ...(await original<typeof import("./staleChunk")>()),
+  reloadForNewBuild: () => false,
+}));
+
 function Thrower({ error }: { error: Error }): never {
   throw error;
 }
@@ -32,5 +37,27 @@ describe("RouteError", () => {
 
     expect(await screen.findByRole("heading", { name: "Something went wrong" })).toBeInTheDocument();
     expect(screen.getByText("boom")).toBeInTheDocument();
+  });
+});
+
+describe("RouteError for a route response", () => {
+  it("shows the status instead of an object", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const router = createMemoryRouter(
+      [
+        {
+          path: "/",
+          loader: () => {
+            throw new Response(null, { status: 404, statusText: "Not Found" });
+          },
+          element: <p>never</p>,
+          errorElement: <RouteError />,
+        },
+      ],
+    );
+    render(<RouterProvider router={router} />);
+
+    expect(await screen.findByText("404 Not Found")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Go to the Overview" })).toHaveAttribute("href", "/");
   });
 });
