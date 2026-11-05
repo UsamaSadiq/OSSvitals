@@ -442,3 +442,4 @@ def test_platform_carries_upgrade_cost(built):
     assert all(row["deprecations"]["total"] == row["deprecations"]["open"] + row["deprecations"]["closed"] for row in releases)
     assert section["summary"]["deprecations"] == sum(row["deprecations"]["total"] for row in releases)
     assert section["deprecations_url"].startswith("https://github.com/openedx/public-engineering/issues")
+    assert section["withdrawn"] == {"total": 3, "open": 0, "closed": 3}
