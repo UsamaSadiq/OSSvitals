@@ -341,3 +341,36 @@ describe("Platform brief", () => {
     expect(within(nav).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["#modularization", "#stability"]);
   });
 });
+
+describe("Platform summary details", () => {
+  it("dates the brief and drops the status column when every block is extracted", async () => {
+    const blocks = [
+      { block: "Video", toggle: "VIDEO", status: "extracted" as const },
+      { block: "Word Cloud", toggle: "WORD_CLOUD", status: "extracted" as const },
+    ];
+    setView(snapshot({ modularization: modularization({ blocks, summary: { blocks: 2, extracted: 2, percent_extracted: 100 } }) }));
+    renderRoute("/platform");
+
+    const brief = (await screen.findByRole("heading", { name: "In brief" })).closest("section") as HTMLElement;
+    expect(within(brief).getByText(/^Data as of /)).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Core XBlocks" });
+    expect(within(table).queryByRole("columnheader", { name: /Status/ })).not.toBeInTheDocument();
+    expect(screen.getByText("2 of 2 blocks extracted")).toBeInTheDocument();
+  });
+
+  it("opens collapsed sources and data for printing, then closes only those", async () => {
+    setView(snapshot({ trends: trends() }));
+    renderRoute("/platform");
+    await screen.findByRole("heading", { name: "In brief" });
+    const sources = document.querySelectorAll<HTMLDetailsElement>(".pf-sources");
+    sources[0]!.setAttribute("open", "");
+
+    window.dispatchEvent(new Event("beforeprint"));
+    window.dispatchEvent(new Event("beforeprint"));
+    expect([...document.querySelectorAll(".pf-sources, .pf-data")].every((element) => element.hasAttribute("open"))).toBe(true);
+
+    window.dispatchEvent(new Event("afterprint"));
+    expect(sources[0]).toHaveAttribute("open");
+    expect(sources[1]).not.toHaveAttribute("open");
+  });
+});

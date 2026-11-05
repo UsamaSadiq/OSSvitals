@@ -2,12 +2,13 @@ import type { PlatformView } from "../../data/schemas";
 import { formatCount, formatNumber } from "../../format";
 import { change, changeSince, changeText, releaseLabel } from "./platformRows";
 
-export type Verdict = "good" | "watch" | "concern";
+export type Verdict = "good" | "settling" | "watch" | "concern";
 
 export interface Headline {
   figure: string;
   label: string;
-  verdict: Verdict;
+  /** None when there is nothing to compare against, so a first snapshot never reads as good news. */
+  verdict: Verdict | null;
 }
 
 export interface BriefPoint {
@@ -59,6 +60,17 @@ function modularizationPoint(view: PlatformView): BriefPoint | null {
   });
 }
 
+/** Fewer commits reads as a core settling down, not as good or bad on its own, so it gets a neutral verdict. */
+function commitsHeadline(first: number | undefined, latest: number, firstYear: number | undefined, latestYear: number): Headline {
+  if (!first || firstYear === undefined) return { figure: formatNumber(latest), label: `commits in ${latestYear}`, verdict: null };
+  const percent = Math.round((100 * (latest - first)) / first);
+  return {
+    figure: `${percent > 0 ? "+" : percent < 0 ? "\u2212" : ""}${Math.abs(percent)}%`,
+    label: `commits, ${firstYear} to ${latestYear}`,
+    verdict: percent > 0 ? "watch" : "settling",
+  };
+}
+
 function stabilityPoint(view: PlatformView): BriefPoint | null {
   const section = view.trends;
   const { first, latest, first_year: firstYear, latest_year: latestYear } = section?.summary ?? {};
@@ -69,11 +81,7 @@ function stabilityPoint(view: PlatformView): BriefPoint | null {
   return point("Stability", "#stability", [
     `${formatCount(latest.commits, "commit")} by ${formatCount(latest.authors, "author")} in ${latestYear}${commits ? `, commits ${commits}` : ""}`,
     now != null ? `${formatCount(now, "line")} of Python outside tests and migrations${lines ? `, ${lines}` : ""}` : null,
-  ], {
-    figure: formatNumber(latest.commits),
-    label: `commits in ${latestYear}`,
-    verdict: first && latest.commits > first.commits ? "watch" : "good",
-  });
+  ], commitsHeadline(first?.commits, latest.commits, firstYear, latestYear));
 }
 
 function extensionPoint(view: PlatformView): BriefPoint | null {
@@ -95,7 +103,7 @@ function extensionPoint(view: PlatformView): BriefPoint | null {
   ], slots?.now != null ? {
     figure: formatNumber(slots.now),
     label: "frontend plugin slots",
-    verdict: slots.first && slots.now < slots.first.count ? "watch" : "good",
+    verdict: slots.first ? (slots.now < slots.first.count ? "watch" : "good") : null,
   } : null);
 }
 
@@ -125,11 +133,10 @@ function upgradePoint(view: PlatformView): BriefPoint | null {
   return point("Upgrade cost", "#upgrade-cost", [
     days != null ? `A named release every ${formatCount(days, "day")} (median)` : null,
     latest ? releaseCostText(latest) : null,
-    open ? `${formatCount(open, "deprecation")} ${open === 1 ? "is" : "are"} still open` : null,
-  ], days != null ? {
-    figure: formatCount(days, "day"),
-    label: "between releases (median)",
-    verdict: open ? "watch" : "good",
+  ], open != null ? {
+    figure: formatNumber(open),
+    label: open === 1 ? "deprecation still open" : "deprecations still open",
+    verdict: open > 0 ? "watch" : "good",
   } : null);
 }
 

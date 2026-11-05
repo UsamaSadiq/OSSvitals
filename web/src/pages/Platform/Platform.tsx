@@ -114,7 +114,7 @@ function BlocksTable({ blocks }: { blocks: readonly Block[] }) {
 
 /** Fewer legacy files, more extension points and fewer open deprecations are good news; colour says so. */
 function deltaFor(text: string | null, percent: number | null, lowerIsBetter: boolean) {
-  if (!text || percent === null || percent === 0) return null;
+  if (!text || percent === null || Math.round(percent) === 0) return null;
   const improved = percent < 0 === lowerIsBetter;
   return { text, direction: percent < 0 ? ("down" as const) : ("up" as const), tone: improved ? ("good" as const) : ("bad" as const) };
 }
@@ -364,7 +364,7 @@ function ExtensionPointsSection({ section }: { section: ExtensionPoints }) {
         <EmptyState kind="info" title="Not collected yet." body="Published daily by the collect-maintenance workflow." />
       ) : (
         <>
-          <p className="pf-section__lede">
+          <p className="page-lede">
             Ways to change the platform without forking it, at each named release and on the main branches now.
           </p>
           <div className="pf-summary">
@@ -459,7 +459,7 @@ function UpgradeCostSection({ section }: { section: UpgradeCost }) {
         <EmptyState kind="info" title="Not collected yet." body="Published daily by the collect-maintenance workflow." />
       ) : (
         <>
-          <p className="pf-section__lede">What each named release removes or changes for operators.</p>
+          <p className="page-lede">What each named release removes or changes for operators.</p>
           <div className="pf-summary">
             <KpiTile
               label="Time between releases"
@@ -521,12 +521,13 @@ function Sections({ view }: { view: PlatformView }) {
 
 const VERDICT_BADGES: Record<Verdict, { tone: BadgeTone; label: string }> = {
   good: { tone: "good", label: "On track" },
+  settling: { tone: "info", label: "Settling" },
   watch: { tone: "warn", label: "Watch" },
   concern: { tone: "fail", label: "Concern" },
 };
 
 function BriefCard({ point }: { point: BriefPoint }) {
-  const verdict = point.headline ? VERDICT_BADGES[point.headline.verdict] : null;
+  const verdict = point.headline?.verdict ? VERDICT_BADGES[point.headline.verdict] : null;
   return (
     <li className="pf-brief__card">
       <div className="pf-brief__top">
@@ -553,6 +554,7 @@ function Brief({ view }: { view: PlatformView }) {
   return (
     <section className="pf-section pf-brief" id="brief" aria-labelledby="pf-brief-heading">
       <h2 id="pf-brief-heading">In brief</h2>
+      <p className="caption pf-brief__asof">Data as of {formatUtcDate(view.metadata.snapshot_timestamp ?? view.metadata.generated_at)}</p>
       <ul className="pf-brief__cards">
         {points.map((point) => (
           <BriefCard key={point.topic} point={point} />
@@ -574,12 +576,17 @@ function sectionLinks(view: PlatformView): { href: string; label: string }[] {
 /** Collapsed sources and data tables open for printing, so a printed page is the whole report. */
 function useOpenDetailsForPrint() {
   useEffect(() => {
-    let opened: HTMLDetailsElement[] = [];
+    const opened = new Set<HTMLDetailsElement>();
     const open = () => {
-      opened = [...document.querySelectorAll<HTMLDetailsElement>(".pf-sources:not([open]), .pf-data:not([open])")];
-      opened.forEach((element) => element.setAttribute("open", ""));
+      document.querySelectorAll<HTMLDetailsElement>(".pf-sources:not([open]), .pf-data:not([open])").forEach((element) => {
+        element.setAttribute("open", "");
+        opened.add(element);
+      });
     };
-    const restore = () => opened.forEach((element) => element.removeAttribute("open"));
+    const restore = () => {
+      opened.forEach((element) => element.removeAttribute("open"));
+      opened.clear();
+    };
     window.addEventListener("beforeprint", open);
     window.addEventListener("afterprint", restore);
     return () => {
@@ -590,7 +597,6 @@ function useOpenDetailsForPrint() {
 }
 
 function SectionLinks({ view }: { view: PlatformView }) {
-  useOpenDetailsForPrint();
   return (
     <nav className="pf-nav" aria-label="Sections on this page">
       <ul>
@@ -606,6 +612,7 @@ function SectionLinks({ view }: { view: PlatformView }) {
 
 function PlatformContent() {
   const platform = useView("platform");
+  useOpenDetailsForPrint();
   if (platform.status === "loading") return <Loading label="Loading platform facts…" />;
   if (platform.status === "error") {
     return <ErrorState title="The platform data could not be loaded." detail={platform.error.message} />;

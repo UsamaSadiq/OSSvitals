@@ -25,7 +25,6 @@
   font-size: 1rem;
 }
 
-
 .pf-brief__cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
@@ -91,19 +90,12 @@
   list-style: none;
 }
 
-.pf-nav a {
-  display: inline-block;
-  padding: 0.2rem 0.75rem;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  font-size: var(--fs-small);
-  font-weight: 600;
-  text-decoration: none;
+.pf-nav ul {
+  column-gap: 1.25rem;
 }
 
-.pf-section__lede {
-  margin: 0 0 var(--space-block);
-  max-width: 72ch;
+.pf-nav a {
+  font-weight: 600;
 }
 
 .pf-sources,
@@ -123,16 +115,13 @@
 }
 
 @media print {
-  .sidebar,
-  .header,
-  .footer,
   .pf-nav,
   .pf-sources > summary,
   .pf-data > summary {
     display: none;
   }
+}
 
-  .shell {
-    display: block;
-  }
+.pf-brief__asof {
+  margin: -0.25rem 0 0;
 }

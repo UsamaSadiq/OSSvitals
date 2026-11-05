@@ -114,7 +114,7 @@ describe("platform brief", () => {
         topic: "Stability",
         href: "#stability",
         text: "1,097 commits by 183 authors in 2025, commits down 58% since 2020. 356,721 lines of Python outside tests and migrations, up 23% since 2020.",
-        headline: { figure: "1,097", label: "commits in 2025", verdict: "good" },
+        headline: { figure: "\u221258%", label: "commits, 2020 to 2025", verdict: "settling" },
       },
       {
         topic: "Extension points",
@@ -125,15 +125,15 @@ describe("platform brief", () => {
       {
         topic: "Upgrade cost",
         href: "#upgrade-cost",
-        text: "A named release every 186 days (median). 7 deprecations name Verawood as the first release without them (4 still open), and its release notes list 4 breaking changes. 18 deprecations are still open.",
-        headline: { figure: "186 days", label: "between releases (median)", verdict: "watch" },
+        text: "A named release every 186 days (median). 7 deprecations name Verawood as the first release without them (4 still open), and its release notes list 4 breaking changes.",
+        headline: { figure: "18", label: "deprecations still open", verdict: "watch" },
       },
     ]);
   });
 
   it("uses singular forms for one", () => {
     expect(upgradeText([upgradeRelease("sumac", "2024-12-13", 1, 1, 1)], 1)).toBe(
-      "A named release every 186 days (median). 1 deprecation names Sumac as the first release without it (1 still open), and its release notes list 1 breaking change. 1 deprecation is still open.",
+      "A named release every 186 days (median). 1 deprecation names Sumac as the first release without it (1 still open), and its release notes list 1 breaking change.",
     );
   });
 
@@ -194,7 +194,7 @@ describe("platform brief verdicts", () => {
     expect(verdictOf({ modularization: { available: true, summary: { blocks: 8, extracted: 0 } } }, "Modularization")).toBe("concern");
   });
 
-  it("watches rising commits, shrinking extension points and open deprecations", () => {
+  it("watches rising commits, shrinking extension points and open deprecations, and gives no verdict without a baseline", () => {
     const rising = {
       available: true,
       summary: {
@@ -210,5 +210,8 @@ describe("platform brief verdicts", () => {
     expect(verdictOf({ extension_points: shrinking }, "Extension points")).toBe("watch");
     expect(upgradeText([], 0)).toBe("A named release every 186 days (median).");
     expect(verdictOf({ upgrade_cost: upgrade([], 0) }, "Upgrade cost")).toBe("good");
+    expect(verdictOf({ trends: { ...rising, summary: { ...rising.summary, first: undefined } } }, "Stability")).toBeNull();
+    const noBaseline = { available: true, summary: { plugin_slots: { first: null, now: 40 } } };
+    expect(verdictOf({ extension_points: noBaseline }, "Extension points")).toBeNull();
   });
 });
