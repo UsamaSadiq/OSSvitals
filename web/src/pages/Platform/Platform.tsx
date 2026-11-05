@@ -5,7 +5,15 @@ import { ErrorState } from "../../components/ErrorState";
 import { KpiTile } from "../../components/KpiTile";
 import { Loading } from "../../components/Loading";
 import { ShareLink } from "../../components/ShareLink";
-import type { Modularization, PlatformTrends, PlatformView, TrendOrganisation, TrendYear } from "../../data/schemas";
+import type {
+  ExtensionPoints,
+  ExtensionRelease,
+  Modularization,
+  PlatformTrends,
+  PlatformView,
+  TrendOrganisation,
+  TrendYear,
+} from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { formatNumber, formatUtcDate } from "../../format";
 import { usePageTitle } from "../../layout/pageTitle";
@@ -18,6 +26,8 @@ import {
   monthLabel,
   organisationName,
   pinRows,
+  releaseBars,
+  releaseLabel,
   seriesChart,
   setAside,
   yearBars,
@@ -27,6 +37,7 @@ import {
 import "./platform.css";
 
 type Block = NonNullable<Modularization["blocks"]>[number];
+type FirstAndNow = NonNullable<ExtensionPoints["summary"]>["filters"];
 
 const BLOCK_STATUS_LABELS: Record<Block["status"], string> = {
   extracted: "Extracted",
@@ -269,11 +280,107 @@ function TrendsSection({ section }: { section: PlatformTrends }) {
   );
 }
 
+function packageCell(entry: ExtensionRelease["filters"]) {
+  if (entry.version === null) return "Not pinned";
+  return `${count(entry.count)} (${entry.version})`;
+}
+
+const RELEASE_COLUMNS: Column<ExtensionRelease>[] = [
+  {
+    key: "release",
+    header: "Release",
+    cell: (row) => `${releaseLabel(row.release)} (${row.date})`,
+    sortValue: (row) => row.date,
+  },
+  { key: "filters", header: "Filters (version)", cell: (row) => packageCell(row.filters), sortValue: (row) => row.filters.count ?? -1 },
+  { key: "events", header: "Events (version)", cell: (row) => packageCell(row.events), sortValue: (row) => row.events.count ?? -1 },
+  numericColumn("plugin_slots", "Plugin slots", (row) => row.plugin_slots.total),
+  numericColumn("apps", "Apps with slots", (row) => Object.keys(row.plugin_slots.repos).length),
+];
+
+function ExtensionTile({ label, entry, help }: { label: string; entry: FirstAndNow | undefined; help: string }) {
+  const since = entry?.first ? releaseLabel(entry.first.release) : undefined;
+  return (
+    <KpiTile
+      label={label}
+      value={count(entry?.now)}
+      delta={neutral(changeSince(entry?.first?.count, entry?.now, since))}
+      help={help}
+    />
+  );
+}
+
+function ExtensionPointsSection({ section }: { section: ExtensionPoints }) {
+  const releases = section.releases ?? [];
+  const slots = barChart(
+    releaseBars(releases, (row) => row.plugin_slots.total || null, "plugin slots"),
+    "Slots",
+  );
+  const roots = (section.slots_roots ?? []).map((root, index) => (
+    <span key={root}>
+      {index > 0 && " or "}
+      <code>{root}</code>
+    </span>
+  ));
+  return (
+    <section className="pf-section" id="extension-points" aria-labelledby="pf-extension-heading">
+      <h2 id="pf-extension-heading">Extension points</h2>
+      {!section.available ? (
+        <EmptyState kind="info" title="Not collected yet." body="Published daily by the collect-maintenance workflow." />
+      ) : (
+        <>
+          <p className="caption">
+            {collectedText(section.collected_at)}. Ways to change the platform without forking it, at each named
+            release&rsquo;s <code>.1</code> tag and on the main branches now. Filters and events are counted in the{" "}
+            <code>{section.packages?.filters ?? "openedx-filters"}</code> and{" "}
+            <code>{section.packages?.events ?? "openedx-events"}</code> versions the platform pins. Plugin slots are
+            folders under {roots.length > 0 ? roots : "the slot folders"} in each <code>frontend-app-*</code>{" "}
+            repository at the same tag.
+          </p>
+          <div className="pf-summary">
+            <ExtensionTile
+              label="Filters"
+              entry={section.summary?.filters}
+              help="Hooks a plugin can use to change what the platform does, such as blocking an enrollment or changing a page's context."
+            />
+            <ExtensionTile
+              label="Events"
+              entry={section.summary?.events}
+              help="Signals the platform sends when something happens, such as an enrollment or a course publish, for plugins and other services to act on."
+            />
+            <ExtensionTile
+              label="Plugin slots"
+              entry={section.summary?.plugin_slots}
+              help="Places in the frontend apps where an operator can insert, replace or hide a component through configuration."
+            />
+          </div>
+          {slots && (
+            <>
+              <h3>Plugin slots in the frontend apps per release</h3>
+              <ChartFigure chart={slots} />
+            </>
+          )}
+          <h3>By release</h3>
+          <DataTable
+            caption="Extension points by release"
+            captionHidden
+            columns={RELEASE_COLUMNS}
+            rows={releases}
+            rowKey={(row) => row.release}
+            emptyMessage="No releases collected."
+          />
+        </>
+      )}
+    </section>
+  );
+}
+
 function Sections({ view }: { view: PlatformView }) {
   return (
     <>
       <ModularizationSection section={view.modularization} />
       {view.trends && <TrendsSection section={view.trends} />}
+      {view.extension_points && <ExtensionPointsSection section={view.extension_points} />}
     </>
   );
 }

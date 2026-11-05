@@ -43,6 +43,7 @@ def maintenance_keys(
         "support_windows": [maintenance.SUPPORT_WINDOWS],
         "modularization": [maintenance.MODULARIZATION],
         "platform_trends": [maintenance.PLATFORM_TRENDS],
+        "extension_points": [maintenance.EXTENSION_POINTS],
         "waves": [maintenance.wave_file(wave_id) for wave_id in waves_config],
         "campaigns": [maintenance.campaign_file(campaign_id) for campaign_id in campaigns_config or {}],
     }
@@ -244,10 +245,33 @@ def _trends(payload: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def _extension_points(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if payload is None:
+        return {"available": False}
+    meta = payload["metadata"]
+    settings = meta.get("settings", {})
+    return {
+        "available": True,
+        **_stamps(payload),
+        "packages": {name: package.get("package") for name, package in settings.get("packages", {}).items()},
+        "slots_roots": settings.get("frontend", {}).get("slots_roots", []),
+        "summary": meta.get("summary", {}),
+        "releases": payload["records"],
+    }
+
+
+OPTIONAL_SECTIONS = {
+    "trends": (maintenance.PLATFORM_TRENDS, _trends),
+    "extension_points": (maintenance.EXTENSION_POINTS, _extension_points),
+}
+
+
 def build_platform(ctx: BuildContext) -> dict[str, Any]:
+    """Modularization always; the other sections only for a tenant whose collector for them is on."""
     sections = {"modularization": _modularization(ctx.maintenance.get(maintenance.MODULARIZATION))}
-    if maintenance.PLATFORM_TRENDS in ctx.maintenance:
-        sections["trends"] = _trends(ctx.maintenance[maintenance.PLATFORM_TRENDS])
+    for name, (key, build) in OPTIONAL_SECTIONS.items():
+        if key in ctx.maintenance:
+            sections[name] = build(ctx.maintenance[key])
     return envelope(
         ctx,
         PLATFORM_SOURCE,

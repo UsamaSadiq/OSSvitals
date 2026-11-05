@@ -1,0 +1,36 @@
+# Extension points of openedx-platform at each named release, collected daily by collect_maintenance.py.
+# A named release's row is kept once collected (its tags do not move); the current row, read from the platform
+# ref and each frontend repo's default branch, is read again every day.
+# Checked on 2026-11-05: 43 filters (openedx-filters main), 75 events (openedx-events main);
+# plugin slots across the frontend apps: 10 at redwood.1, 78 at ulmo.1, 89 on the default branches.
+platform:
+  repo: openedx/openedx-platform
+  ref: master
+  # The pinned versions of the extension packages a release ships.
+  requirements: requirements/edx/base.txt
+releases:
+  # A named release is the <prefix><name>.1 tag on the platform repo.
+  tag_prefixes: [open-release/, release/]
+  first: maple
+# Each package is read at the tag of the version the platform pins, and every declaration in the matching
+# files is counted.
+packages:
+  filters:
+    package: openedx-filters
+    repo: openedx/openedx-filters
+    tag: "v{version}"
+    files: '(^|/)openedx_filters/(.+/)?filters\.py$'
+    declaration: 'filter_type\s*=\s*"org\.openedx\.'
+  events:
+    package: openedx-events
+    repo: openedx/openedx-events
+    tag: "v{version}"
+    files: '(^|/)openedx_events/(.+/)?signals\.py$'
+    declaration: '\bOpenEdxPublicSignal\('
+# Frontend apps are read at the same release tag; each folder under a slots root is one plugin slot. Apps on
+# frontend-plugin-framework keep slots in src/plugin-slots, apps moved to frontend-base in src/slots.
+# Component repos (header, footer) are left out: they have no release tags, so they could only be counted now.
+frontend:
+  org: openedx
+  repos: '^frontend-app-'
+  slots_roots: [src/plugin-slots, src/slots]

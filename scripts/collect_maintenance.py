@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 import tempfile
 from collections.abc import Callable
@@ -15,6 +16,7 @@ from collectors import (
     campaigns,
     catalog,
     endoflife,
+    extension_points,
     fix_prs,
     github,
     merge,
@@ -42,6 +44,7 @@ FIX_PRS_FILE = "fix_prs.json"
 SUPPORT_WINDOWS_FILE = "support_windows.json"
 MODULARIZATION_FILE = "modularization.json"
 PLATFORM_TRENDS_FILE = "platform_trends.json"
+EXTENSION_POINTS_FILE = "extension_points.json"
 TUTOR_DEFAULTS = "tutor/templates/config/defaults.yml"
 OPENEDX_RELEASE_PATTERN = r'OPENEDX_COMMON_VERSION: "([^"]+)"'
 RELEASE_TAG_PATTERN = r"^([a-z]+)\.1$"
@@ -57,8 +60,9 @@ COLLECTORS = (
     "support_windows",
     "modularization",
     "platform_trends",
+    "extension_points",
 )
-ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization", "platform_trends")
+ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization", "platform_trends", "extension_points")
 MERGEABLE = tuple(name for name in COLLECTORS if name not in ORG_WIDE)
 
 Records = list[dict[str, Any]]
@@ -405,15 +409,26 @@ def _detected(rule: dict[str, str], refs: dict[str, ResolvedRef]) -> support_win
     return support_windows.Detected(support_windows.detect(text, rule["pattern"]), source.repo, source.ref, rule["path"])
 
 
-def _release_dates(settings: dict[str, Any]) -> dict[str, datetime]:
-    repo, dates = settings["tag_repo"], {}
-    for prefix in settings["tag_prefixes"]:
+@dataclass(frozen=True)
+class ReleaseTag:
+    tag: str
+    date: datetime
+
+
+def release_tags(repo: str, prefixes: list[str]) -> dict[str, ReleaseTag]:
+    """Each named release's <prefix><name>.1 tag and the date of the commit it points at."""
+    found = {}
+    for prefix in prefixes:
         for tag, target in github.tag_targets(repo, prefix).items():
             name = support_windows.detect(tag.removeprefix(prefix), RELEASE_TAG_PATTERN)
             committed = github.tagged_commit_date(repo, target) if name else None
             if name and committed:
-                dates[name] = datetime.fromisoformat(committed.replace("Z", "+00:00"))
-    return dates
+                found[name] = ReleaseTag(tag, datetime.fromisoformat(committed.replace("Z", "+00:00")))
+    return found
+
+
+def _release_dates(settings: dict[str, Any]) -> dict[str, datetime]:
+    return {name: release.date for name, release in release_tags(settings["tag_repo"], settings["tag_prefixes"]).items()}
 
 
 def _open_edx_record(settings: dict[str, Any], declared: dict, refs: dict[str, ResolvedRef], **context: Any) -> dict[str, Any]:
@@ -598,6 +613,95 @@ def collect_platform_trends(out_dir: Path, scope: Scope, target: Target) -> int:
     return 0
 
 
+def _package_count(settings: dict[str, Any], version: str | None) -> dict[str, Any]:
+    """Declarations in the package at the tag of ``version``; the count is None when that tag does not exist."""
+    if not version:
+        return extension_points.package_record(None, None)
+    ref = settings["tag"].format(version=version)
+    paths = github.blob_paths(settings["repo"], ref)
+    if paths is None:
+        return extension_points.package_record(version, None)
+    texts = [github.raw_text(settings["repo"], ref, path) or "" for path in extension_points.matching_paths(paths, settings["files"])]
+    return extension_points.package_record(version, extension_points.declaration_count(texts, settings["declaration"]))
+
+
+def _slot_counts(frontend_refs: dict[str, str], slots_roots: list[str]) -> dict[str, int]:
+    """Plugin slots per frontend repo at its ref; a repo without that ref is left out."""
+    counts = {}
+    for repo, ref in frontend_refs.items():
+        paths = github.blob_paths(repo, ref)
+        if paths is not None:
+            counts[repo] = len(extension_points.slot_names(paths, slots_roots))
+    return counts
+
+
+def _extension_row(config: dict[str, Any], release: str, ref: str, frontend_refs: dict[str, str], day: str) -> dict[str, Any]:
+    platform, packages = config["platform"], config["packages"]
+    requirements = github.raw_text(platform["repo"], ref, platform["requirements"])
+    pins = modularization.pinned_versions(requirements, [settings["package"] for settings in packages.values()])
+    return {
+        "release": release,
+        "ref": ref,
+        "date": day,
+        **{name: _package_count(settings, pins.get(settings["package"])) for name, settings in packages.items()},
+        "plugin_slots": extension_points.slots_record(_slot_counts(frontend_refs, config["frontend"]["slots_roots"])),
+    }
+
+
+def _named_releases(config: dict[str, Any]) -> list[tuple[str, ReleaseTag]]:
+    found = release_tags(config["platform"]["repo"], config["releases"]["tag_prefixes"])
+    ordered = sorted(found.items(), key=lambda item: item[1].date)
+    names = [name for name, _ in ordered]
+    first = config["releases"]["first"]
+    return ordered[names.index(first):] if first in names else ordered
+
+
+def _extension_rows(config: dict[str, Any], published: dict[str, Any], today: str) -> Records:
+    frontend = config["frontend"]
+    repos = [repo for repo in github.org_repos(frontend["org"], include_archived=True) if re.search(frontend["repos"], repo["name"])]
+    kept = {
+        row["release"]: row
+        for row in (published.get("records") or [])
+        if extension_points.is_reusable(row, published.get("metadata", {}), config)
+    }
+    named = [
+        kept.get(name)
+        or _extension_row(config, name, release.tag, {repo["full_name"]: release.tag for repo in repos}, release.date.date().isoformat())
+        for name, release in _named_releases(config)
+    ]
+    live = {repo["full_name"]: repo["default_branch"] for repo in repos if not repo.get("archived")}
+    return [*named, _extension_row(config, extension_points.CURRENT, config["platform"]["ref"], live, today)]
+
+
+def collect_extension_points(out_dir: Path, scope: Scope, target: Target) -> int:
+    config = get_config("extension_points", target.org)
+    if not config:
+        print("Extension points: not configured for this org; skipped.")
+        return 0
+    generated_at = now_utc()
+    path = out_dir / EXTENSION_POINTS_FILE
+    try:
+        published = merge.published(path) or {}
+    except ValueError:
+        published = {}
+    try:
+        rows = _extension_rows(config, published, generated_at.date().isoformat())
+    except Exception as error:  # noqa: BLE001 - any failure keeps the published file so the other collectors still publish
+        print(f"::warning::Extension points: {public_message(error)}; kept the published file.")
+        return 0
+    content = publish.payload(
+        rows,
+        generated_at=generated_at,
+        source=extension_points.SOURCE,
+        collector_version=extension_points.VERSION,
+        settings=config,
+        summary=extension_points.summary(rows),
+    )
+    publish.write(path, content, org=target.org)
+    print(f"Extension points: {len(rows) - 1} releases, now {extension_points.summary(rows)}")
+    return 0
+
+
 def select_collectors(requested: list[str] | None, *, merge_run: bool, enabled: list[str]) -> list[str]:
     """The org's enabled collectors (mergeable ones for a --merge run); naming one the org turned off is an error."""
     if requested:
@@ -621,6 +725,7 @@ def main() -> int:
         "support_windows": collect_support_windows,
         "modularization": collect_modularization,
         "platform_trends": collect_platform_trends,
+        "extension_points": collect_extension_points,
     }
     target = _target(args.org)
     scope = Scope(repos=args.repo, merge=args.merge)

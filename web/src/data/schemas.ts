@@ -570,10 +570,41 @@ const trendsSchema = z.object({
   months: z.array(z.object({ month: z.string(), ...trendCountsShape })).optional(),
 });
 
+const packageCountSchema = z.object({ version: z.string().nullable(), count: int.nullable() });
+
+const firstAndNowSchema = z.object({
+  first: z.object({ release: z.string(), count: int }).nullable(),
+  now: int.nullable(),
+});
+
+const extensionPointsSchema = z.object({
+  available: z.boolean(),
+  ...sectionStamps,
+  packages: z.record(z.string(), z.string().nullable()).optional(),
+  slots_roots: z.array(z.string()).optional(),
+  summary: z
+    .object({ filters: firstAndNowSchema, events: firstAndNowSchema, plugin_slots: firstAndNowSchema })
+    .partial()
+    .optional(),
+  releases: z
+    .array(
+      z.object({
+        release: z.string(),
+        ref: z.string(),
+        date: z.string(),
+        filters: packageCountSchema,
+        events: packageCountSchema,
+        plugin_slots: z.object({ total: int, repos: z.record(z.string(), int) }),
+      }),
+    )
+    .optional(),
+});
+
 export const platformSchema = view({
   available: z.boolean(),
   modularization: modularizationSchema,
   trends: trendsSchema.optional(),
+  extension_points: extensionPointsSchema.optional(),
 });
 
 const levelSchema = z.enum(["pass", "warn", "fail", "unknown"]);
@@ -685,6 +716,8 @@ export type Modularization = PlatformView["modularization"];
 export type PlatformTrends = NonNullable<PlatformView["trends"]>;
 export type TrendYear = NonNullable<PlatformTrends["years"]>[number];
 export type TrendOrganisation = TrendYear["organisations"][number];
+export type ExtensionPoints = NonNullable<PlatformView["extension_points"]>;
+export type ExtensionRelease = NonNullable<ExtensionPoints["releases"]>[number];
 export type DatedCount = z.infer<typeof datedCountSchema>;
 export type SupportProduct = NonNullable<SupportWindowView["products"]>[number];
 export type SupportCycle = SupportProduct["cycles"][number];

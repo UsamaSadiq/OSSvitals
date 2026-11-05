@@ -30,6 +30,7 @@ collectors:
   support_windows: false
   modularization: false
   platform_trends: false
+  extension_points: false
 # A page left out of meta.json pages while the collector it shows is off.
 page_collectors:
   /components: catalog

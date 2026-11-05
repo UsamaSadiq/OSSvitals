@@ -1,7 +1,7 @@
 import type { Chart } from "../../components/charts";
 import { tipMark } from "../../components/charts";
 import { formatNumber } from "../../format";
-import type { DatedCount, TrendOrganisation, TrendYear } from "../../data/schemas";
+import type { DatedCount, ExtensionRelease, TrendOrganisation, TrendYear } from "../../data/schemas";
 
 export interface SeriesBar {
   label: string;
@@ -44,10 +44,29 @@ export function changeText(delta: Change | null): string | null {
 export function changeSince(
   from: number | null | undefined,
   to: number | null | undefined,
-  year: number | undefined,
+  since: number | string | undefined,
 ): string | null {
-  if (from == null || to == null || year === undefined || from === 0 || from === to) return null;
-  return percentText((100 * (to - from)) / from, year);
+  if (from == null || to == null || since === undefined || from === 0 || from === to) return null;
+  return percentText((100 * (to - from)) / from, since);
+}
+
+export const CURRENT_RELEASE = "current";
+
+export function releaseLabel(release: string): string {
+  return release === CURRENT_RELEASE ? "Now" : release.charAt(0).toUpperCase() + release.slice(1);
+}
+
+export function releaseBars(
+  releases: readonly ExtensionRelease[],
+  pick: (release: ExtensionRelease) => number | null,
+  noun: string,
+): SeriesBar[] {
+  return releases.flatMap((release) => {
+    const value = pick(release);
+    if (value === null) return [];
+    const label = releaseLabel(release.release);
+    return [{ label, value, tip: `${label}: ${formatNumber(value)} ${noun}` }];
+  });
 }
 
 export function seriesChart(points: readonly DatedCount[], noun: string, axisLabel: string): Chart | null {
