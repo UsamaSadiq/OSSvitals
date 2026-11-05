@@ -1,7 +1,15 @@
 import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata } from "../../data/fixtures";
-import type { Modularization, PlatformTrends, PlatformView, TrendYear, ViewName } from "../../data/schemas";
+import type {
+  ExtensionPoints,
+  ExtensionRelease,
+  Modularization,
+  PlatformTrends,
+  PlatformView,
+  TrendYear,
+  ViewName,
+} from "../../data/schemas";
 import type { ViewState } from "../../data/useView";
 import { renderRoute } from "../../test/renderRoute";
 
@@ -177,5 +185,71 @@ describe("Platform stability section", () => {
     expect(within(organisations).getByRole("row", { name: /axim\.org/ })).toHaveTextContent("90");
     expect(within(organisations).getByRole("row", { name: /Other domains \(4 domains\)/ })).toBeInTheDocument();
     expect(within(organisations).getByRole("row", { name: /GitHub private addresses/ })).toBeInTheDocument();
+  });
+});
+
+function release(name: string, date: string, filters: number | null, events: number, slots: Record<string, number>): ExtensionRelease {
+  const total = Object.values(slots).reduce((sum, value) => sum + value, 0);
+  return {
+    release: name,
+    ref: name === "current" ? "master" : `release/${name}.1`,
+    date,
+    filters: filters === null ? { version: null, count: null } : { version: "2.1.0", count: filters },
+    events: { version: "10.5.0", count: events },
+    plugin_slots: { total, repos: slots },
+  };
+}
+
+function extensionPoints(overrides: Partial<ExtensionPoints> = {}): ExtensionPoints {
+  return {
+    available: true,
+    collected_at: "2026-11-05T08:58:00+00:00",
+    packages: { filters: "openedx-filters", events: "openedx-events" },
+    slots_roots: ["src/plugin-slots", "src/slots"],
+    summary: {
+      filters: { first: { release: "nutmeg", count: 9 }, now: 43 },
+      events: { first: { release: "maple", count: 9 }, now: 75 },
+      plugin_slots: { first: { release: "redwood", count: 10 }, now: 90 },
+    },
+    releases: [
+      release("maple", "2021-12-16", null, 9, {}),
+      release("redwood", "2024-06-17", 19, 50, { "openedx/frontend-app-learning": 4, "openedx/frontend-app-authoring": 6 }),
+      release("current", "2026-11-05", 43, 75, { "openedx/frontend-app-learning": 35, "openedx/frontend-app-authoring": 55 }),
+    ],
+    ...overrides,
+  };
+}
+
+describe("Platform extension points section", () => {
+  it("is absent when the view has no extension points", async () => {
+    renderRoute("/platform");
+
+    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Extension points" })).not.toBeInTheDocument();
+  });
+
+  it("compares each count now with the first release that had it", async () => {
+    setView(snapshot({ extension_points: extensionPoints() }));
+    renderRoute("/platform");
+
+    const filters = await screen.findByRole("group", { name: "Filters" });
+    expect(filters).toHaveTextContent("43");
+    expect(filters).toHaveTextContent("up 378% since Nutmeg");
+    expect(screen.getByRole("group", { name: "Events" })).toHaveTextContent("up 733% since Maple");
+    expect(screen.getByRole("group", { name: "Plugin slots" })).toHaveTextContent("up 800% since Redwood");
+
+    const table = screen.getByRole("table", { name: "Extension points by release" });
+    expect(within(table).getByRole("row", { name: /Maple \(2021-12-16\)/ })).toHaveTextContent("Not pinned");
+    const now = within(table).getByRole("row", { name: /Now \(2026-11-05\)/ });
+    expect(now).toHaveTextContent("43 (2.1.0)");
+    expect(now).toHaveTextContent("90");
+  });
+
+  it("shows an empty state before the first run", async () => {
+    setView(snapshot({ extension_points: { available: false } }));
+    renderRoute("/platform");
+
+    const heading = await screen.findByRole("heading", { name: "Extension points" });
+    expect(heading.closest("section")).toHaveTextContent("Published daily by the collect-maintenance workflow.");
   });
 });

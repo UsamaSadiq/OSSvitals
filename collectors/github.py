@@ -186,9 +186,9 @@ def user_exists(login: str) -> bool:
     return _gh_optional("api", f"users/{segment(login)}", "--jq", ".login") is not None
 
 
-def org_repos(org: str) -> list[dict[str, Any]]:
+def org_repos(org: str, *, include_archived: bool = False) -> list[dict[str, Any]]:
     pages = gh_json("api", f"orgs/{segment(org)}/repos", "--paginate", "--slurp")
-    return [repo for page in pages for repo in page if not repo.get("archived")]
+    return [repo for page in pages for repo in page if include_archived or not repo.get("archived")]
 
 
 def top_level_paths(full_name: str, ref: str) -> set[str]:

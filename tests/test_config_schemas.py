@@ -29,6 +29,7 @@ def test_openedx_config_validates_against_schemas():
         "support_windows",
         "modularization",
         "platform_trends",
+        "extension_points",
     ]
 
     for name in config_names:

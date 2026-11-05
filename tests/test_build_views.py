@@ -415,6 +415,18 @@ def test_platform_view_has_trends_only_when_the_collector_runs(built):
     from dashboard.lib.views_maintenance import build_platform
 
     data, _ = built
-    assert "trends" not in build_platform(BuildContext(data=data, generated_at=GENERATED_AT))
+    bare = build_platform(BuildContext(data=data, generated_at=GENERATED_AT))
+    assert "trends" not in bare and "extension_points" not in bare
     enabled = BuildContext(data=data, generated_at=GENERATED_AT, maintenance={"platform_trends.json": None})
     assert build_platform(enabled)["trends"] == {"available": False}
+
+
+def test_platform_carries_extension_points(built):
+    _, files = built
+    section = files["platform.json"]["extension_points"]
+    assert section["available"] is True
+    releases = section["releases"]
+    assert releases[-1]["release"] == "current"
+    assert [row["date"] for row in releases[:-1]] == sorted(row["date"] for row in releases[:-1])
+    assert section["summary"]["filters"]["now"] == releases[-1]["filters"]["count"]
+    assert section["slots_roots"] == ["src/plugin-slots", "src/slots"]

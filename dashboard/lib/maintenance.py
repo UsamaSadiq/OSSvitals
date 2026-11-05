@@ -25,6 +25,7 @@ FIX_PRS = "fix_prs.json"
 SUPPORT_WINDOWS = "support_windows.json"
 MODULARIZATION = "modularization.json"
 PLATFORM_TRENDS = "platform_trends.json"
+EXTENSION_POINTS = "extension_points.json"
 FIXTURE_SUBDIR = "maintenance"
 
 

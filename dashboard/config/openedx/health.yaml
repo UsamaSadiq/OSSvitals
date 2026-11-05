@@ -5,3 +5,4 @@ collectors:
   support_windows: true
   modularization: true
   platform_trends: true
+  extension_points: true

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { TrendYear } from "../../data/schemas";
+import type { ExtensionRelease, TrendYear } from "../../data/schemas";
 import {
   barChart,
   change,
@@ -9,6 +9,8 @@ import {
   organisationName,
   pinRows,
   pointLabel,
+  releaseBars,
+  releaseLabel,
   seriesBars,
   seriesChart,
   setAside,
@@ -98,5 +100,26 @@ describe("platform trend rows", () => {
       "Other domains (1 domain)",
     );
     expect(organisationName({ name: "personal", kind: "personal", authors: 1, commits: 1 })).toBe("Personal addresses");
+  });
+});
+
+describe("platform release rows", () => {
+  it("labels named releases and the current row", () => {
+    expect(releaseLabel("ulmo")).toBe("Ulmo");
+    expect(releaseLabel("current")).toBe("Now");
+    expect(changeSince(9, 43, "Nutmeg")).toBe("up 378% since Nutmeg");
+  });
+
+  it("skips releases without a value", () => {
+    const row = (name: string, total: number): ExtensionRelease => ({
+      release: name,
+      ref: name,
+      date: "2024-01-01",
+      filters: { version: null, count: null },
+      events: { version: null, count: null },
+      plugin_slots: { total, repos: {} },
+    });
+    const bars = releaseBars([row("palm", 0), row("redwood", 10)], (item) => item.plugin_slots.total || null, "slots");
+    expect(bars).toEqual([{ label: "Redwood", value: 10, tip: "Redwood: 10 slots" }]);
   });
 });

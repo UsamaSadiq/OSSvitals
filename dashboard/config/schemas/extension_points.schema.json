@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["platform", "releases", "packages", "frontend"],
+  "properties": {
+    "platform": {
+      "type": "object",
+      "required": ["repo", "ref", "requirements"],
+      "properties": {
+        "repo": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+        "ref": {"type": "string", "pattern": "^[A-Za-z0-9_./-]+$"},
+        "requirements": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "releases": {
+      "type": "object",
+      "required": ["tag_prefixes", "first"],
+      "properties": {
+        "tag_prefixes": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "first": {"type": "string", "pattern": "^[a-z]+$"}
+      },
+      "additionalProperties": false
+    },
+    "packages": {
+      "type": "object",
+      "required": ["filters", "events"],
+      "properties": {
+        "filters": {"$ref": "#/$defs/package"},
+        "events": {"$ref": "#/$defs/package"}
+      },
+      "additionalProperties": false
+    },
+    "frontend": {
+      "type": "object",
+      "required": ["org", "repos", "slots_roots", "slot_name"],
+      "properties": {
+        "org": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+$"},
+        "repos": {"type": "string", "format": "regex"},
+        "slots_roots": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "slot_name": {"type": "string", "format": "regex"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "package": {
+      "type": "object",
+      "required": ["package", "repo", "tag", "files", "declaration"],
+      "properties": {
+        "package": {"type": "string"},
+        "repo": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+        "tag": {"type": "string", "pattern": "\\{version\\}"},
+        "files": {"type": "string", "format": "regex"},
+        "declaration": {"type": "string", "format": "regex"}
+      },
+      "additionalProperties": false
+    }
+  }
+}
