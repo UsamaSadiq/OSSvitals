@@ -1,4 +1,5 @@
-import { Badge } from "../../components/Badge";
+import { useEffect, type ReactNode } from "react";
+import { Badge, type BadgeTone } from "../../components/Badge";
 import { ChartFigure } from "../../components/ChartFigure";
 import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
@@ -36,7 +37,7 @@ import {
   yearLabel,
   type PinRow,
 } from "./platformRows";
-import { briefPoints } from "./platformBrief";
+import { briefPoints, type BriefPoint, type Verdict } from "./platformBrief";
 import "./platform.css";
 
 type Block = NonNullable<Modularization["blocks"]>[number];
@@ -77,10 +78,51 @@ const PIN_COLUMNS: Column<PinRow>[] = [
   { key: "version", header: "Pinned version", cell: (row) => row.version ?? "Not pinned" },
 ];
 
+function Sources({ children }: { children: ReactNode }) {
+  return (
+    <details className="pf-sources">
+      <summary>Sources and method</summary>
+      <p className="caption">{children}</p>
+    </details>
+  );
+}
+
+function ShowData({ children }: { children: ReactNode }) {
+  return (
+    <details className="pf-data">
+      <summary>Show data</summary>
+      {children}
+    </details>
+  );
+}
+
+/** The status column says nothing when every block has the same status, so the count carries it instead. */
+function BlocksTable({ blocks }: { blocks: readonly Block[] }) {
+  const extracted = blocks.filter((block) => block.status === "extracted").length;
+  const uniform = extracted === 0 || extracted === blocks.length;
+  return (
+    <DataTable
+      caption="Core XBlocks"
+      count={`${formatNumber(extracted)} of ${formatCount(blocks.length, "block")} extracted`}
+      columns={uniform ? BLOCK_COLUMNS.filter((column) => column.key !== "status") : BLOCK_COLUMNS}
+      rows={blocks}
+      rowKey={(row) => row.toggle}
+      emptyMessage="No XBlock settings found."
+    />
+  );
+}
+
+/** Fewer legacy files, more extension points and fewer open deprecations are good news; colour says so. */
+function deltaFor(text: string | null, percent: number | null, lowerIsBetter: boolean) {
+  if (!text || percent === null || Math.round(percent) === 0) return null;
+  const improved = percent < 0 === lowerIsBetter;
+  return { text, direction: percent < 0 ? ("down" as const) : ("up" as const), tone: improved ? ("good" as const) : ("bad" as const) };
+}
+
 function ModularizationTiles({ section }: { section: Modularization }) {
   const history = section.legacy_frontend?.history ?? [];
   const latest = history[history.length - 1];
-  const legacyChange = changeText(change(history));
+  const legacyDelta = change(history);
   return (
     <div className="pf-summary">
       <KpiTile
@@ -91,7 +133,7 @@ function ModularizationTiles({ section }: { section: Modularization }) {
       <KpiTile
         label="Legacy frontend files"
         value={latest ? formatNumber(latest.count) : "Unknown"}
-        delta={legacyChange ? { text: legacyChange, direction: "flat", tone: "neutral" } : null}
+        delta={deltaFor(changeText(legacyDelta), legacyDelta?.percent ?? null, true)}
         help="JavaScript, Underscore, HTML and Sass files still inside the platform's lms, cms, common, xmodule and openedx folders, excluding tests. New screens are built as separate frontend apps."
       />
     </div>
@@ -108,19 +150,6 @@ function ModularizationSection({ section }: { section: Modularization }) {
         <EmptyState kind="info" title="Not collected yet." body="Published daily by the collect-maintenance workflow." />
       ) : (
         <>
-          <p className="caption">
-            {collectedText(section.collected_at)} from <code>{section.repo}</code> at <code>{section.ref}</code>.{" "}
-            {section.toggles_url && (
-              <>
-                XBlock settings from <a href={section.toggles_url}>openedx/envs/common.py</a>.{" "}
-              </>
-            )}
-            {section.pins_url && (
-              <>
-                Versions from <a href={section.pins_url}>requirements/edx/base.txt</a>.
-              </>
-            )}
-          </p>
           <ModularizationTiles section={section} />
           {chart && (
             <>
@@ -130,14 +159,7 @@ function ModularizationSection({ section }: { section: Modularization }) {
           )}
           <div className="pf-columns">
             <div>
-              <DataTable
-                caption="Core XBlocks"
-                count={formatCount((section.blocks ?? []).length, "block")}
-                columns={BLOCK_COLUMNS}
-                rows={section.blocks ?? []}
-                rowKey={(row) => row.toggle}
-                emptyMessage="No XBlock settings found."
-              />
+              <BlocksTable blocks={section.blocks ?? []} />
             </div>
             <div>
               <DataTable
@@ -149,6 +171,19 @@ function ModularizationSection({ section }: { section: Modularization }) {
               />
             </div>
           </div>
+          <Sources>
+            {collectedText(section.collected_at)} from <code>{section.repo}</code> at <code>{section.ref}</code>.{" "}
+            {section.toggles_url && (
+              <>
+                XBlock settings from <a href={section.toggles_url}>openedx/envs/common.py</a>.{" "}
+              </>
+            )}
+            {section.pins_url && (
+              <>
+                Versions from <a href={section.pins_url}>requirements/edx/base.txt</a>.
+              </>
+            )}
+          </Sources>
         </>
       )}
     </section>
@@ -231,10 +266,6 @@ function TrendsSection({ section }: { section: PlatformTrends }) {
         <EmptyState kind="info" title="Not collected yet." body="Published monthly by the collect-maintenance workflow." />
       ) : (
         <>
-          <p className="caption">
-            {collectedText(section.collected_at)} from the git history of <code>{section.repo}</code> at{" "}
-            <code>{section.ref}</code>, {trendsCaption(section)}
-          </p>
           <TrendTiles section={section} />
           {commits && (
             <>
@@ -248,26 +279,30 @@ function TrendsSection({ section }: { section: PlatformTrends }) {
               <ChartFigure chart={lines} />
             </>
           )}
-          <DataTable
-            caption="Platform activity by year"
-            count={formatCount(years.length, "year")}
-            columns={YEAR_COLUMNS}
-            rows={years}
-            rowKey={(row) => String(row.year)}
-            emptyMessage="No years collected."
-          />
+          <ShowData>
+            <DataTable
+              caption="Platform activity by year"
+              count={formatCount(years.length, "year")}
+              columns={YEAR_COLUMNS}
+              rows={years}
+              rowKey={(row) => String(row.year)}
+              emptyMessage="No years collected."
+            />
+          </ShowData>
           {latest && (
-            <>
-              <DataTable
-                caption={`Contributor organisations in ${latest.year}`}
-                description="By author email domain. A domain with a single author is counted under other domains, so no one is named."
-                columns={ORGANISATION_COLUMNS}
-                rows={latest.organisations}
-                rowKey={(row) => `${row.kind}:${row.name}`}
-                emptyMessage="No authors that year."
-              />
-            </>
+            <DataTable
+              caption={`Contributor organisations in ${latest.year}`}
+              description="By author email domain. A domain with a single author is counted under other domains, so no one is named."
+              columns={ORGANISATION_COLUMNS}
+              rows={latest.organisations}
+              rowKey={(row) => `${row.kind}:${row.name}`}
+              emptyMessage="No authors that year."
+            />
           )}
+          <Sources>
+            {collectedText(section.collected_at)} from the git history of <code>{section.repo}</code> at{" "}
+            <code>{section.ref}</code>, {trendsCaption(section)}
+          </Sources>
         </>
       )}
     </section>
@@ -292,13 +327,19 @@ const RELEASE_COLUMNS: Column<ExtensionRelease>[] = [
   numericColumn("apps", "Apps with slots", (row) => Object.keys(row.plugin_slots.repos).length),
 ];
 
+function growth(entry: FirstAndNow | undefined): number | null {
+  const from = entry?.first?.count;
+  const to = entry?.now;
+  return from && to != null ? (100 * (to - from)) / from : null;
+}
+
 function ExtensionTile({ label, entry, help }: { label: string; entry: FirstAndNow | undefined; help: string }) {
   const since = entry?.first ? releaseLabel(entry.first.release) : undefined;
   return (
     <KpiTile
       label={label}
       value={count(entry?.now)}
-      delta={neutral(changeSince(entry?.first?.count, entry?.now, since))}
+      delta={deltaFor(changeSince(entry?.first?.count, entry?.now, since), growth(entry), false)}
       help={help}
     />
   );
@@ -323,13 +364,8 @@ function ExtensionPointsSection({ section }: { section: ExtensionPoints }) {
         <EmptyState kind="info" title="Not collected yet." body="Published daily by the collect-maintenance workflow." />
       ) : (
         <>
-          <p className="caption">
-            {collectedText(section.collected_at)}. Ways to change the platform without forking it, at each named
-            release&rsquo;s <code>.1</code> tag and on the main branches now. Filters and events are counted in the{" "}
-            <code>{section.packages?.filters ?? "openedx-filters"}</code> and{" "}
-            <code>{section.packages?.events ?? "openedx-events"}</code> versions the platform pins. Plugin slots are
-            folders named <code>…Slot</code>, at any depth, under {roots.length > 0 ? roots : "the slot folders"} in each{" "}
-            <code>frontend-app-*</code> repository at the same tag.
+          <p className="page-lede">
+            Ways to change the platform without forking it, at each named release and on the main branches now.
           </p>
           <div className="pf-summary">
             <ExtensionTile
@@ -354,14 +390,24 @@ function ExtensionPointsSection({ section }: { section: ExtensionPoints }) {
               <ChartFigure chart={slots} />
             </>
           )}
-          <DataTable
-            caption="Extension points by release"
-            count={formatCount(releases.length, "release")}
-            columns={RELEASE_COLUMNS}
-            rows={releases}
-            rowKey={(row) => row.release}
-            emptyMessage="No releases collected."
-          />
+          <ShowData>
+            <DataTable
+              caption="Extension points by release"
+              count={formatCount(releases.length, "release")}
+              columns={RELEASE_COLUMNS}
+              rows={releases}
+              rowKey={(row) => row.release}
+              emptyMessage="No releases collected."
+            />
+          </ShowData>
+          <Sources>
+            {collectedText(section.collected_at)}, at each named release&rsquo;s <code>.1</code> tag and on the main
+            branches now. Filters and events are counted in the{" "}
+            <code>{section.packages?.filters ?? "openedx-filters"}</code> and{" "}
+            <code>{section.packages?.events ?? "openedx-events"}</code> versions the platform pins. Plugin slots are
+            folders named <code>…Slot</code>, at any depth, under {roots.length > 0 ? roots : "the slot folders"} in each{" "}
+            <code>frontend-app-*</code> repository at the same tag.
+          </Sources>
         </>
       )}
     </section>
@@ -413,15 +459,7 @@ function UpgradeCostSection({ section }: { section: UpgradeCost }) {
         <EmptyState kind="info" title="Not collected yet." body="Published daily by the collect-maintenance workflow." />
       ) : (
         <>
-          <p className="caption">
-            {collectedText(section.collected_at)}. What each named release removes or changes for operators.
-            Deprecations are the{" "}
-            {section.deprecations_url ? <a href={section.deprecations_url}>DEPR tickets</a> : "DEPR tickets"} whose
-            form names that release as the first one without the deprecated functionality;{" "}
-            {formatNumber(section.unscheduled?.total ?? 0)} name no release yet ({formatNumber(section.unscheduled?.open ?? 0)}{" "}
-            of them open){otherTickets(section)}. Breaking changes are the changes listed under Breaking Changes in each
-            release&rsquo;s developer and operator notes.
-          </p>
+          <p className="page-lede">What each named release removes or changes for operators.</p>
           <div className="pf-summary">
             <KpiTile
               label="Time between releases"
@@ -431,6 +469,7 @@ function UpgradeCostSection({ section }: { section: UpgradeCost }) {
             <KpiTile
               label="Open deprecations"
               value={count(section.summary?.open_deprecations)}
+              tone={(section.summary?.open_deprecations ?? 0) > 0 ? "warn" : undefined}
               help="DEPR tickets still open, whether or not they name a release. Each one is a removal operators will need to plan for."
             />
             <KpiTile
@@ -445,14 +484,24 @@ function UpgradeCostSection({ section }: { section: UpgradeCost }) {
               <ChartFigure chart={deprecations} />
             </>
           )}
-          <DataTable
-            caption="Upgrade cost by release"
-            count={formatCount(releases.length, "release")}
-            columns={UPGRADE_COLUMNS}
-            rows={releases}
-            rowKey={(row) => row.release}
-            emptyMessage="No releases collected."
-          />
+          <ShowData>
+            <DataTable
+              caption="Upgrade cost by release"
+              count={formatCount(releases.length, "release")}
+              columns={UPGRADE_COLUMNS}
+              rows={releases}
+              rowKey={(row) => row.release}
+              emptyMessage="No releases collected."
+            />
+          </ShowData>
+          <Sources>
+            {collectedText(section.collected_at)}. Deprecations are the{" "}
+            {section.deprecations_url ? <a href={section.deprecations_url}>DEPR tickets</a> : "DEPR tickets"} whose
+            form names that release as the first one without the deprecated functionality;{" "}
+            {formatNumber(section.unscheduled?.total ?? 0)} name no release yet ({formatNumber(section.unscheduled?.open ?? 0)}{" "}
+            of them open){otherTickets(section)}. Breaking changes are the changes listed under Breaking Changes in each
+            release&rsquo;s developer and operator notes.
+          </Sources>
         </>
       )}
     </section>
@@ -470,32 +519,100 @@ function Sections({ view }: { view: PlatformView }) {
   );
 }
 
+const VERDICT_BADGES: Record<Verdict, { tone: BadgeTone; label: string }> = {
+  good: { tone: "good", label: "On track" },
+  settling: { tone: "info", label: "Settling" },
+  watch: { tone: "warn", label: "Watch" },
+  concern: { tone: "fail", label: "Concern" },
+};
+
+function BriefCard({ point }: { point: BriefPoint }) {
+  const verdict = point.headline?.verdict ? VERDICT_BADGES[point.headline.verdict] : null;
+  return (
+    <li className="pf-brief__card">
+      <div className="pf-brief__top">
+        <h3 className="pf-brief__topic">{point.topic}</h3>
+        {verdict && <Badge tone={verdict.tone}>{verdict.label}</Badge>}
+      </div>
+      {point.headline && (
+        <p className="pf-brief__figure">
+          <span className="pf-brief__number">{point.headline.figure}</span> {point.headline.label}
+        </p>
+      )}
+      <p className="pf-brief__text">{point.text}</p>
+      <a className="pf-brief__more" href={point.href}>
+        Details{" "}
+        <span className="visually-hidden">on {point.topic.toLowerCase()}</span>
+      </a>
+    </li>
+  );
+}
+
 function Brief({ view }: { view: PlatformView }) {
   const points = briefPoints(view);
   if (points.length === 0) return null;
   return (
     <section className="pf-section pf-brief" id="brief" aria-labelledby="pf-brief-heading">
       <h2 id="pf-brief-heading">In brief</h2>
-      <p className="caption">
-        Built {formatUtcDate(view.metadata.generated_at)}. Each point links to its section below, where the method and the
-        sources are given.
-      </p>
-      <dl className="pf-brief__points">
+      <p className="caption pf-brief__asof">Data as of {formatUtcDate(view.metadata.snapshot_timestamp ?? view.metadata.generated_at)}</p>
+      <ul className="pf-brief__cards">
         {points.map((point) => (
-          <div key={point.topic} className="pf-brief__point">
-            <dt>
-              <a href={point.href}>{point.topic}</a>
-            </dt>
-            <dd>{point.text}</dd>
-          </div>
+          <BriefCard key={point.topic} point={point} />
         ))}
-      </dl>
+      </ul>
     </section>
+  );
+}
+
+function sectionLinks(view: PlatformView): { href: string; label: string }[] {
+  return [
+    { href: "#modularization", label: "Modularization", shown: true },
+    { href: "#stability", label: "Stability", shown: Boolean(view.trends) },
+    { href: "#extension-points", label: "Extension points", shown: Boolean(view.extension_points) },
+    { href: "#upgrade-cost", label: "Upgrade cost", shown: Boolean(view.upgrade_cost) },
+  ].filter((link) => link.shown);
+}
+
+/** Collapsed sources and data tables open for printing, so a printed page is the whole report. */
+function useOpenDetailsForPrint() {
+  useEffect(() => {
+    const opened = new Set<HTMLDetailsElement>();
+    const open = () => {
+      document.querySelectorAll<HTMLDetailsElement>(".pf-sources:not([open]), .pf-data:not([open])").forEach((element) => {
+        element.setAttribute("open", "");
+        opened.add(element);
+      });
+    };
+    const restore = () => {
+      opened.forEach((element) => element.removeAttribute("open"));
+      opened.clear();
+    };
+    window.addEventListener("beforeprint", open);
+    window.addEventListener("afterprint", restore);
+    return () => {
+      window.removeEventListener("beforeprint", open);
+      window.removeEventListener("afterprint", restore);
+    };
+  }, []);
+}
+
+function SectionLinks({ view }: { view: PlatformView }) {
+  return (
+    <nav className="pf-nav" aria-label="Sections on this page">
+      <ul>
+        {sectionLinks(view).map((link) => (
+          <li key={link.href}>
+            <a href={link.href}>{link.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
 function PlatformContent() {
   const platform = useView("platform");
+  useOpenDetailsForPrint();
   if (platform.status === "loading") return <Loading label="Loading platform facts…" />;
   if (platform.status === "error") {
     return <ErrorState title="The platform data could not be loaded." detail={platform.error.message} />;
@@ -511,6 +628,7 @@ function PlatformContent() {
   }
   return (
     <>
+      <SectionLinks view={platform.data} />
       <Brief view={platform.data} />
       <Sections view={platform.data} />
     </>

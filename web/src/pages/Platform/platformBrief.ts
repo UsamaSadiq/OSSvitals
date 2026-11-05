@@ -2,10 +2,20 @@ import type { PlatformView } from "../../data/schemas";
 import { formatCount, formatNumber } from "../../format";
 import { change, changeSince, changeText, releaseLabel } from "./platformRows";
 
+export type Verdict = "good" | "settling" | "watch" | "concern";
+
+export interface Headline {
+  figure: string;
+  label: string;
+  /** None when there is nothing to compare against, so a first snapshot never reads as good news. */
+  verdict: Verdict | null;
+}
+
 export interface BriefPoint {
   topic: string;
   text: string;
   href: string;
+  headline: Headline | null;
 }
 
 type UpgradeRelease = NonNullable<NonNullable<PlatformView["upgrade_cost"]>["releases"]>[number];
@@ -15,9 +25,14 @@ function sentences(parts: (string | null)[]): string | null {
   return kept.length ? `${kept.join(". ")}.` : null;
 }
 
-function point(topic: string, href: string, parts: (string | null)[]): BriefPoint | null {
+function point(topic: string, href: string, parts: (string | null)[], headline: Headline | null = null): BriefPoint | null {
   const text = sentences(parts);
-  return text ? { topic, href, text } : null;
+  return text ? { topic, href, text, headline } : null;
+}
+
+function extractionVerdict(extracted: number, blocks: number): Verdict {
+  if (extracted === blocks) return "good";
+  return extracted > 0 ? "watch" : "concern";
 }
 
 function listed(items: string[]): string {
@@ -38,7 +53,22 @@ function modularizationPoint(view: PlatformView): BriefPoint | null {
   return point("Modularization", "#modularization", [
     extractedText(extracted, blocks, section.extracted_package ? section.extracted_package : "separate packages"),
     legacy ? `Legacy frontend files are ${legacy}` : null,
-  ]);
+  ], {
+    figure: `${formatNumber(extracted)} of ${formatNumber(blocks)}`,
+    label: "built-in XBlocks moved out",
+    verdict: extractionVerdict(extracted, blocks),
+  });
+}
+
+/** Fewer commits reads as a core settling down, not as good or bad on its own, so it gets a neutral verdict. */
+function commitsHeadline(first: number | undefined, latest: number, firstYear: number | undefined, latestYear: number): Headline {
+  if (!first || firstYear === undefined) return { figure: formatNumber(latest), label: `commits in ${latestYear}`, verdict: null };
+  const percent = Math.round((100 * (latest - first)) / first);
+  return {
+    figure: `${percent > 0 ? "+" : percent < 0 ? "\u2212" : ""}${Math.abs(percent)}%`,
+    label: `commits, ${firstYear} to ${latestYear}`,
+    verdict: percent > 0 ? "watch" : "settling",
+  };
 }
 
 function stabilityPoint(view: PlatformView): BriefPoint | null {
@@ -51,7 +81,7 @@ function stabilityPoint(view: PlatformView): BriefPoint | null {
   return point("Stability", "#stability", [
     `${formatCount(latest.commits, "commit")} by ${formatCount(latest.authors, "author")} in ${latestYear}${commits ? `, commits ${commits}` : ""}`,
     now != null ? `${formatCount(now, "line")} of Python outside tests and migrations${lines ? `, ${lines}` : ""}` : null,
-  ]);
+  ], commitsHeadline(first?.commits, latest.commits, firstYear, latestYear));
 }
 
 function extensionPoint(view: PlatformView): BriefPoint | null {
@@ -70,7 +100,11 @@ function extensionPoint(view: PlatformView): BriefPoint | null {
   return point("Extension points", "#extension-points", [
     counts.length ? `Ways to customise the platform without forking it: ${listed(counts)}` : null,
     growth,
-  ]);
+  ], slots?.now != null ? {
+    figure: formatNumber(slots.now),
+    label: "frontend plugin slots",
+    verdict: slots.first ? (slots.now < slots.first.count ? "watch" : "good") : null,
+  } : null);
 }
 
 function hasCost(release: UpgradeRelease): boolean {
@@ -99,8 +133,11 @@ function upgradePoint(view: PlatformView): BriefPoint | null {
   return point("Upgrade cost", "#upgrade-cost", [
     days != null ? `A named release every ${formatCount(days, "day")} (median)` : null,
     latest ? releaseCostText(latest) : null,
-    open ? `${formatCount(open, "deprecation")} ${open === 1 ? "is" : "are"} still open` : null,
-  ]);
+  ], open != null ? {
+    figure: formatNumber(open),
+    label: open === 1 ? "deprecation still open" : "deprecations still open",
+    verdict: open > 0 ? "watch" : "good",
+  } : null);
 }
 
 export function briefPoints(view: PlatformView): BriefPoint[] {

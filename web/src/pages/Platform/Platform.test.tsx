@@ -156,7 +156,7 @@ describe("Platform stability section", () => {
   it("is absent when the view has no trends", async () => {
     renderRoute("/platform");
 
-    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Modularization" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Stability" })).not.toBeInTheDocument();
   });
 
@@ -226,7 +226,7 @@ describe("Platform extension points section", () => {
   it("is absent when the view has no extension points", async () => {
     renderRoute("/platform");
 
-    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Modularization" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Extension points" })).not.toBeInTheDocument();
   });
 
@@ -289,7 +289,7 @@ describe("Platform upgrade cost section", () => {
   it("is absent when the view has no upgrade cost", async () => {
     renderRoute("/platform");
 
-    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "Modularization" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Upgrade cost" })).not.toBeInTheDocument();
   });
 
@@ -324,8 +324,53 @@ describe("Platform brief", () => {
 
     const brief = (await screen.findByRole("heading", { name: "In brief" })).closest("section");
     expect(brief).toHaveAttribute("id", "brief");
-    expect(within(brief as HTMLElement).getByRole("link", { name: "Stability" })).toHaveAttribute("href", "#stability");
-    expect(within(brief as HTMLElement).getByRole("link", { name: "Upgrade cost" })).toHaveAttribute("href", "#upgrade-cost");
+    const cards = within(brief as HTMLElement);
+    expect(cards.getByRole("link", { name: "Details on stability" })).toHaveAttribute("href", "#stability");
+    expect(cards.getByRole("link", { name: "Details on upgrade cost" })).toHaveAttribute("href", "#upgrade-cost");
     expect(brief).toHaveTextContent("1 of the 2 built-in XBlocks has moved out of the platform into xblocks-contrib");
+    const modularization = cards.getByRole("heading", { level: 3, name: "Modularization" }).closest("li") as HTMLElement;
+    expect(modularization).toHaveTextContent("1 of 2 built-in XBlocks moved out");
+    expect(within(modularization).getByText("Watch")).toHaveClass("badge--warn");
+  });
+
+  it("links to each section from a nav under the title", async () => {
+    setView(snapshot({ trends: trends() }));
+    renderRoute("/platform");
+
+    const nav = await screen.findByRole("navigation", { name: "Sections on this page" });
+    expect(within(nav).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual(["#modularization", "#stability"]);
+  });
+});
+
+describe("Platform summary details", () => {
+  it("dates the brief and drops the status column when every block is extracted", async () => {
+    const blocks = [
+      { block: "Video", toggle: "VIDEO", status: "extracted" as const },
+      { block: "Word Cloud", toggle: "WORD_CLOUD", status: "extracted" as const },
+    ];
+    setView(snapshot({ modularization: modularization({ blocks, summary: { blocks: 2, extracted: 2, percent_extracted: 100 } }) }));
+    renderRoute("/platform");
+
+    const brief = (await screen.findByRole("heading", { name: "In brief" })).closest("section") as HTMLElement;
+    expect(within(brief).getByText(/^Data as of /)).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Core XBlocks" });
+    expect(within(table).queryByRole("columnheader", { name: /Status/ })).not.toBeInTheDocument();
+    expect(screen.getByText("2 of 2 blocks extracted")).toBeInTheDocument();
+  });
+
+  it("opens collapsed sources and data for printing, then closes only those", async () => {
+    setView(snapshot({ trends: trends() }));
+    renderRoute("/platform");
+    await screen.findByRole("heading", { name: "In brief" });
+    const sources = document.querySelectorAll<HTMLDetailsElement>(".pf-sources");
+    sources[0]!.setAttribute("open", "");
+
+    window.dispatchEvent(new Event("beforeprint"));
+    window.dispatchEvent(new Event("beforeprint"));
+    expect([...document.querySelectorAll(".pf-sources, .pf-data")].every((element) => element.hasAttribute("open"))).toBe(true);
+
+    window.dispatchEvent(new Event("afterprint"));
+    expect(sources[0]).toHaveAttribute("open");
+    expect(sources[1]).not.toHaveAttribute("open");
   });
 });

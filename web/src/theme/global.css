@@ -658,3 +658,15 @@ h3 {
   align-items: center;
   gap: 1rem;
 }
+
+@media print {
+  .sidebar,
+  .header,
+  .footer {
+    display: none;
+  }
+
+  .shell {
+    display: block;
+  }
+}
