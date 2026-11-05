@@ -85,7 +85,6 @@ describe("Failing Checks page", () => {
     ]);
     expect(tableRepoNames()).toEqual(["openedx/low", "openedx/alpha", "openedx/zeta", "openedx/high"]);
     expect(screen.queryByText(/repositories fail/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("caps the chart at 15 checks and says so", async () => {

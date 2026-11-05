@@ -1,7 +1,6 @@
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
-import { ShareLink } from "../../components/ShareLink";
 import { Tabs, type TabItem } from "../../components/Tabs";
 import type { UpgradesView } from "../../data/schemas";
 import { useView } from "../../data/useView";
@@ -62,7 +61,6 @@ function UpgradesContent() {
   return (
     <>
       <Tabs label="Upgrades" tabs={tabs} />
-      <ShareLink />
     </>
   );
 }
@@ -73,7 +71,7 @@ export function Upgrades() {
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Upgrades</h1>
       <SiteFreshnessBanner />
-      <p className="caption">{INTRO}</p>
+      <p className="page-lede">{INTRO}</p>
       <UpgradesContent />
     </section>
   );

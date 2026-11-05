@@ -3,7 +3,6 @@ import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { KpiTile } from "../../components/KpiTile";
 import { Loading } from "../../components/Loading";
-import { ShareLink } from "../../components/ShareLink";
 import type { ChecksView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
@@ -125,7 +124,6 @@ function CatalogContent() {
   return (
     <>
       <Catalog checks={checks.data} />
-      <ShareLink />
     </>
   );
 }
@@ -135,7 +133,7 @@ export function ChecksCatalog() {
   return (
     <section className="page" aria-labelledby="page-title">
       <h1 id="page-title">Checks Catalog</h1>
-      <p className="caption">
+      <p className="page-lede">
         Every health check currently collected, what it measures, whether it feeds the composite score, and how the org
         is doing on it.
       </p>

@@ -65,7 +65,7 @@ export function Overview() {
   return (
     <section className="page overview" aria-labelledby="page-title">
       <h1 id="page-title">{name}</h1>
-      {tagline && <p className="caption overview__tagline">{tagline}</p>}
+      {tagline && <p className="page-lede overview__tagline">{tagline}</p>}
       <SiteFreshnessBanner />
       <OverviewContent />
     </section>

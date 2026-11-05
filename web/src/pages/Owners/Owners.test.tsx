@@ -128,7 +128,6 @@ describe("Owners page", () => {
     );
     expect(screen.queryByText(/Ownership data is not yet populated/)).not.toBeInTheDocument();
     expect(document.title).toBe("Owners · Open edX Repo Health");
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("warns when coverage is below 20 percent", async () => {
@@ -189,7 +188,6 @@ describe("Owners page", () => {
     );
     expect(within(repos).getByText("30.8")).toBeInTheDocument();
     expect(within(repos).getByText("teak")).toBeInTheDocument();
-    expect(within(panel).getByRole("button", { name: "Copy link to this owner" })).toBeInTheDocument();
   });
 
   it("omits the at-risk link when the owner has none", async () => {

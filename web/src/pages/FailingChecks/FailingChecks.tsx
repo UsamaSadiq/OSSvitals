@@ -8,7 +8,6 @@ import { GradePill, GRADE_ORDER } from "../../components/GradePill";
 import { Loading } from "../../components/Loading";
 import { QuerySelect, useQueryValue } from "../../components/QuerySelect";
 import { RepoLink } from "../../components/RepoName";
-import { ShareLink } from "../../components/ShareLink";
 import { useView } from "../../data/useView";
 import { formatCount, formatScore } from "../../format";
 import { usePageTitle } from "../../layout/pageTitle";
@@ -125,7 +124,6 @@ function FailingChecksContent() {
     <>
       <MostFailedChart checks={checks} />
       <CheckInspector checks={checks} repos={repos.data.records} />
-      <ShareLink label="Copy link to this view" />
     </>
   );
 }

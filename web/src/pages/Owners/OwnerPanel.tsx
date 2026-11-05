@@ -1,7 +1,6 @@
 import { Link, useSearchParams } from "react-router";
 import { EmptyState } from "../../components/EmptyState";
 import { KpiTile } from "../../components/KpiTile";
-import { ShareLink } from "../../components/ShareLink";
 import type { OwnersView } from "../../data/schemas";
 import { formatNumber, toFixedHalfEven } from "../../format";
 import { OwnerReposTable } from "./OwnerTables";
@@ -42,7 +41,6 @@ function OwnerDetails({ owners, owner, onClose }: { owners: OwnersView; owner: O
         </p>
       )}
       <OwnerReposTable owner={owner.owner} rows={owners.repos[owner.owner_key] ?? []} />
-      <ShareLink label="Copy link to this owner" />
       <button type="button" className="button-link" onClick={onClose}>
         Close owner details
       </button>

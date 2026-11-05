@@ -1,7 +1,6 @@
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
-import { ShareLink } from "../../components/ShareLink";
 import type { ScoringView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { usePageTitle } from "../../layout/pageTitle";
@@ -42,7 +41,6 @@ function ScoringSections({ scoring }: { scoring: ScoringView }) {
       <Limitations rows={scoring.metrics} />
       {scoring.proposed && <ProposedSection proposed={scoring.proposed} />}
       <Independence />
-      <ShareLink />
     </>
   );
 }

@@ -6,7 +6,6 @@ import { ErrorState } from "../../components/ErrorState";
 import { Loading } from "../../components/Loading";
 import { clampPage, pageCount, pageSlice, Pagination } from "../../components/Pagination";
 import { useParamUpdater, type ParamChanges } from "../../components/queryParams";
-import { ShareLink } from "../../components/ShareLink";
 import type { FailingChecksView } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { formatNumber } from "../../format";
@@ -164,7 +163,6 @@ function ReposContent() {
   return (
     <>
       <Explorer rows={repos.data.records} failing={failing.data} />
-      <ShareLink />
     </>
   );
 }
@@ -174,7 +172,7 @@ export function Repos() {
   return (
     <section className="page repos" aria-labelledby="page-title">
       <h1 id="page-title">Repositories</h1>
-      <p className="caption">Every scored repository. Filter, sort and share the view: every filter lives in the link.</p>
+      <p className="page-lede">Every scored repository. Filter, sort and share the view: every filter lives in the link.</p>
       <SiteFreshnessBanner />
       <ReposContent />
     </section>

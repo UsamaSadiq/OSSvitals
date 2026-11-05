@@ -72,7 +72,6 @@ describe("What Changed page", () => {
     expect(within(passing).getByRole("link", { name: "openedx/c" })).toHaveAttribute("href", "/repo_detail?repo=openedx%2Fc");
     expect(within(passing).getByText("has_codeowners")).toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("shows the empty states when nothing changed", async () => {
@@ -103,7 +102,6 @@ describe("What Changed page", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Newly failing checks" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("renders the bulletin, its markdown source and the download", async () => {

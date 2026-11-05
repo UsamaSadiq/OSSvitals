@@ -119,7 +119,6 @@ describe("Components page", () => {
     expect(withFile).toHaveTextContent("3");
     expect(withFile).toHaveTextContent("1 have none.");
     expect(screen.getByRole("group", { name: "With a problem to fix" })).toHaveTextContent("1");
-    expect(screen.getByRole("button", { name: "Copy link to this view" })).toBeInTheDocument();
   });
 
   it("lists each finding as a card that expands to its repositories", async () => {
