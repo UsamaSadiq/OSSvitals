@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CodeText } from "../../components/CodeText";
 import { DataTable, type Column } from "../../components/DataTable";
-import { KpiTile } from "../../components/KpiTile";
+import { KpiTile, type KpiTone } from "../../components/KpiTile";
 import type { UpgradesView } from "../../data/schemas";
 import { formatCount, formatNumber } from "../../format";
 import { MissingData } from "./MissingData";
@@ -40,11 +40,18 @@ function visibleJobs(records: readonly JobRow[], includeHealthy: boolean): reado
   return includeHealthy ? records : records.filter((row) => row.state !== "healthy");
 }
 
+const STATE_TONES: Record<(typeof JOB_STATES)[number], KpiTone> = { failing: "fail", not_landing: "warn", healthy: "good" };
+
 function StateTiles({ states }: { states: UpgradeJobs["states"] }) {
   return (
     <div className="upgrades-tiles">
       {JOB_STATES.map((state) => (
-        <KpiTile key={state} label={STATE_LABELS[state] ?? state} value={formatNumber(states[state] ?? 0)} />
+        <KpiTile
+          key={state}
+          label={STATE_LABELS[state] ?? state}
+          value={formatNumber(states[state] ?? 0)}
+          tone={(states[state] ?? 0) > 0 ? STATE_TONES[state] : undefined}
+        />
       ))}
     </div>
   );

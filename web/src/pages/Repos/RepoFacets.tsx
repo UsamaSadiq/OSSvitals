@@ -5,7 +5,7 @@ import { StarIcon } from "../../components/icons";
 import type { ParamChanges } from "../../components/queryParams";
 import { SearchField } from "../../components/SearchField";
 import { formatNumber } from "../../format";
-import { gradesParam, PARAMS, toggledGrades, type ExplorerFilters } from "./repoFilters";
+import { gradesParam, hasActiveFilters, PARAMS, toggledGrades, type ExplorerFilters } from "./repoFilters";
 
 export interface FailingOption {
   check: string;
@@ -125,45 +125,54 @@ function WatchedChip({ filters, onChange }: Pick<FacetsProps, "filters" | "onCha
   );
 }
 
+function startsCollapsed(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia("(max-width: 599px)").matches;
+}
+
+/** On phones the filters fold behind a summary, since they would otherwise fill the first screen. */
 export function RepoFacets({ filters, options, onChange }: FacetsProps) {
+  const [collapsed] = useState(startsCollapsed);
   return (
-    <div className="repos-facets">
-      <div className="repos-facets__row">
-        <div className="repos-facet repos-facet--wide">
-          <SearchField
-            label="Search repositories"
-            value={filters.query}
-            placeholder="Name or part of a name"
-            onChange={(value) => onChange({ [PARAMS.query]: value })}
+    <details className="filter-bar__toggle" open={!collapsed}>
+      <summary>Filters{hasActiveFilters(filters) ? " (active)" : ""}</summary>
+      <div className="repos-facets">
+        <div className="repos-facets__row">
+          <div className="repos-facet repos-facet--wide">
+            <SearchField
+              label="Search repositories"
+              value={filters.query}
+              placeholder="Name or part of a name"
+              onChange={(value) => onChange({ [PARAMS.query]: value })}
+            />
+          </div>
+          <FacetSelect
+            label="Tier"
+            value={filters.tier}
+            options={options.tier}
+            anyLabel="Any tier"
+            onChange={(value) => onChange({ [PARAMS.tier]: value })}
           />
+          <FacetSelect
+            label="Owner"
+            value={filters.owner}
+            options={options.owner}
+            anyLabel="Any owner"
+            onChange={(value) => onChange({ [PARAMS.owner]: value })}
+          />
+          <FacetSelect
+            label="Lifecycle"
+            value={filters.lifecycle}
+            options={options.lifecycle}
+            anyLabel="Any lifecycle"
+            onChange={(value) => onChange({ [PARAMS.lifecycle]: value })}
+          />
+          <FailsPicker value={filters.fails} options={options.fails} onChange={(value) => onChange({ [PARAMS.fails]: value })} />
         </div>
-        <FacetSelect
-          label="Tier"
-          value={filters.tier}
-          options={options.tier}
-          anyLabel="Any tier"
-          onChange={(value) => onChange({ [PARAMS.tier]: value })}
-        />
-        <FacetSelect
-          label="Owner"
-          value={filters.owner}
-          options={options.owner}
-          anyLabel="Any owner"
-          onChange={(value) => onChange({ [PARAMS.owner]: value })}
-        />
-        <FacetSelect
-          label="Lifecycle"
-          value={filters.lifecycle}
-          options={options.lifecycle}
-          anyLabel="Any lifecycle"
-          onChange={(value) => onChange({ [PARAMS.lifecycle]: value })}
-        />
-        <FailsPicker value={filters.fails} options={options.fails} onChange={(value) => onChange({ [PARAMS.fails]: value })} />
+        <div className="repos-facets__chips">
+          <GradeChips filters={filters} onChange={onChange} />
+          <WatchedChip filters={filters} onChange={onChange} />
+        </div>
       </div>
-      <div className="repos-facets__chips">
-        <GradeChips filters={filters} onChange={onChange} />
-        <WatchedChip filters={filters} onChange={onChange} />
-      </div>
-    </div>
+    </details>
   );
 }

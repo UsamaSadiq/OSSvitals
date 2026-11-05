@@ -167,40 +167,6 @@
   gap: 0.75rem;
 }
 
-.status-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.status-chip--pass {
-  color: var(--chip-text-pass);
-  background: color-mix(in srgb, var(--success) 12%, transparent);
-  border-color: color-mix(in srgb, var(--success) 30%, transparent);
-}
-
-.status-chip--fail {
-  color: var(--chip-text-fail);
-  background: color-mix(in srgb, var(--fail) 12%, transparent);
-  border-color: color-mix(in srgb, var(--fail) 30%, transparent);
-}
-
-.status-chip--warn {
-  color: var(--chip-text-warn);
-  background: color-mix(in srgb, var(--warn) 12%, transparent);
-  border-color: color-mix(in srgb, var(--warn) 30%, transparent);
-}
-
-.status-chip--unknown {
-  color: var(--chip-text-unknown);
-  background: color-mix(in srgb, var(--muted) 8%, transparent);
-}
-
 .repo-activity,
 .repo-catalog {
   display: grid;
@@ -297,13 +263,6 @@
 .category-trend--up { color: var(--chip-text-pass); }
 .category-trend--down { color: var(--chip-text-fail); }
 
-.check-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0 2rem;
-}
-
 .check-filter {
   border: 0;
   margin: 0.5rem 0 1rem;
@@ -388,24 +347,6 @@
 .check-entry__title {
   min-width: 0;
   overflow-wrap: anywhere;
-}
-
-.fix-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
-  color: var(--text);
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.fix-badge--open {
-  border-color: color-mix(in srgb, var(--success) 55%, transparent);
-  background: color-mix(in srgb, var(--success) 14%, transparent);
 }
 
 @media (max-width: 599px) {

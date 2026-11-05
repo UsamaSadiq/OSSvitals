@@ -113,7 +113,7 @@ export function ChecksSection({ repo, rows, categories, fixPrs = {} }: ChecksSec
   return (
     <section className="repo-detail-section" aria-labelledby="checks-heading">
       <h2 id="checks-heading">Checks</h2>
-      <div className="check-controls">
+      <div className="filter-bar check-controls">
         <FilterRadios value={filter} />
         <QuerySelect label="Category" param={CATEGORY_PARAM} options={categories} defaultValue={ALL} />
         <div className="check-search">

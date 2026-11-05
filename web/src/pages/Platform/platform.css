@@ -13,25 +13,6 @@
   margin: 1rem 0;
 }
 
-.pf-chip {
-  --tone: var(--muted);
-  display: inline-block;
-  padding: 0.1rem 0.5rem;
-  border: 1px solid var(--tone);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: var(--fs-small);
-  white-space: nowrap;
-}
-
-.pf-chip--extracted {
-  --tone: var(--success);
-}
-
-.pf-chip--built_in {
-  --tone: var(--warn);
-}
-
 .pf-columns {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));

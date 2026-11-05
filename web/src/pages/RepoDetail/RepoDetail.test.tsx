@@ -308,7 +308,7 @@ describe("Repo Detail page", () => {
     expect(await screen.findByRole("heading", { level: 2, name: REPO })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Repository" })).toHaveValue(REPO);
     expect(screen.getByRole("img", { name: "Grade C" })).toBeInTheDocument();
-    expect(screen.getByText("8/9 metrics (72% weight)")).toHaveClass("status-chip--warn");
+    expect(screen.getByText("8/9 metrics (72% weight)")).toHaveClass("badge--warn");
     expect(within(screen.getByRole("group", { name: "Composite" })).getByText("41.2")).toBeInTheDocument();
     expect(within(screen.getByRole("group", { name: "Grade" })).getByText("C")).toBeInTheDocument();
     expect(within(screen.getByRole("group", { name: "Structural" })).getByText("47.6")).toBeInTheDocument();
@@ -385,8 +385,8 @@ describe("Repo Detail page", () => {
     expect(within(catalog).getByRole("link", { name: "Docs" })).toHaveAttribute("href", "https://docs.example.org");
     expect(within(catalog).getByText(/^Depends on:/)).toHaveTextContent("Depends on: component:beta (not in catalog)");
     expect(within(catalog).getByRole("link", { name: "Open in Backstage" })).toBeInTheDocument();
-    expect(within(catalog).getByText("Owner not found")).toHaveClass("status-chip--fail");
-    expect(within(catalog).getByText("No description")).toHaveClass("status-chip--warn");
+    expect(within(catalog).getByText("Owner not found")).toHaveClass("badge--fail");
+    expect(within(catalog).getByText("No description")).toHaveClass("badge--warn");
     expect(within(catalog).getByText(/collected 2026-10-03\. User owners are checked against GitHub/)).toBeInTheDocument();
   });
 
@@ -433,17 +433,17 @@ describe("Repo Detail page", () => {
     renderRoute(PATH);
     const cards = await screen.findByRole("region", { name: "Category overview" });
     const files = within(cards).getByRole("group", { name: "File Existence" });
-    expect(within(files).getByText("17% pass")).toHaveClass("status-chip--fail");
+    expect(within(files).getByText("17% pass")).toHaveClass("badge--fail");
     expect(within(files).getByText("Pass 3 · Fail 15 · N/A 0")).toBeInTheDocument();
     expect(files.querySelector(".category-meter__fill--fail")).toHaveStyle({ width: "16.666666666666664%" });
     expect(within(files).getByText(/7 pts since 2026-10-01/)).toHaveTextContent("▲ Up 7 pts since 2026-10-01");
     expect(within(files).getByRole("img", { name: "File Existence pass rate over 2 snapshots" })).toBeInTheDocument();
     const readme = within(cards).getByRole("group", { name: "README" });
-    expect(within(readme).getByText("100% pass")).toHaveClass("status-chip--pass");
+    expect(within(readme).getByText("100% pass")).toHaveClass("badge--good");
     expect(within(readme).queryByRole("img")).toBeNull();
     expect(within(readme).queryByText(/since/)).toBeNull();
     const docs = within(cards).getByRole("group", { name: "Documentation" });
-    expect(within(docs).getByText("no data")).toHaveClass("status-chip--unknown");
+    expect(within(docs).getByText("no data")).toHaveClass("badge--neutral");
   });
 
   it("shows the open fix PR on a failing check instead of the fix links", async () => {
@@ -460,7 +460,7 @@ describe("Repo Detail page", () => {
     renderRoute(PATH);
     const checks = await screen.findByRole("region", { name: "Checks" });
     const entry = within(checks).getByText("DEPENDABOT.EXISTS").closest("details") as HTMLElement;
-    expect(within(entry).getByText("Fix PR open · #481 (+1 more)", { selector: "summary .fix-badge" })).toBeInTheDocument();
+    expect(within(entry).getByText("Fix PR open · #481 (+1 more)", { selector: "summary .badge" })).toBeInTheDocument();
     expect(within(entry).queryByText("Fix available")).toBeNull();
     expect(within(entry).getByRole("link", { name: "chore: add dependabot config" })).toHaveAttribute("href", fixPr.pr_url);
     const row = entry.closest("li") as HTMLElement;
@@ -482,7 +482,7 @@ describe("Repo Detail page", () => {
     renderRoute(PATH);
     const checks = await screen.findByRole("region", { name: "Checks" });
     const entry = within(checks).getByText("DEPENDABOT.EXISTS").closest("details") as HTMLElement;
-    expect(within(entry).getByText("Draft fix PR · #7", { selector: "summary .fix-badge" })).toBeInTheDocument();
+    expect(within(entry).getByText("Draft fix PR · #7", { selector: "summary .badge" })).toBeInTheDocument();
   });
 
   it("lists failing checks by default with values and remediation links", async () => {
@@ -493,8 +493,8 @@ describe("Repo Detail page", () => {
     const group = within(checks).getByRole("region", { name: "File Existence" });
     expect(within(group).getByRole("heading", { level: 3 })).toHaveTextContent("File Existence (1)");
     const entry = within(checks).getByText("DEPENDABOT.EXISTS").closest("details") as HTMLElement;
-    expect(within(entry).getByText("Fail", { selector: "summary .status-chip" })).toHaveClass("status-chip--fail");
-    expect(within(entry).getByText("Fix available", { selector: "summary .fix-badge" })).toBeInTheDocument();
+    expect(within(entry).getByText("Fail", { selector: "summary .badge" })).toHaveClass("badge--fail");
+    expect(within(entry).getByText("Fix available", { selector: "summary .badge" })).toBeInTheDocument();
     expect(within(entry).getByText(/About dependabot\.exists\./)).toBeInTheDocument();
     expect(within(entry).getByText("False", { selector: "code" })).toBeInTheDocument();
     expect(within(entry).getByText("Remediation")).toBeInTheDocument();
@@ -524,7 +524,7 @@ describe("Repo Detail page", () => {
     ]);
     expect(within(checks).getByText("1 of 3 checks shown.")).toBeInTheDocument();
     const entry = within(checks).getByText("DOCS.READTHEDOCS").closest("details") as HTMLElement;
-    expect(within(entry).getByText("Unknown", { selector: "summary .status-chip" })).toHaveClass("status-chip--unknown");
+    expect(within(entry).getByText("Unknown", { selector: "summary .badge" })).toHaveClass("badge--neutral");
     expect(within(entry).queryByText("Fix available")).toBeNull();
     expect(within(entry).getByText(/No description available\./)).toBeInTheDocument();
     expect(within(entry).getByText("not recorded").tagName).toBe("EM");
@@ -537,7 +537,7 @@ describe("Repo Detail page", () => {
     await userEvent.click(within(checks).getByRole("radio", { name: "Passing" }));
     expect(within(checks).getByText("1 of 3 checks shown.")).toBeInTheDocument();
     const entry = within(checks).getByText("EXISTS.README.RST").closest("details") as HTMLElement;
-    expect(within(entry).getByText("Pass", { selector: "summary .status-chip" })).toHaveClass("status-chip--pass");
+    expect(within(entry).getByText("Pass", { selector: "summary .badge" })).toHaveClass("badge--good");
     expect(within(entry).queryByText("Remediation")).toBeNull();
   });
 

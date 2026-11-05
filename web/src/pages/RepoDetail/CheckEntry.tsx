@@ -2,6 +2,7 @@ import { CodeText } from "../../components/CodeText";
 import type { FixPr } from "../../data/schemas";
 import { githubIssueUrl, githubPrCompareUrl, type PrTemplate } from "./checkLinks";
 import { descriptionText, hasFix, stateLabel, type CheckRecord, type CheckRow } from "./checkRows";
+import { Badge } from "../../components/Badge";
 import { StatusChip } from "./StatusChip";
 
 type Remediation = NonNullable<CheckRecord["remediation"]>;
@@ -126,9 +127,9 @@ export function CheckEntry({ repo, row, allowPr, fixPr = null }: CheckEntryProps
             <StatusChip status={state} label={stateLabel(state)} />
             <span className="check-entry__title">{record.title}</span>
             {openFix ? (
-              <span className="fix-badge fix-badge--open">{fixPrLabel(openFix)}</span>
+              <Badge tone="good">{fixPrLabel(openFix)}</Badge>
             ) : (
-              remediation && <span className="fix-badge">Fix available</span>
+              remediation && <Badge tone="info">Fix available</Badge>
             )}
           </span>
         </summary>

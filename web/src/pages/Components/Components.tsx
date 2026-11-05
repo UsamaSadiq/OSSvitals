@@ -52,7 +52,7 @@ function SummaryTiles({ summary }: { summary: Summary }) {
         value={formatNumber(summary.with_file)}
         help={`${summary.repos - summary.with_file} have none.`}
       />
-      <KpiTile label="With a problem to fix" value={formatNumber(summary.with_problem)} />
+      <KpiTile label="With a problem to fix" value={formatNumber(summary.with_problem)} tone={summary.with_problem > 0 ? "warn" : undefined} />
     </div>
   );
 }
@@ -89,7 +89,7 @@ function DeclaredComponents({ components }: { components: readonly ComponentRow[
   return (
     <section className="components-section" aria-label="Declared components">
       <h2 id="components-heading">Components</h2>
-      <div className="components-filters">
+      <div className="filter-bar components-filters">
         <QuerySelect label="Type" param="type" options={typeOptions} defaultValue={ALL} />
         <QuerySelect label="Lifecycle" param="lifecycle" options={lifecycleOptions} defaultValue={ALL} />
         <QuerySelect label="Release" param="release" options={RELEASE_OPTIONS} defaultValue={ALL} />

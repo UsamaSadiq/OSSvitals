@@ -1,3 +1,4 @@
+import { Badge } from "../../components/Badge";
 import { ChartFigure } from "../../components/ChartFigure";
 import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
@@ -65,7 +66,7 @@ const BLOCK_COLUMNS: Column<Block>[] = [
   {
     key: "status",
     header: "Status",
-    cell: (row) => <span className={`pf-chip pf-chip--${row.status}`}>{BLOCK_STATUS_LABELS[row.status]}</span>,
+    cell: (row) => <Badge tone={row.status === "extracted" ? "good" : "warn"}>{BLOCK_STATUS_LABELS[row.status]}</Badge>,
     sortValue: (row) => row.status,
   },
   { key: "toggle", header: "Setting", cell: (row) => <code>{`USE_EXTRACTED_${row.toggle}_BLOCK`}</code> },

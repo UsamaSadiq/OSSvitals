@@ -1,7 +1,7 @@
 import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { KpiTile } from "../../components/KpiTile";
+import { KpiTile, type KpiTone } from "../../components/KpiTile";
 import { Loading } from "../../components/Loading";
 import type { SupportProduct, SupportWindowView } from "../../data/schemas";
 import { useView } from "../../data/useView";
@@ -21,8 +21,10 @@ import {
 } from "./supportRows";
 import { Timeline } from "./Timeline";
 import "./supportWindow.css";
+import { Badge, type BadgeTone } from "../../components/Badge";
 
 const TILE_STATUSES = STATUS_ORDER.filter((status) => status !== "unknown");
+const TILE_TONES: Partial<Record<SupportProduct["status"], KpiTone>> = { eol: "fail", drift: "warn", eol_soon: "warn", ok: "good" };
 
 function Intro() {
   return (
@@ -34,8 +36,16 @@ function Intro() {
   );
 }
 
+const STATUS_TONES: Record<SupportProduct["status"], BadgeTone> = {
+  drift: "warn",
+  eol: "fail",
+  eol_soon: "warn",
+  ok: "good",
+  unknown: "neutral",
+};
+
 function StatusChip({ product }: { product: SupportProduct }) {
-  return <span className={`sw-chip sw-chip--${product.status}`}>{STATUS_LABELS[product.status]}</span>;
+  return <Badge tone={STATUS_TONES[product.status]}>{STATUS_LABELS[product.status]}</Badge>;
 }
 
 function InUse({ product }: { product: SupportProduct }) {
@@ -66,7 +76,12 @@ function SummaryTiles({ summary }: { summary: Record<string, number> }) {
   return (
     <div className="sw-summary">
       {TILE_STATUSES.map((status) => (
-        <KpiTile key={status} label={STATUS_LABELS[status]} value={formatNumber(summary[status] ?? 0)} />
+        <KpiTile
+          key={status}
+          label={STATUS_LABELS[status]}
+          value={formatNumber(summary[status] ?? 0)}
+          tone={(summary[status] ?? 0) > 0 ? TILE_TONES[status] : undefined}
+        />
       ))}
     </div>
   );
