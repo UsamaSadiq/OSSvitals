@@ -271,6 +271,7 @@ def _upgrade_cost(payload: dict[str, Any] | None) -> dict[str, Any]:
         "deprecations_url": meta.get("deprecations_url"),
         "unscheduled": meta.get("unscheduled", {}),
         "earlier": meta.get("earlier", {}),
+        "withdrawn": meta.get("withdrawn", {}),
         "summary": meta.get("summary", {}),
         "releases": payload["records"],
     }
