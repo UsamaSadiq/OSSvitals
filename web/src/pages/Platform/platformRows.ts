@@ -1,7 +1,7 @@
 import type { Chart } from "../../components/charts";
 import { tipMark } from "../../components/charts";
 import { formatNumber } from "../../format";
-import type { DatedCount, ExtensionRelease, TrendOrganisation, TrendYear } from "../../data/schemas";
+import type { DatedCount, TrendOrganisation, TrendYear } from "../../data/schemas";
 
 export interface SeriesBar {
   label: string;
@@ -56,9 +56,9 @@ export function releaseLabel(release: string): string {
   return release === CURRENT_RELEASE ? "Now" : release.charAt(0).toUpperCase() + release.slice(1);
 }
 
-export function releaseBars(
-  releases: readonly ExtensionRelease[],
-  pick: (release: ExtensionRelease) => number | null,
+export function releaseBars<Row extends { release: string }>(
+  releases: readonly Row[],
+  pick: (release: Row) => number | null,
   noun: string,
 ): SeriesBar[] {
   return releases.flatMap((release) => {

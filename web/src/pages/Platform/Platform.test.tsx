@@ -8,6 +8,8 @@ import type {
   PlatformTrends,
   PlatformView,
   TrendYear,
+  UpgradeCost,
+  UpgradeRelease,
   ViewName,
 } from "../../data/schemas";
 import type { ViewState } from "../../data/useView";
@@ -250,6 +252,66 @@ describe("Platform extension points section", () => {
     renderRoute("/platform");
 
     const heading = await screen.findByRole("heading", { name: "Extension points" });
+    expect(heading.closest("section")).toHaveTextContent("Published daily by the collect-maintenance workflow.");
+  });
+});
+
+function upgradeRow(name: string, date: string | null, days: number | null, total: number, open: number, breaking: number | null): UpgradeRelease {
+  return {
+    release: name,
+    date,
+    days_since_previous: days,
+    deprecations: { total, open, closed: total - open },
+    breaking_changes: breaking,
+    notes_url: breaking === null ? null : `https://github.com/openedx/docs.openedx.org/blob/main/source/community/release_notes/${name}/dev_op_release_notes.rst`,
+  };
+}
+
+function upgradeCost(overrides: Partial<UpgradeCost> = {}): UpgradeCost {
+  return {
+    available: true,
+    collected_at: "2026-11-05T08:58:00+00:00",
+    deprecations_url: "https://github.com/openedx/public-engineering/issues?q=label%3Adepr",
+    unscheduled: { total: 60, open: 7, closed: 53 },
+    earlier: { total: 0, open: 0, closed: 0 },
+    summary: { releases: 2, median_days_between: 206, deprecations: 21, open_deprecations: 16 },
+    releases: [
+      upgradeRow("teak", "2025-06-23", null, 4, 0, 3),
+      upgradeRow("ulmo", "2026-01-15", 206, 13, 4, 2),
+      upgradeRow("willow", null, null, 1, 1, null),
+    ],
+    ...overrides,
+  };
+}
+
+describe("Platform upgrade cost section", () => {
+  it("is absent when the view has no upgrade cost", async () => {
+    renderRoute("/platform");
+
+    expect(await screen.findByRole("heading", { name: "Modularization" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Upgrade cost" })).not.toBeInTheDocument();
+  });
+
+  it("summarises cadence and deprecations and links each release's notes", async () => {
+    setView(snapshot({ upgrade_cost: upgradeCost() }));
+    renderRoute("/platform");
+
+    expect(await screen.findByRole("group", { name: "Time between releases" })).toHaveTextContent("206 days");
+    expect(screen.getByRole("group", { name: "Open deprecations" })).toHaveTextContent("16");
+    expect(screen.getByText(/60 name no release yet \(7 of them open\)/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "DEPR tickets" })).toHaveAttribute("href", expect.stringContaining("label%3Adepr"));
+
+    const table = screen.getByRole("table", { name: "Upgrade cost by release" });
+    const ulmo = within(table).getByRole("row", { name: /Ulmo \(2026-01-15\)/ });
+    expect(within(ulmo).getByRole("link", { name: "2" })).toHaveAttribute("href", expect.stringContaining("/ulmo/"));
+    expect(within(table).getByRole("row", { name: /Willow \(not cut yet\)/ })).toHaveTextContent("Unknown");
+  });
+
+  it("shows an empty state before the first run", async () => {
+    setView(snapshot({ upgrade_cost: { available: false } }));
+    renderRoute("/platform");
+
+    const heading = await screen.findByRole("heading", { name: "Upgrade cost" });
     expect(heading.closest("section")).toHaveTextContent("Published daily by the collect-maintenance workflow.");
   });
 });

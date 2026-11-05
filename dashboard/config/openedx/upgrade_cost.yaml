@@ -1,0 +1,21 @@
+# Upgrade cost of each openedx-platform named release, collected daily by collect_maintenance.py.
+# Checked on 2026-11-05: 132 DEPR tickets, 68 naming a release (13 for ulmo, 7 for verawood), 64 naming none;
+# breaking changes in the developer and operator notes: redwood 2, sumac 1, teak 3, ulmo 2, verawood 4.
+platform:
+  repo: openedx/openedx-platform
+releases:
+  # A named release is the <prefix><name>.1 tag on the platform repo; rows start at `first`.
+  tag_prefixes: [open-release/, release/]
+  first: nutmeg
+  # Releases not cut yet that tickets and release notes already name.
+  upcoming: [willow, xylon]
+deprecations:
+  repo: openedx/public-engineering
+  label: depr
+  # The DEPR issue form's release field; its wording changed over time.
+  release_field: '^(Earliest|First) Open edX Named Release (Without This Functionality|with Breaking Changes)$'
+release_notes:
+  repo: openedx/docs.openedx.org
+  ref: main
+  path: 'source/community/release_notes/{release}/dev_op_release_notes.rst'
+  heading: Breaking Changes

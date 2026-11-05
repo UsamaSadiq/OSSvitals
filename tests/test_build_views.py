@@ -416,7 +416,7 @@ def test_platform_view_has_trends_only_when_the_collector_runs(built):
 
     data, _ = built
     bare = build_platform(BuildContext(data=data, generated_at=GENERATED_AT))
-    assert "trends" not in bare and "extension_points" not in bare
+    assert not {"trends", "extension_points", "upgrade_cost"} & set(bare)
     enabled = BuildContext(data=data, generated_at=GENERATED_AT, maintenance={"platform_trends.json": None})
     assert build_platform(enabled)["trends"] == {"available": False}
 
@@ -430,3 +430,14 @@ def test_platform_carries_extension_points(built):
     assert [row["date"] for row in releases[:-1]] == sorted(row["date"] for row in releases[:-1])
     assert section["summary"]["filters"]["now"] == releases[-1]["filters"]["count"]
     assert section["slots_roots"] == ["src/plugin-slots", "src/slots"]
+
+
+def test_platform_carries_upgrade_cost(built):
+    _, files = built
+    section = files["platform.json"]["upgrade_cost"]
+    assert section["available"] is True
+    releases = section["releases"]
+    assert releases[0]["days_since_previous"] is None
+    assert all(row["deprecations"]["total"] == row["deprecations"]["open"] + row["deprecations"]["closed"] for row in releases)
+    assert section["summary"]["deprecations"] == sum(row["deprecations"]["total"] for row in releases)
+    assert section["deprecations_url"].startswith("https://github.com/openedx/public-engineering/issues")

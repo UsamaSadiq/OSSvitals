@@ -600,11 +600,43 @@ const extensionPointsSchema = z.object({
     .optional(),
 });
 
+const ticketCountsSchema = z.object({ total: int, open: int, closed: int });
+
+const upgradeCostSchema = z.object({
+  available: z.boolean(),
+  ...sectionStamps,
+  deprecations_url: optionalHttpUrl,
+  unscheduled: ticketCountsSchema.partial().optional(),
+  earlier: ticketCountsSchema.partial().optional(),
+  summary: z
+    .object({
+      releases: int,
+      median_days_between: int.nullable(),
+      deprecations: int,
+      open_deprecations: int,
+    })
+    .partial()
+    .optional(),
+  releases: z
+    .array(
+      z.object({
+        release: z.string(),
+        date: z.string().nullable(),
+        days_since_previous: int.nullable(),
+        deprecations: ticketCountsSchema,
+        breaking_changes: int.nullable(),
+        notes_url: optionalHttpUrl,
+      }),
+    )
+    .optional(),
+});
+
 export const platformSchema = view({
   available: z.boolean(),
   modularization: modularizationSchema,
   trends: trendsSchema.optional(),
   extension_points: extensionPointsSchema.optional(),
+  upgrade_cost: upgradeCostSchema.optional(),
 });
 
 const levelSchema = z.enum(["pass", "warn", "fail", "unknown"]);
@@ -718,6 +750,8 @@ export type TrendYear = NonNullable<PlatformTrends["years"]>[number];
 export type TrendOrganisation = TrendYear["organisations"][number];
 export type ExtensionPoints = NonNullable<PlatformView["extension_points"]>;
 export type ExtensionRelease = NonNullable<ExtensionPoints["releases"]>[number];
+export type UpgradeCost = NonNullable<PlatformView["upgrade_cost"]>;
+export type UpgradeRelease = NonNullable<UpgradeCost["releases"]>[number];
 export type DatedCount = z.infer<typeof datedCountSchema>;
 export type SupportProduct = NonNullable<SupportWindowView["products"]>[number];
 export type SupportCycle = SupportProduct["cycles"][number];

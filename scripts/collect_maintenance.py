@@ -26,6 +26,7 @@ from collectors import (
     publish,
     redundant_prs,
     support_windows,
+    upgrade_cost,
     upgrade_jobs,
     waves,
 )
@@ -45,6 +46,7 @@ SUPPORT_WINDOWS_FILE = "support_windows.json"
 MODULARIZATION_FILE = "modularization.json"
 PLATFORM_TRENDS_FILE = "platform_trends.json"
 EXTENSION_POINTS_FILE = "extension_points.json"
+UPGRADE_COST_FILE = "upgrade_cost.json"
 TUTOR_DEFAULTS = "tutor/templates/config/defaults.yml"
 OPENEDX_RELEASE_PATTERN = r'OPENEDX_COMMON_VERSION: "([^"]+)"'
 RELEASE_TAG_PATTERN = r"^([a-z]+)\.1$"
@@ -61,8 +63,9 @@ COLLECTORS = (
     "modularization",
     "platform_trends",
     "extension_points",
+    "upgrade_cost",
 )
-ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization", "platform_trends", "extension_points")
+ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization", "platform_trends", "extension_points", "upgrade_cost")
 MERGEABLE = tuple(name for name in COLLECTORS if name not in ORG_WIDE)
 
 Records = list[dict[str, Any]]
@@ -722,6 +725,73 @@ def collect_extension_points(out_dir: Path, scope: Scope, target: Target) -> int
     return 0
 
 
+def _release_sequence(config: dict[str, Any]) -> tuple[list[str], list[tuple[str, date | None]]]:
+    """Every name tickets can match (all tagged releases plus upcoming ones), and the rows' releases from ``first`` on."""
+    settings = config["releases"]
+    tagged = sorted(release_tags(config["platform"]["repo"], settings["tag_prefixes"]).items(), key=lambda item: item[1].date)
+    names = [name for name, _ in tagged]
+    if settings["first"] not in names:
+        raise RuntimeError(f"first release {settings['first']!r} has no readable .1 tag")
+    upcoming = [name for name in settings.get("upcoming", []) if name not in names]
+    shown = [(name, release.date.date()) for name, release in tagged[names.index(settings["first"]):]]
+    return [*names, *upcoming], [*shown, *((name, None) for name in upcoming)]
+
+
+def _breaking_changes(notes: dict[str, str], releases: list[str]) -> dict[str, int | None]:
+    return {
+        release: upgrade_cost.section_items(
+            github.raw_text(notes["repo"], notes["ref"], notes["path"].format(release=release)), notes["heading"]
+        )
+        for release in releases
+    }
+
+
+def _upgrade_cost_rows(config: dict[str, Any]) -> tuple[Records, dict[str, int]]:
+    names, releases = _release_sequence(config)
+    deprecations = config["deprecations"]
+    tickets = github.labelled_issues(deprecations["repo"], deprecations["label"])
+    grouped = upgrade_cost.by_release(tickets, names, deprecations["release_field"])
+    breaking = _breaking_changes(config["release_notes"], [name for name, _ in releases])
+    shown = {name for name, _ in releases}
+    unscheduled = upgrade_cost.deprecation_counts(grouped.get(None, []))
+    earlier = upgrade_cost.deprecation_counts([ticket for name, group in grouped.items() if name and name not in shown for ticket in group])
+    notes = config["release_notes"]
+    rows = [
+        {**row, "notes_url": _notes_url(notes, row["release"]) if row["breaking_changes"] is not None else None}
+        for row in upgrade_cost.release_rows(releases, grouped, breaking)
+    ]
+    return rows, {"unscheduled": unscheduled, "earlier": earlier}
+
+
+def _notes_url(notes: dict[str, str], release: str) -> str:
+    return f"https://github.com/{notes['repo']}/blob/{notes['ref']}/{notes['path'].format(release=release)}"
+
+
+def collect_upgrade_cost(out_dir: Path, scope: Scope, target: Target) -> int:
+    config = get_config("upgrade_cost", target.org)
+    if not config:
+        print("Upgrade cost: not configured for this org; skipped.")
+        return 0
+    generated_at = now_utc()
+    try:
+        rows, buckets = _upgrade_cost_rows(config)
+    except Exception as error:  # noqa: BLE001 - any failure keeps the published file so the other collectors still publish
+        print(f"::warning::Upgrade cost: {public_message(error)}; kept the published file.")
+        return 0
+    content = publish.payload(
+        rows,
+        generated_at=generated_at,
+        source=upgrade_cost.SOURCE,
+        collector_version=upgrade_cost.VERSION,
+        deprecations_url=f"https://github.com/{config['deprecations']['repo']}/issues?q=label%3A{config['deprecations']['label']}",
+        **buckets,
+        summary=upgrade_cost.summary(rows, buckets["unscheduled"]),
+    )
+    publish.write(out_dir / UPGRADE_COST_FILE, content, org=target.org)
+    print(f"Upgrade cost: {len(rows)} releases, {upgrade_cost.summary(rows, buckets['unscheduled'])}")
+    return 0
+
+
 def select_collectors(requested: list[str] | None, *, merge_run: bool, enabled: list[str]) -> list[str]:
     """The org's enabled collectors (mergeable ones for a --merge run); naming one the org turned off is an error."""
     if requested:
@@ -746,6 +816,7 @@ def main() -> int:
         "modularization": collect_modularization,
         "platform_trends": collect_platform_trends,
         "extension_points": collect_extension_points,
+        "upgrade_cost": collect_upgrade_cost,
     }
     target = _target(args.org)
     scope = Scope(repos=args.repo, merge=args.merge)
