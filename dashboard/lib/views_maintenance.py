@@ -44,6 +44,7 @@ def maintenance_keys(
         "modularization": [maintenance.MODULARIZATION],
         "platform_trends": [maintenance.PLATFORM_TRENDS],
         "extension_points": [maintenance.EXTENSION_POINTS],
+        "upgrade_cost": [maintenance.UPGRADE_COST],
         "waves": [maintenance.wave_file(wave_id) for wave_id in waves_config],
         "campaigns": [maintenance.campaign_file(campaign_id) for campaign_id in campaigns_config or {}],
     }
@@ -260,9 +261,25 @@ def _extension_points(payload: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def _upgrade_cost(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if payload is None:
+        return {"available": False}
+    meta = payload["metadata"]
+    return {
+        "available": True,
+        **_stamps(payload),
+        "deprecations_url": meta.get("deprecations_url"),
+        "unscheduled": meta.get("unscheduled", {}),
+        "earlier": meta.get("earlier", {}),
+        "summary": meta.get("summary", {}),
+        "releases": payload["records"],
+    }
+
+
 OPTIONAL_SECTIONS = {
     "trends": (maintenance.PLATFORM_TRENDS, _trends),
     "extension_points": (maintenance.EXTENSION_POINTS, _extension_points),
+    "upgrade_cost": (maintenance.UPGRADE_COST, _upgrade_cost),
 }
 
 

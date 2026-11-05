@@ -191,6 +191,12 @@ def org_repos(org: str, *, include_archived: bool = False) -> list[dict[str, Any
     return [repo for page in pages for repo in page if include_archived or not repo.get("archived")]
 
 
+def labelled_issues(full_name: str, label: str) -> list[dict[str, Any]]:
+    """Every issue, open or closed, with ``label``; pull requests left out."""
+    pages = gh_json("api", f"repos/{quoted_path(full_name)}/issues?labels={segment(label)}&state=all&per_page=100", "--paginate", "--slurp")
+    return [issue for page in pages for issue in page if "pull_request" not in issue]
+
+
 def top_level_paths(full_name: str, ref: str) -> set[str]:
     try:
         entries = gh_json("api", f"repos/{quoted_path(full_name)}/contents/?ref={segment(ref)}")

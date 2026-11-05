@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["platform", "releases", "deprecations", "release_notes"],
+  "properties": {
+    "platform": {
+      "type": "object",
+      "required": ["repo"],
+      "properties": {"repo": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"}},
+      "additionalProperties": false
+    },
+    "releases": {
+      "type": "object",
+      "required": ["tag_prefixes", "first"],
+      "properties": {
+        "tag_prefixes": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "first": {"type": "string", "pattern": "^[a-z]+$"},
+        "upcoming": {"type": "array", "items": {"type": "string", "pattern": "^[a-z]+$"}}
+      },
+      "additionalProperties": false
+    },
+    "deprecations": {
+      "type": "object",
+      "required": ["repo", "label", "release_field"],
+      "properties": {
+        "repo": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+        "label": {"type": "string"},
+        "release_field": {"type": "string", "format": "regex"}
+      },
+      "additionalProperties": false
+    },
+    "release_notes": {
+      "type": "object",
+      "required": ["repo", "ref", "paths", "heading"],
+      "properties": {
+        "repo": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
+        "ref": {"type": "string"},
+        "paths": {"type": "array", "items": {"type": "string", "pattern": "\\{release\\}"}, "minItems": 1},
+        "heading": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

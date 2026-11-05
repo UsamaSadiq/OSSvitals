@@ -13,6 +13,8 @@ import type {
   PlatformView,
   TrendOrganisation,
   TrendYear,
+  UpgradeCost,
+  UpgradeRelease,
 } from "../../data/schemas";
 import { useView } from "../../data/useView";
 import { formatNumber, formatUtcDate } from "../../format";
@@ -375,12 +377,105 @@ function ExtensionPointsSection({ section }: { section: ExtensionPoints }) {
   );
 }
 
+function daysText(days: number | null | undefined): string {
+  return days == null ? "Unknown" : `${formatNumber(days)} days`;
+}
+
+const UPGRADE_COLUMNS: Column<UpgradeRelease>[] = [
+  {
+    key: "release",
+    header: "Release",
+    cell: (row) => `${releaseLabel(row.release)} (${row.date ?? "not cut yet"})`,
+    sortValue: (row) => row.date ?? "9999",
+  },
+  numericColumn("days", "Days since the previous release", (row) => row.days_since_previous),
+  numericColumn("deprecations", "Deprecations", (row) => row.deprecations.total),
+  numericColumn("open", "Still open", (row) => row.deprecations.open),
+  {
+    key: "breaking",
+    header: "Breaking changes",
+    numeric: true,
+    cell: (row) =>
+      row.notes_url ? <a href={row.notes_url}>{count(row.breaking_changes)}</a> : count(row.breaking_changes),
+    sortValue: (row) => row.breaking_changes ?? -1,
+  },
+];
+
+function otherTickets(section: UpgradeCost): string {
+  const parts = [
+    section.earlier?.total ? `${formatNumber(section.earlier.total)} name an earlier release` : null,
+    section.withdrawn?.total ? `${formatNumber(section.withdrawn.total)} were withdrawn and are not counted` : null,
+  ].filter(Boolean);
+  return parts.length ? `; ${parts.join(", ")}` : "";
+}
+
+function UpgradeCostSection({ section }: { section: UpgradeCost }) {
+  const releases = section.releases ?? [];
+  const deprecations = barChart(
+    releaseBars(releases, (row) => row.deprecations.total, "deprecations"),
+    "Deprecations",
+  );
+  return (
+    <section className="pf-section" id="upgrade-cost" aria-labelledby="pf-upgrade-heading">
+      <h2 id="pf-upgrade-heading">Upgrade cost</h2>
+      {!section.available ? (
+        <EmptyState kind="info" title="Not collected yet." body="Published daily by the collect-maintenance workflow." />
+      ) : (
+        <>
+          <p className="caption">
+            {collectedText(section.collected_at)}. What each named release removes or changes for operators.
+            Deprecations are the{" "}
+            {section.deprecations_url ? <a href={section.deprecations_url}>DEPR tickets</a> : "DEPR tickets"} whose
+            form names that release as the first one without the deprecated functionality;{" "}
+            {formatNumber(section.unscheduled?.total ?? 0)} name no release yet ({formatNumber(section.unscheduled?.open ?? 0)}{" "}
+            of them open){otherTickets(section)}. Breaking changes are the changes listed under Breaking Changes in each
+            release&rsquo;s developer and operator notes.
+          </p>
+          <div className="pf-summary">
+            <KpiTile
+              label="Time between releases"
+              value={daysText(section.summary?.median_days_between)}
+              help="Median days between consecutive named releases, from the date of each release's .1 tag."
+            />
+            <KpiTile
+              label="Open deprecations"
+              value={count(section.summary?.open_deprecations)}
+              help="DEPR tickets still open, whether or not they name a release. Each one is a removal operators will need to plan for."
+            />
+            <KpiTile
+              label="Deprecations with a release"
+              value={count(section.summary?.deprecations)}
+              help="DEPR tickets that name the release they land in, across the releases shown."
+            />
+          </div>
+          {deprecations && (
+            <>
+              <h3>Deprecations landing in each release</h3>
+              <ChartFigure chart={deprecations} />
+            </>
+          )}
+          <h3>By release</h3>
+          <DataTable
+            caption="Upgrade cost by release"
+            captionHidden
+            columns={UPGRADE_COLUMNS}
+            rows={releases}
+            rowKey={(row) => row.release}
+            emptyMessage="No releases collected."
+          />
+        </>
+      )}
+    </section>
+  );
+}
+
 function Sections({ view }: { view: PlatformView }) {
   return (
     <>
       <ModularizationSection section={view.modularization} />
       {view.trends && <TrendsSection section={view.trends} />}
       {view.extension_points && <ExtensionPointsSection section={view.extension_points} />}
+      {view.upgrade_cost && <UpgradeCostSection section={view.upgrade_cost} />}
     </>
   );
 }

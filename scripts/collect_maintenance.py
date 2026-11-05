@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from collectors import (
     campaigns,
@@ -26,6 +27,7 @@ from collectors import (
     publish,
     redundant_prs,
     support_windows,
+    upgrade_cost,
     upgrade_jobs,
     waves,
 )
@@ -45,6 +47,7 @@ SUPPORT_WINDOWS_FILE = "support_windows.json"
 MODULARIZATION_FILE = "modularization.json"
 PLATFORM_TRENDS_FILE = "platform_trends.json"
 EXTENSION_POINTS_FILE = "extension_points.json"
+UPGRADE_COST_FILE = "upgrade_cost.json"
 TUTOR_DEFAULTS = "tutor/templates/config/defaults.yml"
 OPENEDX_RELEASE_PATTERN = r'OPENEDX_COMMON_VERSION: "([^"]+)"'
 RELEASE_TAG_PATTERN = r"^([a-z]+)\.1$"
@@ -61,8 +64,9 @@ COLLECTORS = (
     "modularization",
     "platform_trends",
     "extension_points",
+    "upgrade_cost",
 )
-ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization", "platform_trends", "extension_points")
+ORG_WIDE = ("upgrade_jobs", "support_windows", "modularization", "platform_trends", "extension_points", "upgrade_cost")
 MERGEABLE = tuple(name for name in COLLECTORS if name not in ORG_WIDE)
 
 Records = list[dict[str, Any]]
@@ -656,14 +660,20 @@ def _extension_row(config: dict[str, Any], release: str, ref: str, frontend_refs
     }
 
 
-def _named_releases(config: dict[str, Any]) -> list[tuple[str, ReleaseTag]]:
+def _tagged_releases(config: dict[str, Any]) -> tuple[list[tuple[str, ReleaseTag]], int]:
+    """Every tagged release in date order, and the position of the configured ``first`` one."""
     found = release_tags(config["platform"]["repo"], config["releases"]["tag_prefixes"])
     ordered = sorted(found.items(), key=lambda item: item[1].date)
     names = [name for name, _ in ordered]
     first = config["releases"]["first"]
     if first not in names:
         raise RuntimeError(f"first release {first!r} has no readable .1 tag")
-    return ordered[names.index(first):]
+    return ordered, names.index(first)
+
+
+def _named_releases(config: dict[str, Any]) -> list[tuple[str, ReleaseTag]]:
+    ordered, start = _tagged_releases(config)
+    return ordered[start:]
 
 
 def _frontend_repos(frontend: dict[str, Any]) -> list[dict[str, Any]]:
@@ -722,6 +732,95 @@ def collect_extension_points(out_dir: Path, scope: Scope, target: Target) -> int
     return 0
 
 
+def _release_sequence(config: dict[str, Any]) -> tuple[list[str], list[tuple[str, date | None]], date | None]:
+    """Every name tickets can match, the rows' releases (``first`` on, then upcoming ones), and the release date before ``first``."""
+    ordered, start = _tagged_releases(config)
+    names = [name for name, _ in ordered]
+    upcoming = [name for name in config["releases"].get("upcoming", []) if name not in names]
+    shown = [(name, release.date.date()) for name, release in ordered[start:]]
+    before = ordered[start - 1][1].date.date() if start else None
+    return [*names, *upcoming], [*shown, *((name, None) for name in upcoming)], before
+
+
+def _release_notes(notes: dict[str, Any], release: str) -> tuple[str | None, str | None]:
+    """The notes text and its path: the first of the configured paths that exists (older releases use another layout)."""
+    for template in notes["paths"]:
+        path = template.format(release=release)
+        text = github.raw_text(notes["repo"], notes["ref"], path)
+        if text is not None:
+            return text, path
+    return None, None
+
+
+def _breaking_changes(notes: dict[str, Any], releases: list[str]) -> tuple[dict[str, int | None], dict[str, str]]:
+    counts, paths, untitled = {}, {}, []
+    for release in releases:
+        text, path = _release_notes(notes, release)
+        counts[release] = upgrade_cost.section_items(text, notes["heading"])
+        if path:
+            paths[release] = path
+        if text is not None and counts[release] is None:
+            untitled.append(release)
+    if untitled:
+        print(f"::warning::Upgrade cost: no {notes['heading']!r} section in the notes of {', '.join(untitled)}")
+    return counts, paths
+
+
+def _upgrade_cost_rows(config: dict[str, Any]) -> tuple[Records, dict[str, dict[str, int]]]:
+    names, releases, before = _release_sequence(config)
+    deprecations = config["deprecations"]
+    tickets = github.labelled_issues(deprecations["repo"], deprecations["label"])
+    if not tickets:
+        raise RuntimeError(f"no issues labelled {deprecations['label']!r} in {deprecations['repo']}")
+    counted = [ticket for ticket in tickets if not upgrade_cost.is_withdrawn(ticket)]
+    grouped = upgrade_cost.by_release(counted, names, deprecations["release_field"])
+    notes = config["release_notes"]
+    breaking, paths = _breaking_changes(notes, [name for name, _ in releases])
+    shown = {name for name, _ in releases}
+    buckets = {
+        "unscheduled": upgrade_cost.deprecation_counts(grouped.get(None, [])),
+        "earlier": upgrade_cost.deprecation_counts([ticket for name, group in grouped.items() if name and name not in shown for ticket in group]),
+        "withdrawn": upgrade_cost.deprecation_counts([ticket for ticket in tickets if upgrade_cost.is_withdrawn(ticket)]),
+    }
+    rows = [
+        {**row, "notes_url": _notes_url(notes, paths[row["release"]]) if row["release"] in paths else None}
+        for row in upgrade_cost.release_rows(releases, grouped, breaking, before)
+    ]
+    return rows, buckets
+
+
+def _notes_url(notes: dict[str, Any], path: str) -> str:
+    return f"https://github.com/{notes['repo']}/blob/{notes['ref']}/{path}"
+
+
+def collect_upgrade_cost(out_dir: Path, scope: Scope, target: Target) -> int:
+    config = get_config("upgrade_cost", target.org)
+    if not config:
+        print("Upgrade cost: not configured for this org; skipped.")
+        return 0
+    generated_at = now_utc()
+    try:
+        rows, buckets = _upgrade_cost_rows(config)
+    except Exception as error:  # noqa: BLE001 - any failure keeps the published file so the other collectors still publish
+        print(f"::warning::Upgrade cost: {public_message(error)}; kept the published file.")
+        return 0
+    deprecations = config["deprecations"]
+    search = quote(f"label:{deprecations['label']}")
+    totals = upgrade_cost.summary(rows, buckets)
+    content = publish.payload(
+        rows,
+        generated_at=generated_at,
+        source=upgrade_cost.SOURCE,
+        collector_version=upgrade_cost.VERSION,
+        deprecations_url=f"https://github.com/{deprecations['repo']}/issues?q={search}",
+        **buckets,
+        summary=totals,
+    )
+    publish.write(out_dir / UPGRADE_COST_FILE, content, org=target.org)
+    print(f"Upgrade cost: {len(rows)} releases, {totals}")
+    return 0
+
+
 def select_collectors(requested: list[str] | None, *, merge_run: bool, enabled: list[str]) -> list[str]:
     """The org's enabled collectors (mergeable ones for a --merge run); naming one the org turned off is an error."""
     if requested:
@@ -746,6 +845,7 @@ def main() -> int:
         "modularization": collect_modularization,
         "platform_trends": collect_platform_trends,
         "extension_points": collect_extension_points,
+        "upgrade_cost": collect_upgrade_cost,
     }
     target = _target(args.org)
     scope = Scope(repos=args.repo, merge=args.merge)

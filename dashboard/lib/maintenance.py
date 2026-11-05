@@ -26,6 +26,7 @@ SUPPORT_WINDOWS = "support_windows.json"
 MODULARIZATION = "modularization.json"
 PLATFORM_TRENDS = "platform_trends.json"
 EXTENSION_POINTS = "extension_points.json"
+UPGRADE_COST = "upgrade_cost.json"
 FIXTURE_SUBDIR = "maintenance"
 
 

@@ -6,3 +6,4 @@ collectors:
   modularization: true
   platform_trends: true
   extension_points: true
+  upgrade_cost: true

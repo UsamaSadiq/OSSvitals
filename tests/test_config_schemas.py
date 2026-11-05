@@ -30,6 +30,7 @@ def test_openedx_config_validates_against_schemas():
         "modularization",
         "platform_trends",
         "extension_points",
+        "upgrade_cost",
     ]
 
     for name in config_names:
