@@ -1,6 +1,7 @@
 """Read a monolith's git history from a local bare clone for ``collectors/platform_trends.py``."""
 from __future__ import annotations
 
+import subprocess
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -17,10 +18,16 @@ class HistoryError(RuntimeError):
     pass
 
 
+def _failure(label: str, result: subprocess.CompletedProcess[str]) -> HistoryError:
+    """The exit code and git's last stderr line; callers publish it only through ``public_message``."""
+    last = next((line for line in reversed(result.stderr.splitlines()) if line.strip()), "")
+    return HistoryError(f"{label} failed with exit code {result.returncode}{f': {last.strip()}' if last else ''}")
+
+
 def _git(git_dir: Path, args: list[str], *, url: str, label: str, ok: tuple[int, ...] = (0,)) -> str:
     result = run_git(["--git-dir", str(git_dir), *args], url=url, label=label)
     if result.returncode not in ok:
-        raise HistoryError(f"{label} failed with exit code {result.returncode}")
+        raise _failure(label, result)
     return result.stdout
 
 
@@ -29,7 +36,7 @@ def clone(url: str, ref: str, *, since: date, dest: Path) -> None:
     args = ["clone", "--quiet", "--bare", "--single-branch", "--branch", ref, f"--shallow-since={since.isoformat()}", url, str(dest)]
     result = run_git(args, url=url, label="clone")
     if result.returncode != 0:
-        raise HistoryError(f"clone failed with exit code {result.returncode}")
+        raise _failure("clone", result)
 
 
 def head(git_dir: Path, ref: str, *, url: str) -> str:

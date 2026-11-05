@@ -274,3 +274,16 @@ def test_collector_writes_months_years_and_summary(tmp_path, monkeypatch, monoli
 def test_monthly_files_get_a_longer_freshness_limit():
     assert check_freshness.max_age_days("platform_trends.json") == 38
     assert check_freshness.max_age_days("modularization.json") == check_freshness.DEFAULT_MAX_AGE_DAYS
+
+
+def test_clone_failure_reports_git_stderr_without_urls_or_tokens(tmp_path, monkeypatch, capsys):
+    token = "ghp_" + "b" * 36
+    stderr = f"remote: counting\nfatal: unable to access 'https://x:{token}@github.com/o/r.git/': RPC failed\n"
+    monkeypatch.setattr(platform_history, "run_git", lambda *a, **k: subprocess.CompletedProcess([], 128, "", stderr))
+    monkeypatch.setattr(collect_maintenance, "now_utc", lambda: datetime(2026, 11, 5, tzinfo=timezone.utc))
+
+    assert collect_maintenance.collect_platform_trends(tmp_path, scope=None, target=collect_maintenance.Target("openedx", "openedx")) == 0
+    out = capsys.readouterr().out
+    assert "clone failed with exit code 128: fatal: unable to access" in out and "RPC failed" in out
+    assert token not in out and "github.com" not in out
+    assert not (tmp_path / collect_maintenance.PLATFORM_TRENDS_FILE).exists()

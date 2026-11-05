@@ -27,6 +27,7 @@ from collectors import (
     upgrade_jobs,
     waves,
 )
+from collectors.fleet.errors import public_message
 from dashboard.lib.clock import now_utc
 from dashboard.lib.config import DEFAULT_ORG, get_config
 from dashboard.lib.health_settings import enabled_collectors, load_settings
@@ -570,7 +571,7 @@ def collect_platform_trends(out_dir: Path, scope: Scope, target: Target) -> int:
     try:
         head, history, lines = _read_history(config, months)
     except RuntimeError as error:
-        print(f"::warning::Platform trends: {error}; kept the published file.")
+        print(f"::warning::Platform trends: {public_message(error)}; kept the published file.")
         return 0
     rules = {"python": config["python"], "mechanical": config["mechanical"], "bot_pattern": config["bot_pattern"]}
     by_month, by_year = platform_trends.tallies(history, months, rules)
