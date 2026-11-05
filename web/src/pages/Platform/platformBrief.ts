@@ -2,10 +2,19 @@ import type { PlatformView } from "../../data/schemas";
 import { formatCount, formatNumber } from "../../format";
 import { change, changeSince, changeText, releaseLabel } from "./platformRows";
 
+export type Verdict = "good" | "watch" | "concern";
+
+export interface Headline {
+  figure: string;
+  label: string;
+  verdict: Verdict;
+}
+
 export interface BriefPoint {
   topic: string;
   text: string;
   href: string;
+  headline: Headline | null;
 }
 
 type UpgradeRelease = NonNullable<NonNullable<PlatformView["upgrade_cost"]>["releases"]>[number];
@@ -15,9 +24,14 @@ function sentences(parts: (string | null)[]): string | null {
   return kept.length ? `${kept.join(". ")}.` : null;
 }
 
-function point(topic: string, href: string, parts: (string | null)[]): BriefPoint | null {
+function point(topic: string, href: string, parts: (string | null)[], headline: Headline | null = null): BriefPoint | null {
   const text = sentences(parts);
-  return text ? { topic, href, text } : null;
+  return text ? { topic, href, text, headline } : null;
+}
+
+function extractionVerdict(extracted: number, blocks: number): Verdict {
+  if (extracted === blocks) return "good";
+  return extracted > 0 ? "watch" : "concern";
 }
 
 function listed(items: string[]): string {
@@ -38,7 +52,11 @@ function modularizationPoint(view: PlatformView): BriefPoint | null {
   return point("Modularization", "#modularization", [
     extractedText(extracted, blocks, section.extracted_package ? section.extracted_package : "separate packages"),
     legacy ? `Legacy frontend files are ${legacy}` : null,
-  ]);
+  ], {
+    figure: `${formatNumber(extracted)} of ${formatNumber(blocks)}`,
+    label: "built-in XBlocks moved out",
+    verdict: extractionVerdict(extracted, blocks),
+  });
 }
 
 function stabilityPoint(view: PlatformView): BriefPoint | null {
@@ -51,7 +69,11 @@ function stabilityPoint(view: PlatformView): BriefPoint | null {
   return point("Stability", "#stability", [
     `${formatCount(latest.commits, "commit")} by ${formatCount(latest.authors, "author")} in ${latestYear}${commits ? `, commits ${commits}` : ""}`,
     now != null ? `${formatCount(now, "line")} of Python outside tests and migrations${lines ? `, ${lines}` : ""}` : null,
-  ]);
+  ], {
+    figure: formatNumber(latest.commits),
+    label: `commits in ${latestYear}`,
+    verdict: first && latest.commits > first.commits ? "watch" : "good",
+  });
 }
 
 function extensionPoint(view: PlatformView): BriefPoint | null {
@@ -70,7 +92,11 @@ function extensionPoint(view: PlatformView): BriefPoint | null {
   return point("Extension points", "#extension-points", [
     counts.length ? `Ways to customise the platform without forking it: ${listed(counts)}` : null,
     growth,
-  ]);
+  ], slots?.now != null ? {
+    figure: formatNumber(slots.now),
+    label: "frontend plugin slots",
+    verdict: slots.first && slots.now < slots.first.count ? "watch" : "good",
+  } : null);
 }
 
 function hasCost(release: UpgradeRelease): boolean {
@@ -100,7 +126,11 @@ function upgradePoint(view: PlatformView): BriefPoint | null {
     days != null ? `A named release every ${formatCount(days, "day")} (median)` : null,
     latest ? releaseCostText(latest) : null,
     open ? `${formatCount(open, "deprecation")} ${open === 1 ? "is" : "are"} still open` : null,
-  ]);
+  ], days != null ? {
+    figure: formatCount(days, "day"),
+    label: "between releases (median)",
+    verdict: open ? "watch" : "good",
+  } : null);
 }
 
 export function briefPoints(view: PlatformView): BriefPoint[] {
