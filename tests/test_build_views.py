@@ -317,6 +317,8 @@ def test_views_without_maintenance_files_mark_them_unavailable(built, tmp_path):
     assert all(wave["available"] is False for wave in upgrades["waves"])
     assert all(campaign["available"] is False for campaign in upgrades["campaigns"])
     assert json.loads((tmp_path / "support_window.json").read_text())["available"] is False
+    platform = json.loads((tmp_path / "platform.json").read_text())
+    assert platform["available"] is False and platform["modularization"] == {"available": False}
 
 
 def test_support_window_carries_products_and_drift(built):
@@ -328,6 +330,17 @@ def test_support_window_carries_products_and_drift(built):
     assert products["python"]["status"] == "drift"
     assert sum(window["summary"].values()) == len(products)
     assert all(sum(cycle["current"] for cycle in product["cycles"]) <= 1 for product in products.values())
+
+
+def test_platform_carries_modularization_facts(built):
+    _, files = built
+    platform = files["platform.json"]
+    modularization = platform["modularization"]
+    assert platform["available"] is True and modularization["available"] is True
+    assert modularization["summary"]["extracted"] == len(modularization["blocks"])
+    history = modularization["legacy_frontend"]["history"]
+    assert [point["date"] for point in history] == sorted(point["date"] for point in history)
+    assert modularization["pins_url"].startswith("https://github.com/openedx/openedx-platform/blob/")
 
 
 def test_checks_carry_catalog_groups(built):

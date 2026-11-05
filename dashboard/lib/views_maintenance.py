@@ -1,4 +1,4 @@
-"""Views built from the collect-maintenance files: Components, Upgrades and Support Window."""
+"""Views built from the collect-maintenance files: Components, Upgrades, Support Window and Platform."""
 from __future__ import annotations
 
 from collections.abc import Collection
@@ -25,6 +25,7 @@ UPGRADE_JOB_FIELDS = [
 WAVE_RECORD_FIELDS = [REPO_COL, "status", "pr_url", "pr_title", "pr_age_days"]
 CAMPAIGN_RECORD_FIELDS = [*WAVE_RECORD_FIELDS, "pinned", "runtime_exposed"]
 SUPPORT_WINDOW_SOURCE = "endoflife.date, Tutor release files and repo-tools barcalendar.py"
+PLATFORM_SOURCE = "openedx-platform source files and git history on GitHub"
 REDUNDANT_FIELDS = [REPO_COL, "bot_pr_url", "superseded_by_url", "superseded_by_merged", "confidence"]
 
 
@@ -200,6 +201,36 @@ def build_support_window(ctx: BuildContext) -> dict[str, Any]:
         window=meta.get("window", {}),
         summary=meta.get("summary", {}),
         products=payload["records"],
+    )
+
+
+def _modularization(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if payload is None:
+        return {"available": False}
+    meta = payload["metadata"]
+    return {
+        "available": True,
+        **_stamps(payload),
+        "repo": meta.get("repo"),
+        "ref": meta.get("ref"),
+        "toggles_url": meta.get("toggles_url"),
+        "extracted_package": meta.get("extracted_package"),
+        "pins": meta.get("pins", {}),
+        "pins_url": meta.get("pins_url"),
+        "legacy_frontend": meta.get("legacy_frontend", {}),
+        "summary": meta.get("summary", {}),
+        "blocks": payload["records"],
+    }
+
+
+def build_platform(ctx: BuildContext) -> dict[str, Any]:
+    modularization = _modularization(ctx.maintenance.get(maintenance.MODULARIZATION))
+    sections = {"modularization": modularization}
+    return envelope(
+        ctx,
+        PLATFORM_SOURCE,
+        available=any(section["available"] for section in sections.values()),
+        **sections,
     )
 
 
