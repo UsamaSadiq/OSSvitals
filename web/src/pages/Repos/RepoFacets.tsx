@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { FilterChip } from "../../components/FilterChip";
 import { GRADE_ORDER } from "../../components/GradePill";
 import { StarIcon } from "../../components/icons";
@@ -125,15 +125,29 @@ function WatchedChip({ filters, onChange }: Pick<FacetsProps, "filters" | "onCha
   );
 }
 
-function startsCollapsed(): boolean {
-  return typeof window.matchMedia === "function" && window.matchMedia("(max-width: 599px)").matches;
+const NARROW = "(max-width: 599px)";
+
+function subscribeNarrow(onChange: () => void): () => void {
+  if (typeof window.matchMedia !== "function") return () => {};
+  const query = window.matchMedia(NARROW);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function isNarrow(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia(NARROW).matches;
 }
 
 /** On phones the filters fold behind a summary, since they would otherwise fill the first screen. */
 export function RepoFacets({ filters, options, onChange }: FacetsProps) {
-  const [collapsed] = useState(startsCollapsed);
+  const narrow = useSyncExternalStore(subscribeNarrow, isNarrow, () => false);
+  const [openedNarrow, setOpenedNarrow] = useState(false);
   return (
-    <details className="filter-bar__toggle" open={!collapsed}>
+    <details
+      className="collapsible-filters"
+      open={!narrow || openedNarrow}
+      onToggle={(event) => narrow && setOpenedNarrow(event.currentTarget.open)}
+    >
       <summary>Filters{hasActiveFilters(filters) ? " (active)" : ""}</summary>
       <div className="repos-facets">
         <div className="repos-facets__row">

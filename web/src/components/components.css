@@ -681,7 +681,7 @@ button.button-link {
 }
 
 .badge--neutral {
-  --badge-text: var(--chip-text-unknown);
+  --badge-text: var(--text);
 }
 
 .filter-bar {
@@ -701,14 +701,14 @@ button.button-link {
   margin-block: 0;
 }
 
-.filter-bar__toggle > summary {
+.collapsible-filters > summary {
   cursor: pointer;
   font-weight: 600;
   padding: 0.5rem 0;
 }
 
 @media (min-width: 600px) {
-  .filter-bar__toggle > summary {
+  .collapsible-filters > summary {
     display: none;
   }
 }

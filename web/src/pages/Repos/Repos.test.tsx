@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { metadata } from "../../data/fixtures";
@@ -287,5 +287,48 @@ describe("explorer helpers", () => {
     expect(readSort(new URLSearchParams(), false)).toEqual({ key: "composite", direction: "descending" });
     expect(readSort(new URLSearchParams("q=x"), true)).toBeUndefined();
     expect(readSort(new URLSearchParams("sort=nope"), false)).toEqual({ key: "composite", direction: "descending" });
+  });
+});
+
+describe("Repositories filters on narrow screens", () => {
+  let narrow = true;
+  const listeners = new Set<() => void>();
+
+  beforeEach(() => {
+    narrow = true;
+    listeners.clear();
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      get matches() {
+        return query === "(max-width: 599px)" && narrow;
+      },
+      addEventListener: (_: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_: string, listener: () => void) => listeners.delete(listener),
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function filtersPanel(): HTMLDetailsElement {
+    return screen.getByText(/^Filters/).closest("details") as HTMLDetailsElement;
+  }
+
+  it("folds the filters behind a summary that says when a filter is set", async () => {
+    renderRoute("/repos?grade=A");
+
+    expect(await screen.findByText("Filters (active)")).toBeInTheDocument();
+    expect(filtersPanel()).not.toHaveAttribute("open");
+  });
+
+  it("opens the filters again when the screen widens", async () => {
+    renderRoute("/repos");
+    await screen.findByText("Filters");
+    expect(filtersPanel()).not.toHaveAttribute("open");
+
+    narrow = false;
+    await act(async () => listeners.forEach((listener) => listener()));
+
+    expect(filtersPanel()).toHaveAttribute("open");
   });
 });
