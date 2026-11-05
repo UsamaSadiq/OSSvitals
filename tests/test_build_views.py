@@ -437,7 +437,8 @@ def test_platform_carries_upgrade_cost(built):
     section = files["platform.json"]["upgrade_cost"]
     assert section["available"] is True
     releases = section["releases"]
-    assert releases[0]["days_since_previous"] is None
+    assert all(row["days_since_previous"] is None for row in releases if row["date"] is None)
+    assert all(row["days_since_previous"] > 0 for row in releases if row["date"] is not None)
     assert all(row["deprecations"]["total"] == row["deprecations"]["open"] + row["deprecations"]["closed"] for row in releases)
     assert section["summary"]["deprecations"] == sum(row["deprecations"]["total"] for row in releases)
     assert section["deprecations_url"].startswith("https://github.com/openedx/public-engineering/issues")
