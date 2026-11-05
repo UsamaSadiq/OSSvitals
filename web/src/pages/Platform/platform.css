@@ -43,3 +43,29 @@
   margin: 0 0 0.5rem;
   font-size: 1rem;
 }
+
+.pf-brief__points {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+.pf-brief__point {
+  display: grid;
+  grid-template-columns: minmax(10rem, 14rem) 1fr;
+  gap: 0.25rem 1rem;
+}
+
+.pf-brief__point dt {
+  font-weight: 600;
+}
+
+.pf-brief__point dd {
+  margin: 0;
+}
+
+@media (max-width: 40rem) {
+  .pf-brief__point {
+    grid-template-columns: 1fr;
+  }
+}

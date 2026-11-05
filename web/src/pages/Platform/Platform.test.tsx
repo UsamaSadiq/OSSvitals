@@ -316,3 +316,16 @@ describe("Platform upgrade cost section", () => {
     expect(heading.closest("section")).toHaveTextContent("Published daily by the collect-maintenance workflow.");
   });
 });
+
+describe("Platform brief", () => {
+  it("leads the page with linked headlines", async () => {
+    setView(snapshot({ trends: trends(), extension_points: extensionPoints(), upgrade_cost: upgradeCost() }));
+    renderRoute("/platform");
+
+    const brief = (await screen.findByRole("heading", { name: "In brief" })).closest("section");
+    expect(brief).toHaveAttribute("id", "brief");
+    expect(within(brief as HTMLElement).getByRole("link", { name: "Stability" })).toHaveAttribute("href", "#stability");
+    expect(within(brief as HTMLElement).getByRole("link", { name: "Upgrade cost" })).toHaveAttribute("href", "#upgrade-cost");
+    expect(brief).toHaveTextContent("1 of 2 built-in XBlocks now ship as a separate package");
+  });
+});

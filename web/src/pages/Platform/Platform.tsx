@@ -36,6 +36,7 @@ import {
   yearLabel,
   type PinRow,
 } from "./platformRows";
+import { briefPoints } from "./platformBrief";
 import "./platform.css";
 
 type Block = NonNullable<Modularization["blocks"]>[number];
@@ -480,6 +481,30 @@ function Sections({ view }: { view: PlatformView }) {
   );
 }
 
+function Brief({ view }: { view: PlatformView }) {
+  const points = briefPoints(view);
+  if (points.length === 0) return null;
+  return (
+    <section className="pf-section pf-brief" id="brief" aria-labelledby="pf-brief-heading">
+      <h2 id="pf-brief-heading">In brief</h2>
+      <p className="caption">
+        {collectedText(view.metadata.generated_at)}. Each point links to its section below, where the method and the
+        sources are given.
+      </p>
+      <dl className="pf-brief__points">
+        {points.map((point) => (
+          <div key={point.topic} className="pf-brief__point">
+            <dt>
+              <a href={point.href}>{point.topic}</a>
+            </dt>
+            <dd>{point.text}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 function PlatformContent() {
   const platform = useView("platform");
   if (platform.status === "loading") return <Loading label="Loading platform facts…" />;
@@ -497,6 +522,7 @@ function PlatformContent() {
   }
   return (
     <>
+      <Brief view={platform.data} />
       <Sections view={platform.data} />
       <ShareLink />
     </>
