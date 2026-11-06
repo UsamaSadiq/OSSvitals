@@ -57,3 +57,24 @@ def test_a_fix_on_another_major_line_does_not_cover_the_version():
     assert affects((7, 2, 0), patched(">= 4.0", "6.0.7, 5.2.9, 4.4.18")) is False
     assert affects((5, 2, 3), patched(">= 2.0.0", "5.2.11, 4.4.20")) is True
     assert affects((5, 2, 11), patched(">= 2.0.0", "5.2.11, 4.4.20")) is False
+
+
+def fixed_in(text, patched):
+    return {"vulnerabilities": [{"vulnerable_version_range": text, "patched_versions": patched}]}
+
+
+def test_a_range_naming_versions_upstream_never_reached_is_undetermined():
+    assert affects((1, 4, 3), fixed_in("< 1.17", "1.18.0"), latest=(1, 4, 3)) is None
+
+
+@pytest.mark.parametrize("patched", ["1.4.4", "1.5.0", "2.0.0", "2.1.0"])
+def test_a_fix_in_upstreams_next_release_is_still_judged(patched):
+    assert affects((1, 4, 3), fixed_in(f"< {patched}", patched), latest=(1, 4, 3)) is True
+
+
+def test_a_calendar_versioned_fix_in_next_january_is_still_judged():
+    assert affects((25, 12, 1), fixed_in("< 26.1.0", "26.1.0"), latest=(25, 12, 1)) is True
+
+
+def test_without_upstreams_newest_release_the_range_is_judged_as_written():
+    assert affects((1, 4, 3), fixed_in("< 1.17", "1.18.0")) is True

@@ -57,17 +57,39 @@ def is_patched(version: Version, patched_versions: str | None, vulnerable_range:
     return _introduced_major(vulnerable_range) < version[0] and any(fix[0] < version[0] for fix in fixes)
 
 
-def _vulnerable(version: Version | None, vulnerability: dict[str, Any]) -> bool | None:
+def _reachable(version: Version, latest: Version) -> bool:
+    """At or below upstream's newest release, or one release past it: its next patch, minor or major, where a
+    calendar-versioned major starts at month 1."""
+    if _satisfies(version, "<=", latest):
+        return True
+    major, minor = _padded(latest, (0, 0))[0][:2]
+    return _padded(version, (0, 0))[0][:2] in ((major, minor), (major, minor + 1), (major + 1, 0), (major + 1, 1))
+
+
+def _named_versions(vulnerability: dict[str, Any]) -> list[Version]:
+    bounds = [match.group(2) for match in map(CLAUSE.match, vulnerability["vulnerable_version_range"].split(",")) if match]
+    fixes = VERSION.findall(vulnerability.get("patched_versions") or "")
+    return [tuple(int(part) for part in found.split(".")) for found in bounds + fixes]
+
+
+def _outside_scheme(vulnerability: dict[str, Any], latest: Version | None) -> bool:
+    """The advisory numbers versions differently from upstream's releases, such as Plane's ``< 1.17`` while its
+    newest release is v1.4.3, so comparing it with our version would mean nothing."""
+    return bool(latest) and not all(_reachable(named, latest) for named in _named_versions(vulnerability))
+
+
+def _vulnerable(version: Version | None, vulnerability: dict[str, Any], latest: Version | None = None) -> bool | None:
     text = vulnerability.get("vulnerable_version_range")
-    if not version or not text:
+    if not version or not text or _outside_scheme(vulnerability, latest):
         return None
     verdict = in_range(version, text)
     return False if verdict and is_patched(version, vulnerability.get("patched_versions"), text) else verdict
 
 
-def affects(version: Version | None, advisory: dict[str, Any]) -> bool | None:
-    """Whether the advisory's vulnerable ranges include `version` and no fix covers it; None when that cannot be told."""
-    verdicts = [_vulnerable(version, vulnerability) for vulnerability in advisory.get("vulnerabilities") or []]
+def affects(version: Version | None, advisory: dict[str, Any], latest: Version | None = None) -> bool | None:
+    """Whether the advisory's vulnerable ranges include `version` and no fix covers it; None when that cannot be told,
+    including when the ranges name versions upstream's newest release (`latest`) could not have reached."""
+    verdicts = [_vulnerable(version, vulnerability, latest) for vulnerability in advisory.get("vulnerabilities") or []]
     if any(verdict is True for verdict in verdicts):
         return True
     return False if verdicts and all(verdict is False for verdict in verdicts) else None

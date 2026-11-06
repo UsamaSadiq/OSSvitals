@@ -177,7 +177,7 @@ def test_a_missing_comparison_is_an_error_for_that_fork():
 
 
 def test_upstream_without_releases_falls_back_to_its_newest_stable_tag():
-    routes = {"repos/up/demo/tags?per_page=100": [{"name": "v0.3.4"}, {"name": "v0.3.10"}]}
+    routes = {"repos/up/demo/tags?per_page=100": [{"name": "v0.3.4", "commit": {"sha": "a"}}, {"name": "v0.3.10", "commit": {"sha": "b"}}]}
     assert fork.latest_upstream_release(api_for(routes), "up/demo", []) == {"tag": "v0.3.10", "date": None}
 
 
@@ -390,6 +390,68 @@ def test_without_a_fork_release_the_base_is_found_from_the_production_branch():
     record = collect(routes)
     assert record["fork_release"] is None
     assert (record["release_gap"]["base"], record["release_gap"]["base_ref"]) == ("v1.4.0", "foss-main")
+
+
+TAG_ONLY_ROUTES = {
+    **ROUTES,
+    f"{BASE}/compare/up:main...foss-main": {**ROUTES[f"{BASE}/compare/up:main...foss-main"], "behind_by": 900},
+    "repos/up/demo/releases?per_page=100": [],
+    "repos/up/demo/tags?per_page=100": [{"name": "v1.5.0", "commit": {"sha": "up150"}}, {"name": "v1.4.0", "commit": {"sha": "up140"}}],
+    "repos/up/demo/commits/up150": commit("2026-10-01T00:00:00Z"),
+    f"{BASE}/compare/up:v1.5.0...v26.9.0": {"behind_by": 7},
+    f"{BASE}/compare/up:v1.4.0...v26.9.0": {"behind_by": 0},
+    "repos/up/demo/security-advisories?per_page=100": [
+        {"published_at": "2026-09-25T00:00:00Z", "severity": "critical", "ghsa_id": "FIXED", "vulnerabilities": [{"vulnerable_version_range": "< 1.4.0"}]},
+    ],
+}
+
+
+def test_a_fork_of_a_tag_only_upstream_is_judged_against_the_newest_release_tag_it_contains():
+    record = collect(TAG_ONLY_ROUTES)
+    assert record["release_gap"] == {"base": "v1.4.0", "base_ref": "v26.9.0", "latest": "v1.5.0", "releases_behind": 1, "level": "minor", "days_behind": 11}
+    assert (record["advisories"]["base_release"], record["advisories"]["severe_affecting_fork_release"]) == ("v1.4.0", 0)
+    assert record["advisories"]["severe_since_our_code"] == 1
+    assert (record["status_basis"], record["status"]) == ("release", "lagging")
+
+
+def test_an_advisory_whose_range_upstream_never_reached_is_undetermined_not_affecting():
+    other_scheme = [{"published_at": "2026-09-25T00:00:00Z", "severity": "high", "ghsa_id": "G", "vulnerabilities": [{"vulnerable_version_range": "< 1.17", "patched_versions": "1.18.0"}]}]
+    result = collect({**GAP_ROUTES, "repos/up/demo/security-advisories?per_page=100": other_scheme})["advisories"]
+    assert result["items"][0]["affects_fork_release"] is None
+    assert (result["affecting_fork_release"], result["undetermined_fork_release"]) == (0, 1)
+
+
+def test_the_scheme_check_uses_upstreams_highest_release_not_its_latest_published_one():
+    newer_line_fix = [{"published_at": "2026-09-25T00:00:00Z", "severity": "high", "ghsa_id": "G", "vulnerabilities": [{"vulnerable_version_range": "< 2.1.0", "patched_versions": "2.1.0"}]}]
+    routes = {
+        **ROUTES,
+        "repos/up/demo/releases?per_page=100": [release("v1.4.5", "2026-10-05T00:00:00Z"), release("v2.0.0", "2026-09-01T00:00:00Z")],
+        f"{BASE}/compare/up:v2.0.0...v26.9.0": {"behind_by": 0},
+        "repos/up/demo/security-advisories?per_page=100": newer_line_fix,
+    }
+    result = collect(routes)["advisories"]
+    assert (result["base_release"], result["items"][0]["affects_fork_release"]) == ("v2.0.0", True)
+
+
+def test_a_tag_only_upstream_lists_every_tag_not_the_newest_page():
+    refs = [{"ref": f"refs/tags/v1.{minor}.0", "object": {"sha": f"s{minor}", "type": "commit"}} for minor in range(120)]
+    api = {"repos/up/demo/git/matching-refs/tags/": refs}.get
+    assert [tag["name"] for tag in fork.upstream_release_tags(api, "up/demo")][:2] == ["v1.119.0", "v1.118.0"]
+
+
+def test_a_base_tag_on_an_older_line_is_found_past_many_newer_tags():
+    newer = [{"name": f"v2.{minor}.{patch}", "commit": {"sha": f"n{minor}{patch}"}} for minor in range(9, -1, -1) for patch in range(3, -1, -1)]
+    older = [{"name": f"v1.9.{patch}", "commit": {"sha": f"o{patch}"}} for patch in range(3, -1, -1)]
+    in_history = {"v1.9.0", "v1.9.1"}
+    asked = []
+
+    def api(path):
+        asked.append(path)
+        tag = path.split("compare/up:")[1].split("...")[0]
+        return {"behind_by": 0 if tag in in_history else 5}
+
+    assert fork.fork_base_tag(api, BASE, "up/demo", "v26.9.0", newer + older) == "v1.9.1"
+    assert len(asked) == 10 + 1 + 3
 
 
 def test_the_commit_basis_is_kept_when_no_base_release_is_found():

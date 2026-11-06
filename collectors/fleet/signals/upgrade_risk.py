@@ -19,7 +19,7 @@ def collect(ctx: ForkContext) -> dict[str, Any]:
     added_upstream = upgrade.net_added(ctx.clone, merge_base, UPSTREAM_HEAD_REF)
     return {
         "migrations": upgrade.migrations(carried, added_upstream, dir_names),
-        "release_notes": upgrade.release_notes(ctx.upstream_releases, ctx.production_base_release, ctx.merged_at),
+        "release_notes": upgrade.release_notes(ctx.upstream_releases, ctx.production_base_release if ctx.upstream_releases else None, ctx.merged_at),
     }
 
 

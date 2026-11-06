@@ -17,7 +17,12 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
-function AdvisoryRow({ item }: { item: AdvisoryItem }) {
+function baseVerdict(affects: boolean | null | undefined): string {
+  if (affects == null) return "undetermined for our base version";
+  return affects ? "affects our base version" : "does not affect our base version";
+}
+
+function AdvisoryRow({ item, baseKnown }: { item: AdvisoryItem; baseKnown: boolean }) {
   const label = item.ghsa_id ?? item.summary ?? "Advisory";
   return (
     <li className="detail-row">
@@ -31,7 +36,7 @@ function AdvisoryRow({ item }: { item: AdvisoryItem }) {
       <span>{item.severity ?? "unknown severity"}</span>
       <span>{formatDay(item.published_at)}</span>
       <span>{item.after_our_release ? "after our latest release" : "before our latest release"}</span>
-      {item.affects_fork_release != null && <span>{item.affects_fork_release ? "affects our base version" : "does not affect our base version"}</span>}
+      {baseKnown && <span>{baseVerdict(item.affects_fork_release)}</span>}
       {item.summary && <span className="detail-row__wide">{item.summary}</span>}
     </li>
   );
@@ -45,7 +50,7 @@ export function Advisories({ drift }: { drift: DriftRecord }) {
       <p className="caption">Only advisories published on GitHub are counted. Showing the {items.length} most recent.</p>
       <ul className="detail-list">
         {items.map((item) => (
-          <AdvisoryRow key={`${item.ghsa_id}-${item.published_at}`} item={item} />
+          <AdvisoryRow key={`${item.ghsa_id}-${item.published_at}`} item={item} baseKnown={Boolean(drift.advisories?.base_release)} />
         ))}
       </ul>
     </Section>

@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from collectors.fleet import conflicts, fork
 from collectors.fleet.repos import full_name, owner_of
-from collectors.fleet.release_gap import release_gap
+from collectors.fleet.ranges import version_key
+from collectors.fleet.release_gap import release_gap, tag_release_gap
 
 if TYPE_CHECKING:
     from collectors.fleet.feeds import Feeds
@@ -82,8 +83,22 @@ class ForkContext:
         return fork.all_upstream_releases(self.api, self.upstream, self.upstream_pattern)
 
     @cached_property
+    def upstream_release_tags(self) -> list[dict[str, Any]]:
+        """Upstream's stable tags, which stand in for releases when it publishes none (Zammad); empty otherwise."""
+        if self.upstream_releases:
+            return []
+        return fork.upstream_release_tags(self.api, self.upstream, self.upstream_pattern)
+
+    @cached_property
     def upstream_release(self) -> dict[str, Any] | None:
-        return fork.latest_upstream_release(self.api, self.upstream, self.upstream_releases, self.upstream_pattern)
+        return fork.latest_upstream_release(self.api, self.upstream, self.upstream_releases, self.upstream_pattern, self.upstream_release_tags)
+
+    @cached_property
+    def highest_release_tag(self) -> str | None:
+        """Upstream's highest release version, which on a multi-line upstream (a 6.0.x patch published after 7.0.0)
+        is not its most recently published one."""
+        names = [release["tag_name"] for release in self.upstream_releases] or [tag["name"] for tag in self.upstream_release_tags]
+        return max(names, key=version_key, default=None)
 
     @property
     def fork_url(self) -> str:
@@ -148,7 +163,7 @@ class ForkContext:
 
     @cached_property
     def base_release(self) -> str | None:
-        return fork.fork_base_release(self.api, self.base, self.upstream, self.base_ref, self.upstream_releases, self.merged_at)
+        return self._base_release_of(self.base_ref)
 
     @cached_property
     def production_base_release(self) -> str | None:
@@ -156,8 +171,15 @@ class ForkContext:
         (computed from our latest release) when upstream was merged after our last release."""
         if self.base_ref == self.production:
             return self.base_release
-        return fork.fork_base_release(self.api, self.base, self.upstream, self.production, self.upstream_releases, self.merged_at)
+        return self._base_release_of(self.production)
+
+    def _base_release_of(self, ref: str) -> str | None:
+        if self.upstream_releases:
+            return fork.fork_base_release(self.api, self.base, self.upstream, ref, self.upstream_releases, self.merged_at)
+        return fork.fork_base_tag(self.api, self.base, self.upstream, ref, self.upstream_release_tags)
 
     @cached_property
     def release_gap(self) -> dict[str, Any] | None:
-        return release_gap(self.base_release, self.base_ref, self.upstream_releases, self.now)
+        if self.upstream_releases:
+            return release_gap(self.base_release, self.base_ref, self.upstream_releases, self.now)
+        return tag_release_gap(self.base_release, self.base_ref, self.upstream_release_tags, self.now, lambda tag: fork.tag_date(self.api, self.upstream, tag))

@@ -51,9 +51,13 @@ const DRIFT = {
     since_fork_release: 2,
     severe_since_fork_release: 1,
     affecting_fork_release: 1,
+    undetermined_fork_release: 1,
     base_release: "v1.5.0",
     source: "github-published-advisories",
-    items: [{ ghsa_id: "GHSA-1", severity: "high", summary: "Bad thing", url: "https://x/GHSA-1", published_at: "2026-09-12T00:00:00Z", after_our_release: true, affects_fork_release: true }],
+    items: [
+      { ghsa_id: "GHSA-1", severity: "high", summary: "Bad thing", url: "https://x/GHSA-1", published_at: "2026-09-12T00:00:00Z", after_our_release: true, affects_fork_release: true },
+      { ghsa_id: "GHSA-2", severity: "high", summary: "Other numbering", url: "https://x/GHSA-2", published_at: "2026-09-11T00:00:00Z", after_our_release: true, affects_fork_release: null },
+    ],
   },
   promotion: { unpromoted_commits: 5 },
   ci: { state: "failing", total: 5 },
@@ -135,8 +139,9 @@ describe("Moneta app detail with the full data set", () => {
     expect(screen.getByText("700 commits behind v2.0.0")).toBeTruthy();
     expect(screen.getByText("v1.5.0 → v2.0.0, 6 releases behind (a major version behind)")).toBeTruthy();
     expect(screen.getByText(/judged on upstream releases/)).toBeTruthy();
-    expect(screen.getByText(/1 affecting v1\.5\.0, the upstream version we are based on/)).toBeTruthy();
+    expect(screen.getByText(/1 affecting v1\.5\.0, the upstream version we are based on, 1 undetermined/)).toBeTruthy();
     expect(screen.getByText("affects our base version")).toBeTruthy();
+    expect(screen.getByText("undetermined for our base version")).toBeTruthy();
   });
 
   it("describes the trend in words", async () => {
