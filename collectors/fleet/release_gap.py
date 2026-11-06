@@ -42,12 +42,17 @@ def tag_release_gap(
     base_tag: str | None, base_ref: str | None, tags: list[dict[str, Any]], now: datetime, tag_date: Callable[[dict[str, Any]], str | None]
 ) -> dict[str, Any] | None:
     """``release_gap`` for an upstream that tags releases without publishing them. A tag has no publication date, so
-    the commit date of the lowest version we lack stands in for it, looked up only when we lack one."""
+    its commit date stands in. Upstream may patch an older line after a newer one ships, so the first tag we lack on
+    each line is dated, one lookup per line, and the earliest counts."""
     if base_tag is None or not tags:
         return None
     base = version_key(base_tag)
-    first_missing = min((tag for tag in tags if version_key(tag["name"]) > base), key=lambda tag: version_key(tag["name"]), default=None)
-    return _gap(base_tag, base_ref, [tag["name"] for tag in tags], tag_date(first_missing) if first_missing else None, now)
+    missing = sorted((tag for tag in tags if version_key(tag["name"]) > base), key=lambda tag: version_key(tag["name"]))
+    first_per_line: dict[Version, dict[str, Any]] = {}
+    for tag in missing:
+        first_per_line.setdefault(version_key(tag["name"])[:2], tag)
+    dates = [date for date in map(tag_date, first_per_line.values()) if date]
+    return _gap(base_tag, base_ref, [tag["name"] for tag in tags], min(dates, default=None), now)
 
 
 def _gap(base_tag: str, base_ref: str | None, names: list[str], oldest_missing: str | None, now: datetime) -> dict[str, Any]:

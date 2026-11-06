@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 from urllib.parse import quote
 
-from collectors.fleet.ranges import VERSION, affects, is_release_name, version_key
+from collectors.fleet.ranges import VERSION, Version, affects, is_release_name, version_key
 
 Api = Callable[[str], Any]
 
@@ -39,11 +39,11 @@ def _tag_from_ref(ref: dict[str, Any]) -> dict[str, Any]:
     return {"name": name, "commit": {"sha": target["sha"] if target["type"] == "commit" else quote(name, safe="")}}
 
 
-def list_tags(api: Api, base: str, pattern: re.Pattern[str]) -> list[dict[str, Any]]:
+def list_tags(api: Api, base: str, pattern: re.Pattern[str], complete: bool = False) -> list[dict[str, Any]]:
     """Every tag under the pattern's literal prefix, in one call, so a repo with thousands of tags (edx-platform has
-    over 1,600) still lists every match; without a prefix, the newest 100 of the tags endpoint."""
+    over 1,600) still lists every match; without a prefix, the newest 100 of the tags endpoint unless ``complete``."""
     prefix = literal_prefix(pattern)
-    if prefix:
+    if prefix or complete:
         return [_tag_from_ref(ref) for ref in api(f"{base}/git/matching-refs/tags/{quote(prefix, safe='/')}") or []]
     return api(f"{base}/tags?per_page=100") or []
 
@@ -119,7 +119,7 @@ def upstream_releases(api: Api, upstream: str, pattern: re.Pattern[str] | None =
 def upstream_release_tags(api: Api, upstream: str, pattern: re.Pattern[str] | None = None) -> list[dict[str, Any]]:
     """Upstream's stable tags, newest version first: its releases when it tags them without publishing them."""
     line = pattern or STABLE_TAG
-    return stable_tags(list_tags(api, f"repos/{upstream}", line), line)
+    return stable_tags(list_tags(api, f"repos/{upstream}", line, complete=True), line)
 
 
 def latest_upstream_release(
@@ -177,20 +177,36 @@ def fork_base_tag(api: Api, base: str, upstream: str, ref: str | None, tags: lis
     """The highest-versioned upstream release tag in the history of `ref`, for an upstream that publishes no releases.
 
     A fork that follows upstream's stable line contains its release tags even when it is far behind the
-    development branch. Tags carry no publication date, so every candidate is compared, newest version first.
+    development branch. Tags carry no publication date to rule newer ones out, so the search goes line by line,
+    highest first: a line whose first release is not in our history is skipped with one comparison.
     """
-    return _newest_in_history(api, base, upstream, ref, [tag["name"] for tag in tags])
+    if ref is None:
+        return None
+    owner = upstream.split("/")[0]
+    for names in list(_by_line(tag["name"] for tag in tags).values())[:BASE_RELEASE_CANDIDATES]:
+        if not _in_history(api, base, owner, names[-1], ref):
+            continue
+        return next((name for name in names[:-1] if _in_history(api, base, owner, name, ref)), names[-1])
+    return None
+
+
+def _by_line(names_newest_first: Iterable[str]) -> dict[Version, list[str]]:
+    lines: dict[Version, list[str]] = {}
+    for name in names_newest_first:
+        lines.setdefault(version_key(name)[:2], []).append(name)
+    return lines
+
+
+def _in_history(api: Api, base: str, owner: str, tag: str, ref: str) -> bool:
+    comparison = api(f"{base}/compare/{owner}:{quote(tag, safe='')}...{quote(ref, safe='')}")
+    return bool(comparison) and comparison["behind_by"] == 0
 
 
 def _newest_in_history(api: Api, base: str, upstream: str, ref: str | None, newest_first: list[str]) -> str | None:
     if ref is None:
         return None
     owner = upstream.split("/")[0]
-    for tag in newest_first[:BASE_RELEASE_CANDIDATES]:
-        comparison = api(f"{base}/compare/{owner}:{quote(tag, safe='')}...{quote(ref, safe='')}")
-        if comparison and comparison["behind_by"] == 0:
-            return tag
-    return None
+    return next((tag for tag in newest_first[:BASE_RELEASE_CANDIDATES] if _in_history(api, base, owner, tag, ref)), None)
 
 
 def tag_date(api: Api, upstream: str, tag: dict[str, Any]) -> str | None:

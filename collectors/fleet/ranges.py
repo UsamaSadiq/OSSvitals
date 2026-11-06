@@ -58,11 +58,12 @@ def is_patched(version: Version, patched_versions: str | None, vulnerable_range:
 
 
 def _reachable(version: Version, latest: Version) -> bool:
-    """At or below upstream's newest release, or one release past it: its next patch, minor or major."""
+    """At or below upstream's newest release, or one release past it: its next patch, minor or major, where a
+    calendar-versioned major starts at month 1."""
     if _satisfies(version, "<=", latest):
         return True
     major, minor = _padded(latest, (0, 0))[0][:2]
-    return _padded(version, (0, 0))[0][:2] in ((major, minor), (major, minor + 1), (major + 1, 0))
+    return _padded(version, (0, 0))[0][:2] in ((major, minor), (major, minor + 1), (major + 1, 0), (major + 1, 1))
 
 
 def _named_versions(vulnerability: dict[str, Any]) -> list[Version]:

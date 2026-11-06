@@ -67,9 +67,13 @@ def test_a_range_naming_versions_upstream_never_reached_is_undetermined():
     assert affects((1, 4, 3), fixed_in("< 1.17", "1.18.0"), latest=(1, 4, 3)) is None
 
 
-@pytest.mark.parametrize("patched", ["1.4.4", "1.5.0", "2.0.0"])
+@pytest.mark.parametrize("patched", ["1.4.4", "1.5.0", "2.0.0", "2.1.0"])
 def test_a_fix_in_upstreams_next_release_is_still_judged(patched):
     assert affects((1, 4, 3), fixed_in(f"< {patched}", patched), latest=(1, 4, 3)) is True
+
+
+def test_a_calendar_versioned_fix_in_next_january_is_still_judged():
+    assert affects((25, 12, 1), fixed_in("< 26.1.0", "26.1.0"), latest=(25, 12, 1)) is True
 
 
 def test_without_upstreams_newest_release_the_range_is_judged_as_written():

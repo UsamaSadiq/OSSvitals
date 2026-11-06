@@ -177,7 +177,7 @@ def test_a_missing_comparison_is_an_error_for_that_fork():
 
 
 def test_upstream_without_releases_falls_back_to_its_newest_stable_tag():
-    routes = {"repos/up/demo/tags?per_page=100": [{"name": "v0.3.4"}, {"name": "v0.3.10"}]}
+    routes = {"repos/up/demo/tags?per_page=100": [{"name": "v0.3.4", "commit": {"sha": "a"}}, {"name": "v0.3.10", "commit": {"sha": "b"}}]}
     assert fork.latest_upstream_release(api_for(routes), "up/demo", []) == {"tag": "v0.3.10", "date": None}
 
 
@@ -431,6 +431,21 @@ def test_the_scheme_check_uses_upstreams_highest_release_not_its_latest_publishe
     }
     result = collect(routes)["advisories"]
     assert (result["base_release"], result["items"][0]["affects_fork_release"]) == ("v2.0.0", True)
+
+
+def test_a_base_tag_on_an_older_line_is_found_past_many_newer_tags():
+    newer = [{"name": f"v2.{minor}.{patch}", "commit": {"sha": f"n{minor}{patch}"}} for minor in range(9, -1, -1) for patch in range(3, -1, -1)]
+    older = [{"name": f"v1.9.{patch}", "commit": {"sha": f"o{patch}"}} for patch in range(3, -1, -1)]
+    in_history = {"v1.9.0", "v1.9.1"}
+    asked = []
+
+    def api(path):
+        asked.append(path)
+        tag = path.split("compare/up:")[1].split("...")[0]
+        return {"behind_by": 0 if tag in in_history else 5}
+
+    assert fork.fork_base_tag(api, BASE, "up/demo", "v26.9.0", newer + older) == "v1.9.1"
+    assert len(asked) == 10 + 1 + 3
 
 
 def test_the_commit_basis_is_kept_when_no_base_release_is_found():
