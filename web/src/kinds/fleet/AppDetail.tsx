@@ -107,6 +107,7 @@ function ForkFacts({ row, fullName }: { row: ForkRow; fullName: string | undefin
           {advisories.since_our_code !== undefined && `, ${advisories.since_our_code} since the upstream code we ship`}, {advisories.published} in total
           {advisories.base_release &&
             `, ${advisories.affecting_fork_release ?? 0} affecting ${shown("release_gap") ? `${advisories.base_release}, the upstream version we are based on` : "the upstream release we are built on"}`}
+          {advisories.base_release && Boolean(advisories.undetermined_fork_release) && `, ${advisories.undetermined_fork_release} undetermined`}
         </Fact>
       )}
       {shown("promotion") && (

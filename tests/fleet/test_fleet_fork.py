@@ -392,6 +392,47 @@ def test_without_a_fork_release_the_base_is_found_from_the_production_branch():
     assert (record["release_gap"]["base"], record["release_gap"]["base_ref"]) == ("v1.4.0", "foss-main")
 
 
+TAG_ONLY_ROUTES = {
+    **ROUTES,
+    f"{BASE}/compare/up:main...foss-main": {**ROUTES[f"{BASE}/compare/up:main...foss-main"], "behind_by": 900},
+    "repos/up/demo/releases?per_page=100": [],
+    "repos/up/demo/tags?per_page=100": [{"name": "v1.5.0", "commit": {"sha": "up150"}}, {"name": "v1.4.0", "commit": {"sha": "up140"}}],
+    "repos/up/demo/commits/up150": commit("2026-10-01T00:00:00Z"),
+    f"{BASE}/compare/up:v1.5.0...v26.9.0": {"behind_by": 7},
+    f"{BASE}/compare/up:v1.4.0...v26.9.0": {"behind_by": 0},
+    "repos/up/demo/security-advisories?per_page=100": [
+        {"published_at": "2026-09-25T00:00:00Z", "severity": "critical", "ghsa_id": "FIXED", "vulnerabilities": [{"vulnerable_version_range": "< 1.4.0"}]},
+    ],
+}
+
+
+def test_a_fork_of_a_tag_only_upstream_is_judged_against_the_newest_release_tag_it_contains():
+    record = collect(TAG_ONLY_ROUTES)
+    assert record["release_gap"] == {"base": "v1.4.0", "base_ref": "v26.9.0", "latest": "v1.5.0", "releases_behind": 1, "level": "minor", "days_behind": 11}
+    assert (record["advisories"]["base_release"], record["advisories"]["severe_affecting_fork_release"]) == ("v1.4.0", 0)
+    assert record["advisories"]["severe_since_our_code"] == 1
+    assert (record["status_basis"], record["status"]) == ("release", "lagging")
+
+
+def test_an_advisory_whose_range_upstream_never_reached_is_undetermined_not_affecting():
+    other_scheme = [{"published_at": "2026-09-25T00:00:00Z", "severity": "high", "ghsa_id": "G", "vulnerabilities": [{"vulnerable_version_range": "< 1.17", "patched_versions": "1.18.0"}]}]
+    result = collect({**GAP_ROUTES, "repos/up/demo/security-advisories?per_page=100": other_scheme})["advisories"]
+    assert result["items"][0]["affects_fork_release"] is None
+    assert (result["affecting_fork_release"], result["undetermined_fork_release"]) == (0, 1)
+
+
+def test_the_scheme_check_uses_upstreams_highest_release_not_its_latest_published_one():
+    newer_line_fix = [{"published_at": "2026-09-25T00:00:00Z", "severity": "high", "ghsa_id": "G", "vulnerabilities": [{"vulnerable_version_range": "< 2.1.0", "patched_versions": "2.1.0"}]}]
+    routes = {
+        **ROUTES,
+        "repos/up/demo/releases?per_page=100": [release("v1.4.5", "2026-10-05T00:00:00Z"), release("v2.0.0", "2026-09-01T00:00:00Z")],
+        f"{BASE}/compare/up:v2.0.0...v26.9.0": {"behind_by": 0},
+        "repos/up/demo/security-advisories?per_page=100": newer_line_fix,
+    }
+    result = collect(routes)["advisories"]
+    assert (result["base_release"], result["items"][0]["affects_fork_release"]) == ("v2.0.0", True)
+
+
 def test_the_commit_basis_is_kept_when_no_base_release_is_found():
     record = collect()
     assert (record["release_gap"], record["status_basis"]) == (None, "commits")
