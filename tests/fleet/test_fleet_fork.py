@@ -433,6 +433,12 @@ def test_the_scheme_check_uses_upstreams_highest_release_not_its_latest_publishe
     assert (result["base_release"], result["items"][0]["affects_fork_release"]) == ("v2.0.0", True)
 
 
+def test_a_tag_only_upstream_lists_every_tag_not_the_newest_page():
+    refs = [{"ref": f"refs/tags/v1.{minor}.0", "object": {"sha": f"s{minor}", "type": "commit"}} for minor in range(120)]
+    api = {"repos/up/demo/git/matching-refs/tags/": refs}.get
+    assert [tag["name"] for tag in fork.upstream_release_tags(api, "up/demo")][:2] == ["v1.119.0", "v1.118.0"]
+
+
 def test_a_base_tag_on_an_older_line_is_found_past_many_newer_tags():
     newer = [{"name": f"v2.{minor}.{patch}", "commit": {"sha": f"n{minor}{patch}"}} for minor in range(9, -1, -1) for patch in range(3, -1, -1)]
     older = [{"name": f"v1.9.{patch}", "commit": {"sha": f"o{patch}"}} for patch in range(3, -1, -1)]
