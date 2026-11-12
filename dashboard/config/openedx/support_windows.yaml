@@ -21,6 +21,7 @@ refs:
   platform: {repo: openedx/openedx-platform, ref: openedx_release}
 
 eol_soon_months: 12
+# Used only when barcalendar.py has no START_YEAR/END_YEAR; otherwise the chart spans those years.
 window: {years_back: 3, years_ahead: 4}
 
 open_edx:
@@ -28,12 +29,14 @@ open_edx:
   declared_key: Open edX
   source_note: https://docs.openedx.org/en/latest/community/release_notes/index.html
   tag_repo: openedx/openedx-platform
-  # A release's date is the commit its <prefix><name>.1 tag points at.
+  # Releases and their start months come from the `names` list in barcalendar.py, as
+  # on the OEP-10 sheet, where the last name only ends the release before it. The
+  # commit a <prefix><name>.1 tag points at dates a release only when that list
+  # cannot be read.
   tag_prefixes: [release/, open-release/]
   detect: {source: tutor, path: tutor/templates/config/defaults.yml, pattern: 'OPENEDX_COMMON_VERSION: "release/([a-z]+)\.'}
-  # Releases not cut yet, so not tagged. Remove an entry once its .1 tag exists.
-  planned:
-    - {name: Willow, date: 2027-02}
+  # An entry here overrides the scheduled month, e.g. {name: Willow, date: 2027-02}.
+  planned: []
 
 products:
   python:

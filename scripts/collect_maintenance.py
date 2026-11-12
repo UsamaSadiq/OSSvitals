@@ -435,9 +435,16 @@ def _release_dates(settings: dict[str, Any]) -> dict[str, datetime]:
     return {name: release.date for name, release in release_tags(settings["tag_repo"], settings["tag_prefixes"]).items()}
 
 
-def _open_edx_record(settings: dict[str, Any], declared: dict, refs: dict[str, ResolvedRef], **context: Any) -> dict[str, Any]:
-    released = {name: when.date() for name, when in _release_dates(settings).items()}
-    cycles = support_windows.open_edx_cycles(released, settings.get("planned", []))
+def _open_edx_record(
+    settings: dict[str, Any],
+    declared: dict,
+    refs: dict[str, ResolvedRef],
+    schedule: list[tuple[str, date]],
+    **context: Any,
+) -> dict[str, Any]:
+    tagged = {} if schedule else {name: when.date() for name, when in _release_dates(settings).items()}
+    starts = support_windows.release_starts(tagged, schedule, settings.get("planned", []))
+    cycles = support_windows.open_edx_cycles(starts, closing=schedule[-1][0] if schedule else None)
     found = _detected(settings["detect"], refs)
     detected = support_windows.Detected(
         found.version.capitalize() if found.version else None, found.repo, found.ref, found.path
@@ -449,6 +456,7 @@ def _open_edx_record(settings: dict[str, Any], declared: dict, refs: dict[str, R
         declared.get(settings["declared_key"], MISSING_DECLARED),
         detected,
         tracks_eol=False,
+        every_cycle=True,
         **context,
     )
 
@@ -479,7 +487,8 @@ def collect_support_windows(out_dir: Path, scope: Scope, target: Target) -> int:
     generated_at = now_utc()
     refs = _resolve_refs(config["refs"])
     source = config["declared"]
-    declared = support_windows.declared_versions(github.file_content(source["repo"], source["path"], source["ref"]))
+    calendar = github.file_content(source["repo"], source["path"], source["ref"])
+    declared = support_windows.declared_versions(calendar)
     if not declared:
         print(f"Support windows: no CURRENT dict in {source['repo']} {source['path']}; kept the published file.")
         return 0
@@ -488,7 +497,8 @@ def collect_support_windows(out_dir: Path, scope: Scope, target: Target) -> int:
         _product_record(product, settings, declared, refs, **context)
         for product, settings in config["products"].items()
     ]
-    records = [_open_edx_record(config["open_edx"], declared, refs, **context), *filter(None, products)]
+    schedule = support_windows.release_schedule(calendar)
+    records = [_open_edx_record(config["open_edx"], declared, refs, schedule, **context), *filter(None, products)]
     content = publish.payload(
         records,
         generated_at=generated_at,
@@ -496,7 +506,9 @@ def collect_support_windows(out_dir: Path, scope: Scope, target: Target) -> int:
         declared_url=f"https://github.com/{source['repo']}/blob/{source['ref']}/{source['path']}",
         edit_url=f"https://github.com/{source['repo']}/edit/{source['ref']}/{source['path']}",
         refs={name: {"repo": ref.repo, "ref": ref.ref} for name, ref in refs.items()},
-        window=config.get("window", {}),
+        window=support_windows.calendar_window(
+            support_windows.calendar_years(calendar), generated_at.date(), config.get("window", {})
+        ),
         summary=support_windows.summary(records),
     )
     publish.write(out_dir / SUPPORT_WINDOWS_FILE, content, org=target.org)

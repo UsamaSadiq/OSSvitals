@@ -8,12 +8,23 @@ from collectors import support_windows as sw
 
 TODAY = date(2026, 10, 31)
 BARCALENDAR = '''
+START_YEAR = 2022
+END_YEAR = 2030
 versions = get_defaults_from_tutor()
 CURRENT = {
     "Open edX": parse_version_name(versions['OPENEDX_COMMON_VERSION']),
     "Python": "3.11",
     "Redis": parse_version_number(versions['DOCKER_IMAGE_REDIS']),
 }
+names = [
+    ("Maple", 2021, 12),
+    ('Ulmo', 2025, 12),
+    ("Verawood", 2026, 6),
+    ("Willow", 2026, 12),
+    ("Xylon", 2027, 6),
+    ("Yucca", 2027, 12),
+    ("Zebrawood", 2028, 6),
+    ]
 '''
 TUTOR = sw.Detected("3.12", "overhangio/tutor", "v22.0.3", "tutor/templates/build/openedx/Dockerfile")
 
@@ -75,13 +86,95 @@ def test_shown_cycles_keep_one_before_current_and_mark_it():
 
 
 def test_open_edx_releases_run_until_the_next_one():
-    cycles = sw.open_edx_cycles({"ulmo": date(2026, 1, 5), "verawood": date(2026, 7, 29)}, [{"name": "Willow", "date": "2027-02"}])
+    cycles = sw.open_edx_cycles(sw.release_starts({"ulmo": date(2026, 1, 5), "verawood": date(2026, 7, 29)}, [], [{"name": "Willow", "date": "2027-02"}]))
 
     assert [(cycle["cycle"], cycle["end"]) for cycle in cycles] == [
         ("Ulmo", "2026-07-29"),
         ("Verawood", "2027-02-01"),
         ("Willow", "2027-08-01"),
     ]
+
+
+def test_release_schedule_reads_the_names_list():
+    schedule = sw.release_schedule(BARCALENDAR)
+
+    assert schedule[0] == ("Maple", date(2021, 12, 1))
+    assert schedule[-1] == ("Zebrawood", date(2028, 6, 1))
+
+
+def test_release_schedule_skips_malformed_entries_and_missing_lists():
+    source = "names = [('Willow', 2026, 12), ('Xylon', 2027), ('Yucca', 2027, 13), (name, 2028, 6), 'Zebrawood']"
+
+    assert sw.release_schedule(source) == [("Willow", date(2026, 12, 1))]
+    assert sw.release_schedule("names = None") == []
+    assert sw.release_schedule(None) == []
+
+
+def test_scheduled_months_beat_tags_and_configured_months_beat_both():
+    tagged = {"ulmo": date(2026, 1, 15), "verawood": date(2026, 7, 29), "eucalyptus": date(2016, 8, 26)}
+    schedule = sw.release_schedule(BARCALENDAR)
+
+    starts = sw.release_starts(tagged, schedule, [{"name": "Xylon", "date": "2027-08"}])
+
+    assert starts["Verawood"] == date(2026, 6, 1)
+    assert starts["Eucalyptus"] == date(2016, 8, 26)
+    assert starts["Xylon"] == date(2027, 8, 1)
+    assert starts["Willow"] == date(2026, 12, 1)
+
+
+def test_tags_date_releases_when_the_schedule_is_unreadable():
+    starts = sw.release_starts({"ulmo": date(2026, 1, 15)}, sw.release_schedule("names = None"), [])
+
+    assert starts == {"Ulmo": date(2026, 1, 15)}
+
+
+def test_scheduled_releases_run_six_months_like_the_sheet():
+    cycles = sw.open_edx_cycles(sw.release_starts({}, sw.release_schedule(BARCALENDAR), []))
+
+    assert [(cycle["cycle"], cycle["start"], cycle["end"]) for cycle in cycles if cycle["cycle"] in ("Verawood", "Willow")] == [
+        ("Verawood", "2026-06-01", "2026-12-01"),
+        ("Willow", "2026-12-01", "2027-06-01"),
+    ]
+
+
+def test_the_closing_release_only_ends_the_one_before_it():
+    schedule = sw.release_schedule(BARCALENDAR)
+
+    cycles = sw.open_edx_cycles(sw.release_starts({}, schedule, []), closing=schedule[-1][0])
+
+    assert cycles[-1] == {"cycle": "Yucca", "start": "2027-12-01", "end": "2028-06-01", "lts": False}
+    assert sw.open_edx_cycles({"Ulmo": date(2025, 12, 1)}, closing="Ulmo")[0]["end"] == "2026-06-01"
+
+
+def test_product_record_keeps_every_release_when_asked():
+    cycles = sw.open_edx_cycles(sw.release_starts({}, sw.release_schedule(BARCALENDAR), []))
+    detected = sw.Detected("Verawood", "overhangio/tutor", "v22.0.3", "tutor/templates/config/defaults.yml")
+    settings = {"label": "Open edX", "source_note": "https://docs.openedx.org"}
+
+    record = sw.product_record(
+        "open_edx", settings, cycles, sw.Declared(sw.FOLLOWS_TUTOR), detected,
+        today=TODAY, eol_soon_months=12, tracks_eol=False, every_cycle=True,
+    )
+
+    assert [cycle["cycle"] for cycle in record["cycles"]][0] == "Maple"
+    assert len(record["cycles"]) == len(cycles) == 7
+    assert [cycle["cycle"] for cycle in record["cycles"] if cycle["current"]] == ["Verawood"]
+
+
+def test_calendar_window_spans_the_sheet_years():
+    years = sw.calendar_years(BARCALENDAR)
+
+    assert years == (2022, 2030)
+    assert sw.calendar_window(years, TODAY, {}) == {"years_back": 4, "years_ahead": 4}
+    assert sw.calendar_window(years, date(2031, 3, 1), {}) == {"years_back": 9, "years_ahead": 0}
+
+
+def test_calendar_window_falls_back_to_config_without_sheet_years():
+    fallback = {"years_back": 3, "years_ahead": 4}
+
+    assert sw.calendar_years("START_YEAR = 2022") is None
+    assert sw.calendar_years(None) is None
+    assert sw.calendar_window(None, TODAY, fallback) == fallback
 
 
 @pytest.mark.parametrize(

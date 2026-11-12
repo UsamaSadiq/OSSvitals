@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-SOURCE = "endoflife.date release cycles; Tutor release files; repo-tools barcalendar.py CURRENT"
+SOURCE = "endoflife.date release cycles; Tutor release files; repo-tools barcalendar.py CURRENT, release names and years"
 EOL_API = "https://endoflife.date/api/{slug}.json"
 EOL_PAGE = "https://endoflife.date/{slug}"
 
@@ -71,7 +71,7 @@ def declared_versions(source: str | None) -> dict[str, Declared]:
     if not source:
         return {}
     for node in ast.walk(ast.parse(source)):
-        if _is_current_assignment(node):
+        if _assigns(node, "CURRENT", ast.Dict):
             return {
                 key.value: _declared(value)
                 for key, value in zip(node.value.keys, node.value.values)
@@ -80,12 +80,64 @@ def declared_versions(source: str | None) -> dict[str, Declared]:
     return {}
 
 
-def _is_current_assignment(node: ast.AST) -> bool:
+def release_schedule(source: str | None) -> list[tuple[str, date]]:
+    """The ``names`` list of barcalendar.py: each Open edX release and the month OEP-10 schedules it for."""
+    if not source:
+        return []
+    for node in ast.walk(ast.parse(source)):
+        if _assigns(node, "names", ast.List):
+            return [entry for entry in map(_scheduled, node.value.elts) if entry]
+    return []
+
+
+def calendar_years(source: str | None) -> tuple[int, int] | None:
+    """``START_YEAR`` and ``END_YEAR`` of barcalendar.py, the first and last year the OEP-10 sheet draws."""
+    if not source:
+        return None
+    years = {
+        target.id: node.value.value
+        for node in ast.parse(source).body
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, int)
+        for target in node.targets
+        if isinstance(target, ast.Name) and target.id in ("START_YEAR", "END_YEAR")
+    }
+    start, end = years.get("START_YEAR"), years.get("END_YEAR")
+    return (start, end) if start is not None and end is not None and start <= end else None
+
+
+def calendar_window(years: tuple[int, int] | None, today: date, fallback: dict[str, int]) -> dict[str, int]:
+    """The chart window as years back and ahead of ``today``, matching the sheet when its years are known."""
+    if years is None:
+        return fallback
+    start, end = years
+    return {"years_back": max(today.year - start, 0), "years_ahead": max(end - today.year, 0)}
+
+
+def release_starts(
+    tagged: dict[str, date], schedule: list[tuple[str, date]], planned: list[dict[str, Any]]
+) -> dict[str, date]:
+    """When each release starts: a configured month, else the OEP-10 scheduled month, else its .1 tag."""
+    starts = {name.capitalize(): day for name, day in tagged.items()}
+    starts.update(schedule)
+    starts.update({entry["name"].capitalize(): month_date(entry["date"]) for entry in planned})
+    return starts
+
+
+def _assigns(node: ast.AST, name: str, kind: type[ast.expr]) -> bool:
     return (
         isinstance(node, ast.Assign)
-        and any(isinstance(target, ast.Name) and target.id == "CURRENT" for target in node.targets)
-        and isinstance(node.value, ast.Dict)
+        and any(isinstance(target, ast.Name) and target.id == name for target in node.targets)
+        and isinstance(node.value, kind)
     )
+
+
+def _scheduled(node: ast.expr) -> tuple[str, date] | None:
+    if not isinstance(node, ast.Tuple) or len(node.elts) != 3:
+        return None
+    name, year, month = (elt.value if isinstance(elt, ast.Constant) else None for elt in node.elts)
+    if not (isinstance(name, str) and isinstance(year, int) and isinstance(month, int) and 1 <= month <= 12):
+        return None
+    return name.capitalize(), date(year, month, 1)
 
 
 def _declared(value: ast.expr | None) -> Declared:
@@ -164,18 +216,29 @@ def shown_cycles(cycles: list[Cycle], current: str | None, today: date) -> list[
         picked = cycles[max(at - 1, 0): at + 1 + NEWER_CYCLES_SHOWN]
     else:
         picked = [cycle for cycle in cycles if _still_supported(cycle, today)][-(NEWER_CYCLES_SHOWN + 1):]
-    return [{**cycle, "current": cycle["cycle"] == current} for cycle in picked]
+    return marked_current(picked, current)
 
 
-def open_edx_cycles(released: dict[str, date], planned: list[dict[str, Any]]) -> list[Cycle]:
-    """Named releases oldest first; each runs until the next one, the last for one release length."""
-    starts = {name.capitalize(): day for name, day in released.items()}
-    for entry in planned:
-        starts.setdefault(entry["name"].capitalize(), month_date(entry["date"]))
+def marked_current(cycles: list[Cycle], current: str | None) -> list[Cycle]:
+    return [{**cycle, "current": cycle["cycle"] == current} for cycle in cycles]
+
+
+def open_edx_cycles(starts: dict[str, date], closing: str | None = None) -> list[Cycle]:
+    """Named releases oldest first; each runs until the next one, the last for one release length.
+
+    ``closing`` names a release that only ends the one before it and gets no bar, as the
+    last entry of barcalendar.py's ``names`` does on the OEP-10 sheet.
+    """
     ordered = sorted(starts.items(), key=lambda item: item[1])
+    if len(ordered) > 1 and ordered[-1][0] == closing:
+        return _consecutive(ordered[:-1], ordered[-1][1])
     if not ordered:
         return []
-    ends = [start for _, start in ordered[1:]] + [add_months(ordered[-1][1], OPEN_EDX_RELEASE_MONTHS)]
+    return _consecutive(ordered, add_months(ordered[-1][1], OPEN_EDX_RELEASE_MONTHS))
+
+
+def _consecutive(ordered: list[tuple[str, date]], last_end: date) -> list[Cycle]:
+    ends = [start for _, start in ordered[1:]] + [last_end]
     return [
         {"cycle": name, "start": start.isoformat(), "end": end.isoformat(), "lts": False}
         for (name, start), end in zip(ordered, ends)
@@ -220,8 +283,9 @@ def product_record(
     today: date,
     eol_soon_months: int,
     tracks_eol: bool = True,
+    every_cycle: bool = False,
 ) -> dict[str, Any]:
-    """``tracks_eol`` is off for Open edX, whose release simply runs until the next one."""
+    """``tracks_eol`` is off for Open edX, whose release simply runs until the next one; ``every_cycle`` keeps all its releases."""
     current = detected.version or declared.version
     current_end = _end_of(cycles, current)
     state, reason = status(declared, detected, current_end, today, eol_soon_months, tracks_eol=tracks_eol)
@@ -237,7 +301,7 @@ def product_record(
         "current_end": current_end.isoformat() if current_end else None,
         "status": state,
         "reason": reason,
-        "cycles": shown_cycles(cycles, current, today),
+        "cycles": marked_current(cycles, current) if every_cycle else shown_cycles(cycles, current, today),
     }
 
 
