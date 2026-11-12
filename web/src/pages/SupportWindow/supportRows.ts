@@ -23,7 +23,17 @@ export interface Bar {
   left: number;
   width: number;
   openEnded: boolean;
+  clippedStart: boolean;
+  clippedEnd: boolean;
 }
+
+export type LabelAnchor = "start" | "end";
+
+export const RELEASE_PRODUCT = "open_edx";
+export const RELEASE_LANES = 3;
+const CATEGORICAL_HUES = 4;
+const END_ANCHOR_FROM_PERCENT = 80;
+const QUARTER_MONTHS = [3, 6, 9];
 
 function utcTime(iso: string): number {
   const [year = 1970, month = 1, day = 1] = iso.slice(0, 10).split("-").map(Number);
@@ -55,15 +65,50 @@ export function yearTicks(range: TimeRange): { year: number; left: number }[] {
   }));
 }
 
+export function quarterTicks(range: TimeRange): number[] {
+  return yearTicks(range).flatMap((tick) => QUARTER_MONTHS.map((month) => percent(Date.UTC(tick.year, month, 1), range)));
+}
+
 export function todayOffset(today: Date, range: TimeRange): number {
   return percent(today.getTime(), range);
 }
 
 export function barFor(cycle: SupportCycle, range: TimeRange): Bar | null {
-  const start = Math.max(utcTime(cycle.start), range.start);
-  const end = Math.min(cycle.end ? utcTime(cycle.end) : range.end, range.end);
-  if (end <= start) return null;
-  return { left: percent(start, range), width: percent(end, range) - percent(start, range), openEnded: cycle.end === null };
+  const start = utcTime(cycle.start);
+  const end = cycle.end ? utcTime(cycle.end) : range.end;
+  const shownStart = Math.max(start, range.start);
+  const shownEnd = Math.min(end, range.end);
+  if (shownEnd <= shownStart) return null;
+  return {
+    left: percent(shownStart, range),
+    width: percent(shownEnd, range) - percent(shownStart, range),
+    openEnded: cycle.end === null,
+    clippedStart: start < range.start,
+    clippedEnd: cycle.end !== null && end > range.end,
+  };
+}
+
+export function labelAnchor(bar: Bar): LabelAnchor {
+  return bar.left > END_ANCHOR_FROM_PERCENT ? "end" : "start";
+}
+
+export function isReleaseBand(product: SupportProduct): boolean {
+  return product.product === RELEASE_PRODUCT;
+}
+
+export function barText(product: SupportProduct, cycle: SupportCycle): string {
+  if (isReleaseBand(product)) return cycle.cycle;
+  const name = `${product.label} ${cycle.cycle}`;
+  if (cycle.end === null) return `${name} · no end date`;
+  return cycle.current ? `${name} · in use, ends ${monthLabel(cycle.end)}` : name;
+}
+
+export function releaseLane(index: number): number {
+  return index % RELEASE_LANES;
+}
+
+export function productHue(index: number): string {
+  return `var(--cat-${(index % CATEGORICAL_HUES) + 1})`;
 }
 
 export function monthLabel(iso: string | null): string {

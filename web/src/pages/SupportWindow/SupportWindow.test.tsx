@@ -142,8 +142,55 @@ describe("Support Window page", () => {
 
     const node = await screen.findByRole("list", { name: "Node release cycles" });
     const current = within(node).getByRole("listitem", { name: "Node 24, May 2025 to Apr 2028, in use" });
-    expect(current.querySelector(".sw-bar")).toHaveClass("sw-bar--current", "sw-bar--ok");
+    expect(current.querySelector(".sw-bar")).toHaveClass("sw-bar--current");
+    expect(current).toHaveTextContent("Node 24 · in use, ends Apr 2028");
     const open = screen.getByRole("listitem", { name: "Redis 8.10, Jul 2026 to no end date published" });
     expect(open.querySelector(".sw-bar")).toHaveClass("sw-bar--open");
+    expect(open).toHaveTextContent("Redis 8.10 · no end date");
+  });
+
+  it("shows each product's status beside its calendar rows", async () => {
+    renderRoute("/support_window");
+
+    const calendar = await screen.findByRole("region", { name: "Release calendar" });
+    const python = within(calendar).getByRole("heading", { name: "Python" }).parentElement as HTMLElement;
+    expect(python).toHaveTextContent("Calendar out of date");
+  });
+
+  it("places the calendar with its legend before the products table", async () => {
+    renderRoute("/support_window");
+
+    const calendar = await screen.findByRole("heading", { level: 2, name: "Calendar" });
+    const table = screen.getByRole("heading", { level: 2, name: "Products" });
+    expect(calendar.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Calendar legend" })).toHaveTextContent("Version in use");
+  });
+
+  it("stacks Open edX releases into lanes", async () => {
+    setView(
+      snapshot({
+        products: [
+          product({
+            product: "open_edx",
+            label: "Open edX",
+            cycles: ["Teak", "Ulmo", "Verawood", "Willow"].map((name, index) => ({
+              cycle: name,
+              start: `202${5 + Math.floor(index / 2)}-0${index % 2 ? 8 : 2}-01`,
+              end: null,
+              lts: false,
+              current: name === "Verawood",
+            })),
+          }),
+        ],
+      }),
+    );
+    renderRoute("/support_window");
+
+    const band = await screen.findByRole("list", { name: "Open edX release cycles" });
+    const lanes = within(band)
+      .getAllByRole("listitem")
+      .map((item) => item.style.getPropertyValue("--lane"));
+    expect(lanes).toEqual(["0", "1", "2", "0"]);
+    expect(band.style.getPropertyValue("--lanes")).toBe("3");
   });
 });

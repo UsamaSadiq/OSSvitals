@@ -19,9 +19,9 @@ import {
   STATUS_ORDER,
   timeRange,
 } from "./supportRows";
-import { Timeline } from "./Timeline";
+import { StatusChip } from "./StatusChip";
+import { Timeline, TimelineLegend } from "./Timeline";
 import "./supportWindow.css";
-import { Badge, type BadgeTone } from "../../components/Badge";
 
 const TILE_STATUSES = STATUS_ORDER.filter((status) => status !== "unknown");
 const TILE_TONES: Partial<Record<SupportProduct["status"], KpiTone>> = { eol: "fail", drift: "warn", eol_soon: "warn", ok: "good" };
@@ -34,18 +34,6 @@ function Intro() {
       <code>barcalendar.py</code>. When they disagree, the calendar needs a pull request.
     </p>
   );
-}
-
-const STATUS_TONES: Record<SupportProduct["status"], BadgeTone> = {
-  drift: "warn",
-  eol: "fail",
-  eol_soon: "warn",
-  ok: "good",
-  unknown: "neutral",
-};
-
-function StatusChip({ product }: { product: SupportProduct }) {
-  return <Badge tone={STATUS_TONES[product.status]}>{STATUS_LABELS[product.status]}</Badge>;
 }
 
 function InUse({ product }: { product: SupportProduct }) {
@@ -117,6 +105,11 @@ function Snapshot({ view }: { view: SupportWindowView }) {
       </p>
       <SummaryTiles summary={view.summary ?? {}} />
       <DriftNotice products={drifted(products)} editUrl={view.edit_url} />
+      <section className="sw-section" aria-labelledby="sw-calendar-heading">
+        <h2 id="sw-calendar-heading">Calendar</h2>
+        <TimelineLegend />
+        <Timeline products={products} range={timeRange(view.window, today)} today={today} />
+      </section>
       <section className="sw-section" aria-labelledby="sw-products-heading">
         <h2 id="sw-products-heading">Products</h2>
         <DataTable
@@ -127,14 +120,6 @@ function Snapshot({ view }: { view: SupportWindowView }) {
           rowKey={(row) => row.product}
           emptyMessage="No products collected."
         />
-      </section>
-      <section className="sw-section" aria-labelledby="sw-calendar-heading">
-        <h2 id="sw-calendar-heading">Calendar</h2>
-        <p className="caption">
-          Each bar runs from release to end of life; the outlined bar is the version in use and the vertical line is
-          today. Faded bars have no published end date.
-        </p>
-        <Timeline products={products} range={timeRange(view.window, today)} today={today} />
       </section>
     </>
   );

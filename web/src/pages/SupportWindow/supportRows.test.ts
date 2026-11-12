@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 import type { SupportCycle, SupportProduct } from "../../data/schemas";
-import { barFor, byStatus, cycleLabel, declaredText, monthLabel, sourcesText, timeRange, yearTicks } from "./supportRows";
+import {
+  barFor,
+  barText,
+  byStatus,
+  cycleLabel,
+  declaredText,
+  labelAnchor,
+  monthLabel,
+  productHue,
+  quarterTicks,
+  releaseLane,
+  sourcesText,
+  timeRange,
+  yearTicks,
+} from "./supportRows";
 
 const TODAY = new Date(Date.UTC(2026, 9, 31));
 const RANGE = timeRange({ years_back: 1, years_ahead: 1 }, TODAY);
@@ -40,6 +54,45 @@ describe("support window rows", () => {
     expect(bar?.left).toBe(0);
     expect(bar?.width).toBeCloseTo(33.3, 0);
     expect(bar?.openEnded).toBe(false);
+    expect(bar).toMatchObject({ clippedStart: true, clippedEnd: false });
+  });
+
+  it("marks a bar cut off by the end of the range apart from one that ends there", () => {
+    expect(barFor(cycle({ end: "2030-01-01" }), RANGE)).toMatchObject({ clippedEnd: true, openEnded: false });
+    expect(barFor(cycle({ end: "2028-01-01" }), RANGE)).toMatchObject({ clippedEnd: false });
+    expect(barFor(cycle({ end: null }), RANGE)).toMatchObject({ clippedEnd: false, openEnded: true });
+  });
+
+  it("puts three quarter ticks inside each year", () => {
+    const quarters = quarterTicks(RANGE);
+
+    expect(quarters).toHaveLength(9);
+    expect(quarters[0]).toBeGreaterThan(0);
+    expect(quarters[2]).toBeLessThan(yearTicks(RANGE)[1]!.left);
+  });
+
+  it("anchors a label to the bar end only near the right edge", () => {
+    const bar = { width: 5, openEnded: false, clippedStart: false, clippedEnd: false };
+
+    expect(labelAnchor({ ...bar, left: 10 })).toBe("start");
+    expect(labelAnchor({ ...bar, left: 75 })).toBe("start");
+    expect(labelAnchor({ ...bar, left: 85 })).toBe("end");
+  });
+
+  it("writes the product and version on the bar, with the end date for the one in use", () => {
+    expect(barText(product(), cycle())).toBe("Python 3.12");
+    expect(barText(product(), cycle({ current: true }))).toBe("Python 3.12 · in use, ends Jan 2027");
+    expect(barText(product(), cycle({ end: null }))).toBe("Python 3.12 · no end date");
+    expect(barText(product({ product: "open_edx", label: "Open edX" }), cycle({ cycle: "Verawood" }))).toBe("Verawood");
+    expect(barText(product({ product: "open_edx", label: "Open edX" }), cycle({ cycle: "Verawood", current: true }))).toBe(
+      "Verawood",
+    );
+  });
+
+  it("staggers releases across three lanes and cycles product hues", () => {
+    expect([0, 1, 2, 3].map(releaseLane)).toEqual([0, 1, 2, 0]);
+    expect(productHue(0)).toBe("var(--cat-1)");
+    expect(productHue(4)).toBe("var(--cat-1)");
   });
 
   it("runs an open-ended cycle to the end of the range and drops cycles outside it", () => {
