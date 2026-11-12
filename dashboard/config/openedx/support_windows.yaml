@@ -30,8 +30,9 @@ open_edx:
   source_note: https://docs.openedx.org/en/latest/community/release_notes/index.html
   tag_repo: openedx/openedx-platform
   # Releases and their start months come from the `names` list in barcalendar.py, as
-  # on the OEP-10 sheet. The commit a <prefix><name>.1 tag points at dates a release
-  # only when that list cannot be read.
+  # on the OEP-10 sheet, where the last name only ends the release before it. The
+  # commit a <prefix><name>.1 tag points at dates a release only when that list
+  # cannot be read.
   tag_prefixes: [release/, open-release/]
   detect: {source: tutor, path: tutor/templates/config/defaults.yml, pattern: 'OPENEDX_COMMON_VERSION: "release/([a-z]+)\.'}
   # An entry here overrides the scheduled month, e.g. {name: Willow, date: 2027-02}.

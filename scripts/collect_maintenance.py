@@ -442,9 +442,9 @@ def _open_edx_record(
     schedule: list[tuple[str, date]],
     **context: Any,
 ) -> dict[str, Any]:
-    tagged = {name: when.date() for name, when in _release_dates(settings).items()}
+    tagged = {} if schedule else {name: when.date() for name, when in _release_dates(settings).items()}
     starts = support_windows.release_starts(tagged, schedule, settings.get("planned", []))
-    cycles = support_windows.open_edx_cycles(starts)
+    cycles = support_windows.open_edx_cycles(starts, closing=schedule[-1][0] if schedule else None)
     found = _detected(settings["detect"], refs)
     detected = support_windows.Detected(
         found.version.capitalize() if found.version else None, found.repo, found.ref, found.path

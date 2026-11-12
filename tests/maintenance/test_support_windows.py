@@ -137,6 +137,15 @@ def test_scheduled_releases_run_six_months_like_the_sheet():
     ]
 
 
+def test_the_closing_release_only_ends_the_one_before_it():
+    schedule = sw.release_schedule(BARCALENDAR)
+
+    cycles = sw.open_edx_cycles(sw.release_starts({}, schedule, []), closing=schedule[-1][0])
+
+    assert cycles[-1] == {"cycle": "Yucca", "start": "2027-12-01", "end": "2028-06-01", "lts": False}
+    assert sw.open_edx_cycles({"Ulmo": date(2025, 12, 1)}, closing="Ulmo")[0]["end"] == "2026-06-01"
+
+
 def test_product_record_keeps_every_release_when_asked():
     cycles = sw.open_edx_cycles(sw.release_starts({}, sw.release_schedule(BARCALENDAR), []))
     detected = sw.Detected("Verawood", "overhangio/tutor", "v22.0.3", "tutor/templates/config/defaults.yml")

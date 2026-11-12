@@ -223,12 +223,22 @@ def marked_current(cycles: list[Cycle], current: str | None) -> list[Cycle]:
     return [{**cycle, "current": cycle["cycle"] == current} for cycle in cycles]
 
 
-def open_edx_cycles(starts: dict[str, date]) -> list[Cycle]:
-    """Named releases oldest first; each runs until the next one, the last for one release length."""
+def open_edx_cycles(starts: dict[str, date], closing: str | None = None) -> list[Cycle]:
+    """Named releases oldest first; each runs until the next one, the last for one release length.
+
+    ``closing`` names a release that only ends the one before it and gets no bar, as the
+    last entry of barcalendar.py's ``names`` does on the OEP-10 sheet.
+    """
     ordered = sorted(starts.items(), key=lambda item: item[1])
+    if len(ordered) > 1 and ordered[-1][0] == closing:
+        return _consecutive(ordered[:-1], ordered[-1][1])
     if not ordered:
         return []
-    ends = [start for _, start in ordered[1:]] + [add_months(ordered[-1][1], OPEN_EDX_RELEASE_MONTHS)]
+    return _consecutive(ordered, add_months(ordered[-1][1], OPEN_EDX_RELEASE_MONTHS))
+
+
+def _consecutive(ordered: list[tuple[str, date]], last_end: date) -> list[Cycle]:
+    ends = [start for _, start in ordered[1:]] + [last_end]
     return [
         {"cycle": name, "start": start.isoformat(), "end": end.isoformat(), "lts": False}
         for (name, start), end in zip(ordered, ends)
