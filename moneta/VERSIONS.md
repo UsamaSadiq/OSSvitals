@@ -1,10 +1,10 @@
 # Versions
 
-Generated 2026-11-19. Generated from public GitHub data. "Latest release" is the newest stable tag we cut from the production branch; it is what source is published, not what any server is running.
+Generated 2026-11-20. Generated from public GitHub data. "Latest release" is the newest stable tag we cut from the production branch; it is what source is published, not what any server is running.
 
 | App | Latest release | Upstream release | Licence | Status |
 |---|---|---|---|---|
-| chatwoot | v26.11.1 | v4.20.0 | MIT | lagging |
+| chatwoot | v26.11.1 | v4.20.1 | MIT | lagging |
 | mautic | v26.11.1 | 7.2.2 | GPL-3.0-or-later | in-sync |
 | open-notebook | v1.8.5 | v1.15.1 | MIT | critical |
 | outline | v26.11.1 | v1.13.0 | BUSL-1.1 | lagging |
