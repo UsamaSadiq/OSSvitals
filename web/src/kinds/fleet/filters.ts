@@ -8,7 +8,20 @@ export const PARAMS = {
   noRelease: "no_release",
   unpromoted: "unpromoted",
   app: "app",
+  platform: "platform",
 } as const;
+
+export const PLATFORMS = ["web", "desktop"] as const;
+export type Platform = (typeof PLATFORMS)[number];
+export const PLATFORM_LABELS: Readonly<Record<Platform, string>> = { web: "Web apps", desktop: "Desktop apps" };
+
+function isPlatform(value: string | null): value is Platform {
+  return PLATFORMS.some((platform) => platform === value);
+}
+
+export function platformOf(row: ForkRow): Platform {
+  return row.app.platform ?? "web";
+}
 
 export const FILTER_PARAMS = Object.values(PARAMS);
 
@@ -19,6 +32,7 @@ export interface ForkFilters {
   noRelease: boolean;
   unpromoted: boolean;
   app: string | null;
+  platform: Platform | null;
 }
 
 export function parseFilters(params: URLSearchParams): ForkFilters {
@@ -29,7 +43,12 @@ export function parseFilters(params: URLSearchParams): ForkFilters {
     noRelease: params.get(PARAMS.noRelease) === "1",
     unpromoted: params.get(PARAMS.unpromoted) === "1",
     app: params.get(PARAMS.app) || null,
+    platform: platformParam(params.get(PARAMS.platform)),
   };
+}
+
+function platformParam(value: string | null): Platform | null {
+  return isPlatform(value) ? value : null;
 }
 
 const SIGNAL_OF_FLAG = { advisories: "advisories", noRelease: "fork_release", unpromoted: "promotion" } as const satisfies Record<string, SignalKey>;
@@ -45,7 +64,7 @@ export function withoutHiddenFilters(filters: ForkFilters, isShown: (key: Signal
 }
 
 export function hasActiveFilters(filters: ForkFilters): boolean {
-  return filters.statuses.length > 0 || filters.licence !== null || filters.advisories || filters.noRelease || filters.unpromoted || filters.app !== null;
+  return filters.statuses.length > 0 || filters.licence !== null || filters.advisories || filters.noRelease || filters.unpromoted || filters.app !== null || filters.platform !== null;
 }
 
 export function toggledStatuses(current: readonly Status[], status: Status): Status[] {
@@ -60,7 +79,8 @@ function matches(row: ForkRow, filters: ForkFilters): boolean {
     (!filters.advisories || (applyingAdvisories(drift) ?? 0) > 0) &&
     (!filters.noRelease || drift.fork_release === null) &&
     (!filters.unpromoted || (drift.promotion?.unpromoted_commits ?? 0) > 0) &&
-    (filters.app === null || app.repo === filters.app)
+    (filters.app === null || app.repo === filters.app) &&
+    (filters.platform === null || platformOf(row) === filters.platform)
   );
 }
 
@@ -70,6 +90,15 @@ export function applyFilters(rows: readonly ForkRow[], filters: ForkFilters): Fo
 
 export function countsIgnoringStatus(rows: readonly ForkRow[], filters: ForkFilters): Record<Status, number> {
   return statusCounts(applyFilters(rows, { ...filters, statuses: [] }));
+}
+
+export function platformCounts(rows: readonly ForkRow[], filters: ForkFilters): Record<Platform, number> {
+  const others = applyFilters(rows, { ...filters, platform: null });
+  return { web: others.filter((row) => platformOf(row) === "web").length, desktop: others.filter((row) => platformOf(row) === "desktop").length };
+}
+
+export function hasSeveralPlatforms(rows: readonly ForkRow[]): boolean {
+  return new Set(rows.map(platformOf)).size > 1;
 }
 
 export function appOptions(rows: readonly ForkRow[]): string[] {

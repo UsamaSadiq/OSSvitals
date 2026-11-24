@@ -36,6 +36,7 @@ def collect_app(
         "full_name": name,
         "class": app["class"],
         "group": app.get("group"),
+        "platform": app.get("platform"),
         "archived": bool(repo.get("archived")),
         "url": repo["html_url"],
         "description": repo.get("description"),
