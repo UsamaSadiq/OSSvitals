@@ -16,6 +16,7 @@ import {
   platformCounts,
   toggledStatuses,
   withoutHiddenFilters,
+  withoutUnofferedPlatform,
 } from "./filters";
 import { STATUS_LABELS, STATUS_ORDER, type ForkRow } from "./rows";
 import { useSignalVisibility } from "./visibility";
@@ -55,7 +56,7 @@ export function FilterBar({ rows, shown }: { rows: readonly ForkRow[]; shown: nu
   const [params, setParams] = useSearchParams();
   const update = useParamUpdater();
   const { isShown } = useSignalVisibility();
-  const filters = withoutHiddenFilters(parseFilters(params), (key) => isShown(key, "filter"));
+  const filters = withoutUnofferedPlatform(withoutHiddenFilters(parseFilters(params), (key) => isShown(key, "filter")), rows);
   const counts = countsIgnoringStatus(rows, filters);
   const perPlatform = platformCounts(rows, filters);
   const clear = () => setParams((current) => withoutFilters(current), { replace: true });

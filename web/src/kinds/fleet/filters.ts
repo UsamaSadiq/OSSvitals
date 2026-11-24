@@ -101,6 +101,11 @@ export function hasSeveralPlatforms(rows: readonly ForkRow[]): boolean {
   return new Set(rows.map(platformOf)).size > 1;
 }
 
+/** The platform filter is ignored when the rows give no choice, even if a shared link still carries it. */
+export function withoutUnofferedPlatform(filters: ForkFilters, rows: readonly ForkRow[]): ForkFilters {
+  return hasSeveralPlatforms(rows) ? filters : { ...filters, platform: null };
+}
+
 export function appOptions(rows: readonly ForkRow[]): string[] {
   return rows.map((row) => row.app.repo).sort((a, b) => a.localeCompare(b));
 }

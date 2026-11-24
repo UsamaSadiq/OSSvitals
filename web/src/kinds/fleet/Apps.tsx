@@ -12,7 +12,7 @@ import { FilterBar } from "./FilterBar";
 import { ForkCards } from "./ForkCards";
 import { StatusPill } from "./StatusPill";
 import { forksCsv } from "./csv";
-import { applyFilters, parseFilters, withoutHiddenFilters } from "./filters";
+import { applyFilters, parseFilters, withoutHiddenFilters, withoutUnofferedPlatform } from "./filters";
 import { appPath } from "./paths";
 import { applyingAdvisories, byDrift, forkRows, formatDay, releaseGapText, severity, sortedForks, type ForkRow } from "./rows";
 import type { AppRecord } from "./schemas";
@@ -168,7 +168,8 @@ function Forks({ forks }: { forks: readonly ForkRow[] }) {
   const { org } = useTenant();
   const { isShown } = useSignalVisibility();
   const [params] = useSearchParams();
-  const shown = applyFilters(forks, withoutHiddenFilters(parseFilters(params), (key) => isShown(key, "filter")));
+  const filters = withoutUnofferedPlatform(withoutHiddenFilters(parseFilters(params), (key) => isShown(key, "filter")), forks);
+  const shown = applyFilters(forks, filters);
   return (
     <>
       <FilterBar rows={forks} shown={shown.length} />
