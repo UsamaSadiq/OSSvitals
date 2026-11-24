@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appOptions, applyFilters, countsIgnoringStatus, hasActiveFilters, licenceOptions, parseFilters, toggledStatuses, type ForkFilters } from "./filters";
+import { appOptions, applyFilters, countsIgnoringStatus, hasActiveFilters, hasSeveralPlatforms, licenceOptions, parseFilters, platformCounts, toggledStatuses, type ForkFilters } from "./filters";
 import type { ForkRow } from "./rows";
 
 function row(repo: string, status: string, licence: string | null, advisories: number, released: boolean, staged = 0): ForkRow {
@@ -42,7 +42,7 @@ const ROWS = [
   row("delta", "in-sync", null, 0, false),
 ];
 
-const NONE: ForkFilters = { statuses: [], licence: null, advisories: false, noRelease: false, unpromoted: false, app: null };
+const NONE: ForkFilters = { statuses: [], licence: null, advisories: false, noRelease: false, unpromoted: false, app: null, platform: null };
 const names = (filters: Partial<ForkFilters>) => applyFilters(ROWS, { ...NONE, ...filters }).map((r) => r.app.repo);
 
 describe("applyFilters", () => {
@@ -80,8 +80,8 @@ describe("countsIgnoringStatus", () => {
 
 describe("query parameters", () => {
   it("round trips the filters and drops unknown statuses", () => {
-    const filters = parseFilters(new URLSearchParams("status=stale,bogus,critical&licence=MIT&advisories=1&no_release=1&unpromoted=1&app=alpha"));
-    expect(filters).toEqual({ statuses: ["stale", "critical"], licence: "MIT", advisories: true, noRelease: true, unpromoted: true, app: "alpha" });
+    const filters = parseFilters(new URLSearchParams("status=stale,bogus,critical&licence=MIT&advisories=1&no_release=1&unpromoted=1&app=alpha&platform=desktop"));
+    expect(filters).toEqual({ statuses: ["stale", "critical"], licence: "MIT", advisories: true, noRelease: true, unpromoted: true, app: "alpha", platform: "desktop" });
     expect(hasActiveFilters(filters)).toBe(true);
     expect(hasActiveFilters(parseFilters(new URLSearchParams("")))).toBe(false);
   });
@@ -101,5 +101,32 @@ describe("appOptions", () => {
 describe("licenceOptions", () => {
   it("lists each recorded licence once, sorted", () => {
     expect(licenceOptions(ROWS)).toEqual(["AGPL-3.0", "MIT"]);
+  });
+});
+
+describe("platform", () => {
+  const desktop = (base: ForkRow): ForkRow => ({ ...base, app: { ...base.app, platform: "desktop" } });
+  const web = row("web-app", "stale", "MIT", 0, true);
+  const packaged = desktop(row("desktop-app", "stale", "MIT", 0, true));
+  const MIXED = [web, packaged];
+
+  it("treats an app without a platform as a web app", () => {
+    expect(applyFilters(MIXED, { ...NONE, platform: "web" }).map((r) => r.app.repo)).toEqual(["web-app"]);
+    expect(applyFilters(MIXED, { ...NONE, platform: "desktop" }).map((r) => r.app.repo)).toEqual(["desktop-app"]);
+  });
+
+  it("reads the platform from the query string and ignores unknown values", () => {
+    expect(parseFilters(new URLSearchParams("platform=desktop")).platform).toBe("desktop");
+    expect(parseFilters(new URLSearchParams("platform=mobile")).platform).toBeNull();
+    expect(hasActiveFilters({ ...NONE, platform: "desktop" })).toBe(true);
+  });
+
+  it("counts each platform regardless of the platform already chosen", () => {
+    expect(platformCounts(MIXED, { ...NONE, platform: "desktop" })).toEqual({ web: 1, desktop: 1 });
+  });
+
+  it("only offers the split when both platforms are present", () => {
+    expect(hasSeveralPlatforms(ROWS)).toBe(false);
+    expect(hasSeveralPlatforms(MIXED)).toBe(true);
   });
 });

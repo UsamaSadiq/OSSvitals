@@ -11,6 +11,7 @@ const appRecord = z.object({
   full_name: optionalString,
   class: z.enum(["fork", "original", "dependency"]),
   group: optionalString,
+  platform: z.enum(["web", "desktop"]).nullish(),
   archived: z.boolean().nullish(),
   url: z.string(),
   description: nullableString,

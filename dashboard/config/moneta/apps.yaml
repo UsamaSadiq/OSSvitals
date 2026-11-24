@@ -8,8 +8,16 @@ apps:
   - {repo: zammad, class: fork, mcp_server: zammad-mcp-server, upstream: zammad/zammad, upstream_branch: develop, release_tag: '^\d+\.\d+\.\d+$', licence: "AGPL-3.0"}
   - {repo: chatwoot, class: fork, upstream: chatwoot/chatwoot, upstream_branch: develop, licence: "MIT", licence_note: "enterprise/ is under a separate licence"}
   - {repo: mautic, class: fork, upstream: mautic/mautic, upstream_branch: "7.x", licence: "GPL-3.0-or-later"}
-  - {repo: open-notebook, class: fork, upstream: lfnovo/open-notebook, upstream_branch: main, licence: "MIT", production_branch: main}
-  - {repo: presenton, class: fork, upstream: presenton/presenton, upstream_branch: main, release_tag: '^v\d+\.\d+\.\d+-beta$', licence: "Apache-2.0", production_branch: main}
+  - {repo: open-notebook, class: fork, platform: desktop, upstream: lfnovo/open-notebook, upstream_branch: main, licence: "MIT", production_branch: main}
+  - {repo: presenton, class: fork, platform: desktop, upstream: presenton/presenton, upstream_branch: main, release_tag: '^v\d+\.\d+\.\d+-beta$', licence: "Apache-2.0", production_branch: main}
+  - {repo: zulip, class: fork, upstream: zulip/zulip, upstream_branch: "12.x", release_tag: '^12\.\d+$', licence: "Apache-2.0"}
+  - {repo: frappe, class: fork, upstream: frappe/frappe, upstream_branch: version-16, release_tag: '^v16\.\d+\.\d+$', licence: "MIT"}
+  - {repo: erpnext, class: fork, upstream: frappe/erpnext, upstream_branch: version-16, release_tag: '^v16\.\d+\.\d+$', licence: "GPL-3.0"}
+  - {repo: hrms, class: fork, upstream: frappe/hrms, upstream_branch: version-16, release_tag: '^v16\.\d+\.\d+$', licence: "GPL-3.0"}
+  - {repo: crm, class: fork, upstream: frappe/crm, upstream_branch: main, licence: "AGPL-3.0"}
+  - {repo: raven, class: fork, upstream: frappe/raven, upstream_branch: main, licence: "AGPL-3.0"}
+  - {repo: buzz, class: fork, platform: desktop, upstream: block/buzz, upstream_branch: main, release_tag: '^desktop-v\d+\.\d+\.\d+$', licence: "Apache-2.0"}
+  - {repo: buzz-app, class: fork, platform: desktop, upstream: block/buzz-app, upstream_branch: main, release_tag: '^v\d+\.\d+\.\d+$', fork_release_tag: '^v\d+\.\d+\.\d+$', licence: "Apache-2.0"}
   - {repo: plane-mcp-server, class: fork, upstream: makeplane/plane-mcp-server, upstream_branch: main, licence: "MIT"}
   - {repo: outline-mcp-server, class: fork, upstream: arbisoft/outline-mcp-server, upstream_branch: main, licence: "MIT"}
   - {repo: zammad-mcp-server, class: original, licence: "MIT"}

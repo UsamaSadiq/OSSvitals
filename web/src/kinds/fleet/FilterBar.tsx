@@ -5,13 +5,18 @@ import { useParamUpdater } from "../../components/queryParams";
 import {
   FILTER_PARAMS,
   PARAMS,
+  PLATFORMS,
+  PLATFORM_LABELS,
   appOptions,
   countsIgnoringStatus,
   hasActiveFilters,
+  hasSeveralPlatforms,
   licenceOptions,
   parseFilters,
+  platformCounts,
   toggledStatuses,
   withoutHiddenFilters,
+  withoutUnofferedPlatform,
 } from "./filters";
 import { STATUS_LABELS, STATUS_ORDER, type ForkRow } from "./rows";
 import { useSignalVisibility } from "./visibility";
@@ -51,11 +56,25 @@ export function FilterBar({ rows, shown }: { rows: readonly ForkRow[]; shown: nu
   const [params, setParams] = useSearchParams();
   const update = useParamUpdater();
   const { isShown } = useSignalVisibility();
-  const filters = withoutHiddenFilters(parseFilters(params), (key) => isShown(key, "filter"));
+  const filters = withoutUnofferedPlatform(withoutHiddenFilters(parseFilters(params), (key) => isShown(key, "filter")), rows);
   const counts = countsIgnoringStatus(rows, filters);
+  const perPlatform = platformCounts(rows, filters);
   const clear = () => setParams((current) => withoutFilters(current), { replace: true });
   return (
     <div className="fork-filters" role="group" aria-label="Filter forks">
+      {hasSeveralPlatforms(rows) && (
+        <div className="fork-filters__chips" role="group" aria-label="App type">
+          {PLATFORMS.map((platform) => (
+            <FilterChip
+              key={platform}
+              pressed={filters.platform === platform}
+              onToggle={() => update({ [PARAMS.platform]: filters.platform === platform ? null : platform })}
+            >
+              {`${PLATFORM_LABELS[platform]} (${perPlatform[platform]})`}
+            </FilterChip>
+          ))}
+        </div>
+      )}
       <div className="fork-filters__chips">
         {STATUS_ORDER.map((status) => (
           <FilterChip

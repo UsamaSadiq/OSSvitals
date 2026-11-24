@@ -191,6 +191,34 @@ describe("Moneta apps page app filter", () => {
   });
 });
 
+describe("Moneta apps page platform filter", () => {
+  const original = FILES["apps.json"];
+  afterEach(() => {
+    FILES["apps.json"] = original;
+  });
+
+  const cardNames = async () => (await screen.findAllByRole("article")).map((card) => within(card).getByRole("heading").textContent);
+
+  it("splits web and desktop apps with counts and clears on a second press", async () => {
+    FILES["apps.json"] = { metadata, records: [app("calm", "fork"), { ...app("burning", "fork"), platform: "desktop" }] };
+    renderRoute("/apps", META, monetaTenant);
+    expect(await filterChip(/^Web apps \(1\)$/)).toBeTruthy();
+    const desktop = await filterChip(/^Desktop apps \(1\)$/);
+    fireEvent.click(desktop);
+    await waitFor(async () => expect(await cardNames()).toEqual(["burning"]));
+    expect(desktop.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(desktop);
+    await waitFor(async () => expect(await cardNames()).toEqual(["burning", "calm"]));
+  });
+
+  it("offers no split and ignores a shared platform link when every fork is the same type", async () => {
+    FILES["apps.json"] = { metadata, records: [app("calm", "fork"), app("burning", "fork")] };
+    renderRoute("/apps?platform=desktop", META, monetaTenant);
+    expect(await cardNames()).toEqual(["burning", "calm"]);
+    expect(screen.queryByRole("group", { name: "App type" })).toBeNull();
+  });
+});
+
 describe("Fleet apps page for another org", () => {
   it("loads that org's own views", async () => {
     renderRoute("/apps", META, fleetTenant("acme"));
