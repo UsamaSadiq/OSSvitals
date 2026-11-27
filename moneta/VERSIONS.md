@@ -1,6 +1,6 @@
 # Versions
 
-Generated 2026-11-26. Generated from public GitHub data. "Latest release" is the newest stable tag we cut from the production branch; it is what source is published, not what any server is running.
+Generated 2026-11-27. Generated from public GitHub data. "Latest release" is the newest stable tag we cut from the production branch; it is what source is published, not what any server is running.
 
 | App | Latest release | Upstream release | Licence | Status |
 |---|---|---|---|---|
@@ -13,6 +13,6 @@ Generated 2026-11-26. Generated from public GitHub data. "Latest release" is the
 | plane | v26.11.1 | v1.5.1 | AGPL-3.0 | critical |
 | plane-mcp-server | v26.11.0 | v0.3.7 | MIT | lagging |
 | presenton | 0.5.10 | v0.9.12-beta | Apache-2.0 | in-sync |
-| twenty | v26.11.2 | twenty/v2.63.0 | AGPL-3.0 | lagging |
+| twenty | v26.11.2 | twenty/v2.65.0 | AGPL-3.0 | lagging |
 | zammad | v26.11.0 | 7.3.0 | AGPL-3.0 | critical |
 | zammad-mcp-server | v26.11.0 | – | MIT | – |
